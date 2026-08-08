@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IST — artifact</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #050403;
+    font-family: 'Space Mono', monospace;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    user-select: none;
+  }
+  .env { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
+  .env canvas { position: absolute; top: 0; left: 0; }
+
+  .artifact {
+    position: relative; z-index: 2;
+    background: linear-gradient(160deg, #2a2420 0%, #1e1814 30%, #241e1a 60%, #161210 100%);
+    border: 10px solid;
+    border-image: linear-gradient(135deg, #4a3a28 0%, #2a2018 40%, #3a2a18 60%, #4a3520 100%) 1;
+    border-radius: 16px;
+    box-shadow:
+      inset 0 0 80px rgba(0,0,0,0.7),
+      inset 0 2px 4px rgba(255,200,100,0.03),
+      0 0 60px rgba(180,100,40,0.04),
+      0 12px 48px rgba(0,0,0,0.7),
+      0 0 0 2px rgba(30,20,12,0.8),
+      0 0 0 12px rgba(20,14,10,0.5);
+    padding: 36px 56px 44px;
+    min-width: 460px;
+  }
+
+  .artifact::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background:
+      radial-gradient(ellipse at 15% 85%, rgba(90, 40, 10, 0.5) 0%, transparent 45%),
+      radial-gradient(ellipse at 85% 10%, rgba(70, 30, 8, 0.35) 0%, transparent 40%),
+      radial-gradient(ellipse at 50% 0%, rgba(50, 20, 5, 0.3) 0%, transparent 30%);
+    border-radius: 6px;
+    z-index: 4;
+    pointer-events: none;
+  }
+
+  .artifact::after {
+    content: '';
+    position: absolute; top: 12px; left: 12px; right: 12px; bottom: 12px;
+    border: 1px solid rgba(100, 70, 30, 0.08);
+    border-radius: 4px;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  .screen-damage { position: absolute; top: 12px; left: 12px; right: 12px; bottom: 12px; z-index: 6; pointer-events: none; border-radius: 4px; overflow: hidden; }
+  .screen-damage canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+  .display { position: relative; z-index: 8; text-align: center; }
+  .display::before {
+    content: '';
+    position: absolute; top: -8px; left: 10%; right: 10%; bottom: -8px;
+    background: radial-gradient(ellipse at center, rgba(200,140,40,0.04) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.35em;
+    color: rgba(160, 110, 30, 0.35);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .label .led { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: rgba(200, 130, 30, 0.5); margin-right: 10px; box-shadow: 0 0 6px rgba(200, 130, 30, 0.3); animation: ledFade 2.5s ease-in-out infinite; }
+  @keyframes ledFade { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.9; } }
+
+  .time {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(3rem, 9vw, 6.5rem);
+    font-weight: 400;
+    color: #d4a030;
+    letter-spacing: 0.08em;
+    text-shadow:
+      0 0 16px rgba(200, 140, 20, 0.35),
+      0 0 48px rgba(180, 100, 10, 0.12),
+      2px 0 0 rgba(180, 100, 10, 0.08);
+    cursor: default;
+    position: relative;
+    filter: brightness(0.9) contrast(1.05);
+  }
+  .time .colon { color: rgba(180, 120, 20, 0.4); animation: colonFlicker 1s step-end infinite; }
+  @keyframes colonFlicker { 50% { opacity: 0.15; } }
+
+  .tz {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    color: rgba(140, 100, 30, 0.25);
+    margin-top: 6px;
+  }
+
+  .date {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.18em;
+    color: rgba(130, 90, 30, 0.25);
+    margin-top: 14px;
+  }
+
+  .divider {
+    width: 40%;
+    height: 1px;
+    margin: 24px auto;
+    background: linear-gradient(90deg, transparent, rgba(140, 100, 30, 0.15), transparent);
+  }
+
+  .stopwatch { position: relative; z-index: 8; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .sw-display {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.4rem;
+    color: rgba(90, 150, 170, 0.4);
+    letter-spacing: 0.12em;
+    transition: color 0.3s;
+  }
+  .sw-display.live { color: rgba(80, 200, 220, 0.6); text-shadow: 0 0 10px rgba(80, 200, 220, 0.15); }
+
+  .sw-btns { display: flex; gap: 10px; }
+  .sw-btns button {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    padding: 6px 18px;
+    background: rgba(40, 30, 20, 0.6);
+    border: 1px solid rgba(120, 80, 30, 0.2);
+    color: rgba(140, 100, 30, 0.4);
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .sw-btns button:hover { border-color: rgba(160, 110, 30, 0.35); color: rgba(180, 130, 30, 0.6); }
+  .sw-btns button.on { border-color: rgba(80, 180, 200, 0.35); color: rgba(80, 180, 200, 0.6); }
+
+  .laps {
+    font-size: 0.55rem;
+    color: rgba(120, 80, 30, 0.2);
+    margin-top: 4px;
+    max-height: 60px;
+    overflow-y: auto;
+    letter-spacing: 0.1em;
+    text-align: center;
+    min-width: 120px;
+  }
+  .laps div { padding: 2px 0; }
+
+  .sigil {
+    position: absolute; bottom: 16px; right: 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.5rem;
+    letter-spacing: 0.25em;
+    color: rgba(120, 80, 30, 0.15);
+    z-index: 9;
+    pointer-events: none;
+  }
+
+  .easter-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; pointer-events: none; opacity: 0;
+    transition: opacity 0.5s;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.98) 100%);
+  }
+  .easter-overlay.reveal { opacity: 1; }
+  .easter-text {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.1rem; color: #d4a030;
+    letter-spacing: 0.22em; text-align: center;
+    text-shadow: 0 0 16px rgba(200, 140, 20, 0.4);
+    animation: flickText 2s ease-in-out;
+  }
+  .easter-text .star { display: block; font-size: 1.8rem; color: rgba(200, 140, 30, 0.25); margin-top: 14px; animation: fadeStar 3s ease-in-out forwards; }
+  @keyframes flickText { 0%,18%,22%,26%,52%,56%,100%{opacity:1} 20%,24%,54%{opacity:0.2} }
+  @keyframes fadeStar { 0%{opacity:0} 50%{opacity:0.5} 100%{opacity:0} }
+
+  @media (max-width: 540px) {
+    .artifact { min-width: auto; padding: 28px 32px 36px; }
+    .time { font-size: 2.4rem; }
+  }</style>
+</head>
+<body>
+<div class="env"><canvas id="envCanvas"></canvas></div>
+
+<div class="artifact" id="artifact">
+  <div class="screen-damage"><canvas id="damageCanvas"></canvas></div>
+
+  <div class="display">
+    <div class="label"><span class="led"></span>INDIAN STANDARD TIME</div>
+    <div class="time" id="timeDisplay">--:--:--</div>
+    <div class="tz">UTC+5:30 · IST</div>
+    <div class="date" id="dateDisplay">--/--/----</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="stopwatch">
+    <div class="sw-display" id="swDisplay">00:00.00</div>
+    <div class="sw-btns">
+      <button id="swStart">start</button>
+      <button id="swLap">lap</button>
+      <button id="swReset">reset</button>
+    </div>
+    <div class="laps" id="lapList"></div>
+  </div>
+
+  <div class="sigil">RELIC · 2077 · BHARAT</div>
+</div>
+
+<div class="easter-overlay" id="easterEgg">
+  <div class="easter-text">SEE YOU SPACE COWBOY...<span class="star">✦</span></div>
+</div>
+
+<script>
+// --- Environment canvas: dust motes + embers
+const envC = document.getElementById('envCanvas');
+const envCtx = envC.getContext('2d');
+let W, H, envT = 0;
+function resizeEnv() { W = envC.width = window.innerWidth; H = envC.height = window.innerHeight; }
+window.addEventListener('resize', resizeEnv); resizeEnv();
+
+const motes = [];
+for (let i = 0; i < 60; i++) {
+  motes.push({ x: Math.random()*W, y: Math.random()*H, vx: (Math.random()-0.5)*0.25, vy: -Math.random()*0.35-0.05, r: Math.random()*1.4+0.4, a: Math.random()*0.3+0.05, hue: Math.random()<0.3?20:35 });
+}
+function drawEnv() {
+  envT += 0.016;
+  envCtx.clearRect(0, 0, W, H);
+  for (const m of motes) {
+    m.x += m.vx + Math.sin(envT*m.r+m.y*0.001)*0.08;
+    m.y += m.vy;
+    if (m.y<-10) { m.y=H+10; m.x=Math.random()*W; }
+    if (m.x<-10) m.x=W+10;
+    if (m.x>W+10) m.x=-10;
+    envCtx.beginPath();
+    envCtx.arc(m.x, m.y, m.r, 0, Math.PI*2);
+    envCtx.fillStyle = `hsla(${m.hue}, 60%, 55%, ${m.a})`;
+    envCtx.fill();
+  }
+  for (let i=0; i<motes.length; i++) {
+    for (let j=i+1; j<motes.length; j++) {
+      const dx=motes[i].x-motes[j].x, dy=motes[i].y-motes[j].y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if (d<90) {
+        envCtx.beginPath(); envCtx.moveTo(motes[i].x, motes[i].y); envCtx.lineTo(motes[j].x, motes[j].y);
+        envCtx.strokeStyle=`rgba(180,130,40,${0.015*(1-d/90)})`; envCtx.lineWidth=0.4; envCtx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(drawEnv);
+}
+drawEnv();
+
+// --- Screen damage canvas: cracks, scratches, uneven burn
+const dmgC = document.getElementById('damageCanvas');
+const dmgCtx = dmgC.getContext('2d');
+function drawDamage() {
+  const dw = dmgC.parentElement.clientWidth;
+  const dh = dmgC.parentElement.clientHeight;
+  dmgC.width = dw; dmgC.height = dh;
+  dmgCtx.clearRect(0,0,dw,dh);
+
+  dmgCtx.fillStyle = 'rgba(0,0,0,0.08)';
+  dmgCtx.fillRect(0,0,dw,dh);
+
+  const cracks = [
+    {x:dw*0.12,y:0,ex:dw*0.25,ey:dh*0.4,w:0.6,a:0.12},
+    {x:dw*0.55,y:0,ex:dw*0.45,ey:dh*0.3,w:0.4,a:0.08},
+    {x:dw*0.78,y:dh,ex:dw*0.72,ey:dh*0.55,w:0.5,a:0.1},
+    {x:dw*0.05,y:dh*0.7,ex:dw*0.18,ey:dh*0.65,w:0.4,a:0.07},
+    {x:dw*0.88,y:dh*0.2,ex:dw*0.76,ey:dh*0.45,w:0.5,a:0.09},
+    {x:dw*0.35,y:dh,ex:dw*0.38,ey:dh*0.6,w:0.3,a:0.06},
+  ];
+  for (const c of cracks) {
+    dmgCtx.beginPath(); dmgCtx.moveTo(c.x,c.y); dmgCtx.lineTo(c.ex,c.ey);
+    dmgCtx.strokeStyle = `rgba(255,255,255,${c.a})`; dmgCtx.lineWidth = c.w; dmgCtx.stroke();
+  }
+
+  const scratches = [];
+  for (let i=0; i<8; i++) {
+    const sx=Math.random()*dw, sy=Math.random()*dh;
+    const len=Math.random()*40+10, ang=Math.random()*Math.PI*2;
+    const ex=sx+Math.cos(ang)*len, ey=sy+Math.sin(ang)*len;
+    scratches.push({sx,sy,ex,ey,a:Math.random()*0.06+0.02});
+  }
+  for (const s of scratches) {
+    dmgCtx.beginPath(); dmgCtx.moveTo(s.sx,s.sy); dmgCtx.lineTo(s.ex,s.ey);
+    dmgCtx.strokeStyle = `rgba(200,200,200,${s.a})`; dmgCtx.lineWidth=0.3; dmgCtx.stroke();
+  }
+
+  const burn = dmgCtx.createRadialGradient(dw*0.5,dh*0.5,0,dw*0.5,dh*0.5,dw*0.7);
+  burn.addColorStop(0,'rgba(0,0,0,0)');
+  burn.addColorStop(0.6,'rgba(0,0,0,0)');
+  burn.addColorStop(1,'rgba(0,0,0,0.45)');
+  dmgCtx.fillStyle = burn;
+  dmgCtx.fillRect(0,0,dw,dh);
+
+  const hotspot = dmgCtx.createRadialGradient(dw*0.35,dh*0.4,0,dw*0.5,dh*0.5,dw*0.4);
+  hotspot.addColorStop(0,'rgba(200,160,60,0.06)');
+  hotspot.addColorStop(0.5,'rgba(200,160,60,0.02)');
+  hotspot.addColorStop(1,'rgba(0,0,0,0)');
+  dmgCtx.fillStyle = hotspot;
+  dmgCtx.fillRect(0,0,dw,dh);
+}
+setTimeout(drawDamage, 100);
+window.addEventListener('resize', () => setTimeout(drawDamage, 100));
+
+// --- Clock logic
+function getIST() {
+  const now = new Date();
+  const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  return { h: ist.getHours(), m: ist.getMinutes(), s: ist.getSeconds(), d: ist.getDate(), mo: ist.getMonth()+1, y: ist.getFullYear() };
+}
+function p(n) { return n < 10 ? '0' + n : n; }
+
+let powerDip = 1;
+function updateClock() {
+  const ist = getIST();
+  const el = document.getElementById('timeDisplay');
+  el.innerHTML = `${p(ist.h)}<span class="colon">:</span>${p(ist.m)}<span class="colon">:</span>${p(ist.s)}`;
+  document.getElementById('dateDisplay').textContent = `${p(ist.d)}/${p(ist.mo)}/${ist.y}`;
+
+  if (Math.random() < 0.004) {
+    powerDip = 0.65 + Math.random() * 0.2;
+    el.style.filter = `brightness(${powerDip}) contrast(1.1)`;
+    setTimeout(() => { el.style.filter = 'brightness(0.9) contrast(1.05)'; }, 80 + Math.random()*120);
+  }
+
+  if (Math.random() < 0.006) {
+    el.style.transform = `translate(${(Math.random()-0.5)*3}px, ${(Math.random()-0.5)*2}px)`;
+    setTimeout(() => { el.style.transform = 'translate(0,0)'; }, 50);
+  }
+}
+
+// --- Stopwatch
+let swOn=false, swStart=0, swAcc=0, swTimer=null, laps=[];
+
+function swShow() {
+  const t = swOn ? swAcc + (Date.now() - swStart) : swAcc;
+  const mn = Math.floor(t/60000), sc = Math.floor((t%60000)/1000), cs = Math.floor((t%1000)/10);
+  const el = document.getElementById('swDisplay');
+  el.textContent = `${p(mn)}:${p(sc)}.${p(cs)}`;
+  el.className = swOn ? 'sw-display live' : 'sw-display';
+}
+
+function swToggle() {
+  if (swOn) { swOn=false; swAcc+=Date.now()-swStart; clearInterval(swTimer); document.getElementById('swStart').classList.remove('on'); }
+  else { swOn=true; swStart=Date.now(); swTimer=setInterval(swShow,30); document.getElementById('swStart').classList.add('on'); }
+  swShow();
+}
+
+function swLap() {
+  if (!swOn) return;
+  const t = swAcc + (Date.now() - swStart);
+  const mn = Math.floor(t/60000), sc = Math.floor((t%60000)/1000), cs = Math.floor((t%1000)/10);
+  laps.unshift(`${p(mn)}:${p(sc)}.${p(cs)}`);
+  if (laps.length>5) laps.pop();
+  document.getElementById('lapList').innerHTML = laps.map((l,i) => `<div>LAP ${laps.length - i} · ${l}</div>`).join('');
+}
+
+function swReset() { swOn=false; clearInterval(swTimer); swAcc=0; laps=[]; document.getElementById('swStart').classList.remove('on'); document.getElementById('lapList').innerHTML=''; swShow(); }
+
+document.getElementById('swStart').addEventListener('click', swToggle);
+document.getElementById('swLap').addEventListener('click', swLap);
+document.getElementById('swReset').addEventListener('click', swReset);
+
+// --- Easter egg
+function showEgg() {
+  const ov = document.getElementById('easterEgg');
+  ov.classList.add('reveal');
+  setTimeout(() => ov.classList.remove('reveal'), 3600);
+}
+let clicks=0, clickTimer; document.getElementById('timeDisplay').addEventListener('click',()=>{clicks++; if(clicks===3){showEgg();clicks=0} if(clickTimer)clearTimeout(clickTimer); clickTimer=setTimeout(()=>{clicks=0},1500)});
+document.getElementById('artifact').addEventListener('dblclick', showEgg);
+
+setInterval(updateClock, 200);
+updateClock(); swShow();
+</script>
+</body>
+</html>

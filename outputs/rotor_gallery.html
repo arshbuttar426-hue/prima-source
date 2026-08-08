@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rotor — Kinetic Cylindrical Gallery</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0f;--card:#12121a;--border:rgba(255,255,255,0.04);--text:#f5f5f7;--muted:#6b6b80;--radius:16px}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;user-select:none}
+body{display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:grab}
+body:active{cursor:grabbing}
+body.dragging{cursor:grabbing}
+
+.gallery{position:relative;width:100%;height:420px;display:flex;align-items:center;justify-content:center;perspective:1200px;perspective-origin:50% 50%}
+.stage{position:relative;width:320px;height:360px;transform-style:preserve-3d}
+.card{position:absolute;width:220px;height:300px;left:50%;top:50%;margin-left:-110px;margin-top:-150px;border-radius:var(--radius);background:var(--card);border:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column;transition:box-shadow 0.4s;backface-visibility:hidden;will-change:transform,opacity}
+.card .card-visual{flex:1;display:flex;align-items:center;justify-content:center;font-size:4rem;position:relative;overflow:hidden}
+.card .card-visual .bg-blob{position:absolute;width:180px;height:180px;border-radius:50%;filter:blur(60px);opacity:0.25;top:50%;left:50%;transform:translate(-50%,-50%)}
+.card .card-info{padding:16px 20px;border-top:1px solid var(--border)}
+.card .card-title{font-size:18px;font-weight:600;letter-spacing:-0.01em;margin-bottom:2px}
+.card .card-tag{font-size:10px;font-weight:400;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted)}
+.card.active{box-shadow:0 0 60px rgba(255,255,255,0.06)}
+.card .glow{position:absolute;inset:-2px;border-radius:18px;opacity:0;transition:opacity 0.3s;pointer-events:none}
+.card.active .glow{opacity:1}
+
+.controls{display:flex;flex-direction:column;align-items:center;gap:20px;margin-top:20px}
+.indicators{display:flex;gap:10px}
+.indicator{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.15);cursor:pointer;transition:all 0.3s}
+.indicator.active{background:#fff;box-shadow:0 0 10px rgba(255,255,255,0.3)}
+.counter{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+.hint{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);font-size:12px;color:var(--muted);opacity:0.5;pointer-events:none}
+</style>
+</head>
+<body>
+
+<div class="gallery" id="gallery">
+  <div class="stage" id="stage"></div>
+</div>
+
+<div class="controls">
+  <div class="indicators" id="indicators"></div>
+  <div class="counter" id="counter">1 of 8</div>
+</div>
+<div class="hint">Drag to rotate · Click a card to center it</div>
+
+<script>
+const ITEMS=[
+  {name:"Aurora",color:"#5a7aff",tag:"Brand",icon:"✦"},
+  {name:"Nebula",color:"#e06a3a",tag:"Product",icon:"◈"},
+  {name:"Cascade",color:"#00cec9",tag:"Web",icon:"◆"},
+  {name:"Ember",color:"#ff6b9d",tag:"Mobile",icon:"⬡"},
+  {name:"Prism",color:"#f5c451",tag:"Design",icon:"◇"},
+  {name:"Void",color:"#8b5cf6",tag:"Research",icon:"◉"},
+  {name:"Cipher",color:"#10b981",tag:"DevTools",icon:"◎"},
+  {name:"Mesa",color:"#f59e0b",tag:"Platform",icon:"◈"}
+];
+const N=ITEMS.length,RADIUS=320,ANGLE_STEP=(2*Math.PI)/N;
+let angle=0,targetAngle=0,velocity=0,dragStart=0,dragAngle=0,isDragging=false,activeIdx=0,idleTimer=0,autoPlay=true;
+
+const stage=document.getElementById('stage');
+const indicators=document.getElementById('indicators');
+const counter=document.getElementById('counter');
+const body=document.body;
+
+function createCards(){
+  stage.innerHTML='';
+  ITEMS.forEach((item,i)=>{
+    const card=document.createElement('div');card.className='card';
+    card.innerHTML=`
+      <div class="glow" style="background:radial-gradient(ellipse at center,${item.color}22,transparent 70%)"></div>
+      <div class="card-visual">
+        <div class="bg-blob" style="background:${item.color}"></div>
+        <span style="position:relative;z-index:1">${item.icon}</span>
+      </div>
+      <div class="card-info">
+        <div class="card-title">${item.name}</div>
+        <div class="card-tag">${item.tag}</div>
+      </div>`;
+    card.addEventListener('pointerdown',e=>{if(!isDragging)snapTo(i)});
+    stage.appendChild(card);
+  });
+  ITEMS.forEach((_,i)=>{
+    const dot=document.createElement('div');dot.className='indicator';
+    dot.addEventListener('click',()=>snapTo(i));
+    indicators.appendChild(dot);
+  });
+}
+
+function updateCards(){
+  const cards=stage.children;
+  let closestIdx=0,closestDist=Infinity;
+  for(let i=0;i<N;i++){
+    const theta=i*ANGLE_STEP-angle;
+    const x=Math.sin(theta)*RADIUS;
+    const z=Math.cos(theta)*RADIUS;
+    const scale=0.55+0.45*((z+RADIUS)/(2*RADIUS));
+    const opacity=0.2+0.8*((z+RADIUS)/(2*RADIUS));
+    cards[i].style.transform=`translateX(${x}px) translateZ(${z}px) rotateY(${-theta}rad) scale(${scale.toFixed(3)})`;
+    cards[i].style.opacity=opacity.toFixed(2);
+    cards[i].style.zIndex=Math.round(z+1000);
+    cards[i].classList.toggle('active',false);
+    const dist=Math.abs(theta%(2*Math.PI));
+    const normDist=dist>Math.PI?2*Math.PI-dist:dist;
+    if(normDist<closestDist){closestDist=normDist;closestIdx=i}
+  }
+  cards[closestIdx].classList.add('active');
+  activeIdx=closestIdx;
+  counter.textContent=`${activeIdx+1} of ${N}`;
+  document.querySelectorAll('.indicator').forEach((d,i)=>d.classList.toggle('active',i===activeIdx));
+}
+
+function snapTo(idx){
+  targetAngle=idx*ANGLE_STEP;
+  autoPlay=false;idleTimer=0;
+}
+
+function loop(){
+  requestAnimationFrame(loop);
+  if(!isDragging){
+    if(targetAngle!==null){
+      angle+=(targetAngle-angle)*0.15;
+      if(Math.abs(targetAngle-angle)<0.001)targetAngle=null;
+    }else if(autoPlay&&!targetAngle){
+      idleTimer++;
+      if(idleTimer>180){angle+=0.003;velocity=0}
+    }
+  }
+  angle+=(velocity*=0.95);
+  if(Math.abs(velocity)<0.01)velocity=0;
+  updateCards();
+}
+
+const gallery=document.getElementById('gallery');
+gallery.addEventListener('pointerdown',e=>{
+  isDragging=true;dragStart=e.clientX;dragAngle=angle;velocity=0;
+  targetAngle=null;autoPlay=false;idleTimer=0;
+  body.classList.add('dragging');
+});
+window.addEventListener('pointermove',e=>{
+  if(!isDragging)return;
+  const dx=e.clientX-dragStart;
+  angle=dragAngle-(dx/RADIUS);
+  velocity=-(e.movementX||0)/(RADIUS*2);
+});
+window.addEventListener('pointerup',()=>{
+  if(!isDragging)return;
+  isDragging=false;body.classList.remove('dragging');
+  if(Math.abs(velocity)<0.005){
+    const relAngle=((angle%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+    const idx=Math.round(relAngle/ANGLE_STEP)%N;
+    snapTo(idx);
+  }else{targetAngle=null;autoPlay=true;idleTimer=0}
+});
+
+createCards();updateCards();loop();
+</script>
+</body>
+</html>

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRIMA // Constraint Bench</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&family=SF+Mono:wght@400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --blue: #5a7aff;
+    --orange: #e06a3a;
+    --gold: #f5c451;
+    --ink: #f5f5f7;
+    --dim: rgba(255,255,255,0.35);
+    --faint: rgba(255,255,255,0.08);
+    --mono: 'SF Mono', 'Menlo', monospace;
+  }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #050507;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  canvas#field { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+  section { position: relative; z-index: 1; padding: 90px 40px; max-width: 1080px; margin: 0 auto; }
+  .tag { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.22em; color: var(--dim); font-weight: 500; }
+  h1 { font-size: clamp(2.4rem, 6vw, 4.5rem); font-weight: 200; letter-spacing: -0.03em; line-height: 1; margin: 18px 0 10px; }
+  h1 .as { color: var(--blue); font-weight: 300; }
+  h1 .na { color: var(--orange); font-weight: 300; }
+  h1 .slash { color: rgba(255,255,255,0.15); margin: 0 0.06em; }
+  .lede { font-size: 1.05rem; color: var(--dim); font-weight: 300; max-width: 560px; line-height: 1.7; }
+
+  /* ---- Bench ---- */
+  .bench { display: grid; grid-template-columns: 1fr 360px; gap: 40px; align-items: start; margin-top: 48px; }
+  @media (max-width: 880px){ .bench { grid-template-columns: 1fr; } }
+  .wheel-wrap { position: relative; aspect-ratio: 1; width: 100%; max-width: 560px; margin: 0 auto; }
+  #wheel { width: 100%; height: 100%; display: block; }
+
+  .panel {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--faint);
+    border-radius: 18px;
+    padding: 24px;
+  }
+  .panel h3 { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--dim); font-weight: 500; margin-bottom: 16px; }
+
+  .input-row { display: flex; gap: 10px; }
+  #val {
+    flex: 1; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px; color: var(--ink); font-family: var(--mono); font-size: 1rem;
+    padding: 12px 14px; outline: none; transition: border-color .25s;
+  }
+  #val:focus { border-color: var(--blue); }
+  .readout { font-family: var(--mono); font-size: 0.8rem; color: var(--dim); margin-top: 14px; line-height: 1.8; }
+  .readout b { color: var(--ink); font-weight: 500; }
+  .chip { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-family: var(--mono); margin: 3px 4px 0 0; }
+  .chip.pass { background: rgba(90,122,255,0.14); color: var(--blue); border: 1px solid rgba(90,122,255,0.3); }
+  .chip.fail { background: rgba(224,106,58,0.10); color: var(--orange); border: 1px solid rgba(224,106,58,0.25); }
+
+  /* ---- Frame builder ---- */
+  .builder label { display: block; font-size: 0.72rem; color: var(--dim); margin: 14px 0 6px; letter-spacing: 0.04em; }
+  select {
+    width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px; color: var(--ink); font-family: var(--mono); font-size: 0.85rem; padding: 10px 12px; outline: none;
+  }
+  .frame-eq {
+    font-family: var(--mono); font-size: 0.95rem; margin: 18px 0 12px; padding: 14px; border-radius: 10px;
+    background: rgba(0,0,0,0.35); border: 1px solid var(--faint); text-align: center; line-height: 1.6;
+  }
+  .frame-eq .as { color: var(--blue); }
+  .frame-eq .na { color: var(--orange); }
+  .verdict {
+    text-align: center; font-family: var(--mono); font-weight: 500; font-size: 1.1rem; padding: 14px;
+    border-radius: 10px; letter-spacing: 0.05em;
+  }
+  .verdict.ok { background: rgba(90,122,255,0.12); color: var(--blue); border: 1px solid rgba(90,122,255,0.3); }
+  .verdict.bad { background: rgba(224,106,58,0.12); color: var(--orange); border: 1px solid rgba(224,106,58,0.3); }
+  .preset-btn {
+    margin-top: 16px; width: 100%; background: transparent; border: 1px dashed rgba(255,255,255,0.15);
+    color: var(--dim); font-family: var(--mono); font-size: 0.78rem; padding: 10px; border-radius: 10px; cursor: pointer; transition: .2s;
+  }
+  .preset-btn:hover { border-color: var(--orange); color: var(--orange); }
+
+  /* ---- Trace (brutalist) ---- */
+  .trace { margin-top: 18px; font-family: var(--mono); font-size: 0.8rem; }
+  .beam { border: 1px solid var(--faint); border-left: 3px solid var(--blue); padding: 10px 12px; margin-bottom: 8px; background: rgba(0,0,0,0.25); }
+  .beam.fail { border-left-color: var(--orange); }
+  .beam .k { color: var(--dim); }
+  .beam .stamp { float: right; font-weight: 600; }
+  .stamp.pass { color: #57d9a3; }
+  .stamp.fail { color: var(--orange); }
+
+  /* ---- Spec sheet ---- */
+  .spec { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 12px; margin-top: 32px; }
+  .spec .item { border: 1px solid var(--faint); border-radius: 12px; padding: 14px 16px; background: rgba(255,255,255,0.02); }
+  .spec .item .nm { font-family: var(--mono); color: var(--blue); font-size: 0.9rem; }
+  .spec .item .ds { color: var(--dim); font-size: 0.78rem; margin-top: 6px; line-height: 1.5; font-weight: 300; }
+
+  footer { position: relative; z-index: 1; text-align: center; padding: 70px 40px 90px; color: rgba(255,255,255,0.18); font-size: 0.75rem; }
+  .note { font-size: 0.74rem; color: rgba(255,255,255,0.28); margin-top: 18px; line-height: 1.6; max-width: 560px; }
+</style>
+</head>
+<body>
+<canvas id="field"></canvas>
+
+<section>
+  <div class="tag">Prima · Constraint-first execution model</div>
+  <h1><span class="as">as</span><span class="slash">/</span><span class="na">not_as</span> &nbsp;Constraint Bench</h1>
+  <p class="lede">Every value is judged through frames. Drop a value in and watch all 23 builtin predicates light or go dark. Then build your own <span class="as">as</span> / <span class="na">not_as</span> frame and see Rule 1 fire.</p>
+
+  <div class="bench">
+    <div>
+      <div class="wheel-wrap">
+        <canvas id="wheel"></canvas>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <h3>Input value</h3>
+        <div class="input-row">
+          <input id="val" value="7" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="readout" id="readout"></div>
+      </div>
+
+      <div class="panel" style="margin-top:18px;">
+        <h3>Frame builder — Rule 1</h3>
+        <label>POSITIVE constraint (as)</label>
+        <select id="pos"></select>
+        <label>NEGATIVE constraint (not_as)</label>
+        <select id="neg"></select>
+        <div class="frame-eq" id="eq"></div>
+        <div class="verdict" id="verdict"></div>
+        <button class="preset-btn" id="preset">load preset: 007 as string / not_as digit</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:28px;">
+    <h3>Linear trace — Frame → Pipeline → Atom → Output</h3>
+    <div class="trace" id="trace"></div>
+  </div>
+
+  <p class="note">Web interpretation: input arrives as text. A predicate passes when the value <em>counts as</em> it per prima's semantics (mirrored from <code>prima.c</code>). Numeric predicates test parseability, so <code>"42"</code> counts as both <code>int</code> and <code>string</code>. <code>prime</code> is true only for integers ≥ 2 with no divisor in 2..√n.</p>
+</section>
+
+<section style="padding-top:30px;">
+  <div class="tag">Reference</div>
+  <h1 style="font-size:clamp(1.6rem,4vw,2.4rem);">The 23 builtin frames</h1>
+  <div class="spec" id="spec"></div>
+</section>
+
+<footer>PRIMA · Constraint Bench · built on as/not_as · 2026</footer>
+
+<script>
+// ===== Predicate engine (mirrors prima.c) =====
+const PREDS = [
+  ['nil','value is nil/empty'],
+  ['number','parses as a number'],
+  ['int','parses as an integer'],
+  ['float','parses as a float'],
+  ['string','is textual'],
+  ['alpha','all letters, non-empty'],
+  ['alnum','letters + digits, non-empty'],
+  ['digit','exactly one digit char'],
+  ['lowercase','all lowercase letters'],
+  ['uppercase','all uppercase letters'],
+  ['empty','empty string / zero'],
+  ['zero','numeric and equal to 0'],
+  ['positive','numeric and > 0'],
+  ['negative','numeric and < 0'],
+  ['nonzero','numeric and ≠ 0'],
+  ['even','integer divisible by 2'],
+  ['odd','integer not divisible by 2'],
+  ['any','always true'],
+  ['non_numeric','does not parse as number'],
+  ['truthy','non-empty, non-false, non-nil'],
+  ['falsy','empty / 0 / false / nil'],
+  ['finite','numeric and finite'],
+  ['prime','integer ≥ 2, no divisor 2..√n']
+];
+
+function isPrime(n){
+  if (n < 2 || n % 1 !== 0) return false;
+  for (let i = 2; i * i <= n; i++) if (n % i === 0) return false;
+  return true;
+}
+
+function analyze(s){
+  const t = (s || '').trim();
+  const isEmpty = s === '' || s === null;
+  const isNum = t !== '' && /^-?\d*\.?\d+$/.test(t);
+  const num = isNum ? parseFloat(t) : NaN;
+  const isInt = isNum && Number.isInteger(num);
+  const isFloat = isNum && !Number.isInteger(num);
+  const lc = t.toLowerCase();
+  return {
+    nil: isEmpty,
+    number: isNum,
+    int: isInt,
+    float: isFloat,
+    string: true,
+    alpha: /^[a-zA-Z]+$/.test(t),
+    alnum: /^[a-zA-Z0-9]+$/.test(t),
+    digit: /^[0-9]+$/.test(t),
+    lowercase: /^[a-z]+$/.test(t),
+    uppercase: /^[A-Z]+$/.test(t),
+    empty: isEmpty || (isNum && num === 0),
+    zero: isNum && num === 0,
+    positive: isNum && num > 0,
+    negative: isNum && num < 0,
+    nonzero: isNum && num !== 0,
+    even: isInt && num % 2 === 0,
+    odd: isInt && num % 2 === 1,
+    any: true,
+    non_numeric: !isNum,
+    truthy: !isEmpty && t !== '0' && lc !== 'false' && lc !== 'nil',
+    falsy: isEmpty || t === '0' || lc === 'false' || lc === 'nil',
+    finite: isNum && isFinite(num),
+    prime: isPrime(num)
+  };
+}
+
+// ===== DOM refs =====
+const valEl = document.getElementById('val');
+const readoutEl = document.getElementById('readout');
+const posEl = document.getElementById('pos');
+const negEl = document.getElementById('neg');
+const eqEl = document.getElementById('eq');
+const verdictEl = document.getElementById('verdict');
+const traceEl = document.getElementById('trace');
+const specEl = document.getElementById('spec');
+
+PREDS.forEach(([n]) => {
+  posEl.insertAdjacentHTML('beforeend', `<option value="${n}">${n}</option>`);
+  negEl.insertAdjacentHTML('beforeend', `<option value="${n}">${n}</option>`);
+});
+posEl.value = 'prime';
+negEl.value = 'even';
+
+// spec sheet
+PREDS.forEach(([n, d]) => {
+  specEl.insertAdjacentHTML('beforeend', `<div class="item"><div class="nm">${n}</div><div class="ds">${d}</div></div>`);
+});
+
+// ===== Wheel canvas =====
+const wheel = document.getElementById('wheel');
+const wctx = wheel.getContext('2d');
+let dpr = Math.min(window.devicePixelRatio || 1, 2);
+function sizeWheel(){
+  const r = wheel.getBoundingClientRect();
+  wheel.width = r.width * dpr; wheel.height = r.height * dpr;
+  wctx.setTransform(dpr,0,0,dpr,0,0);
+}
+window.addEventListener('resize', sizeWheel);
+
+const N = PREDS.length;
+let sweep = 0;
+let pulse = PREDS.map(() => 0);
+
+function drawWheel(state){
+  const r = wheel.getBoundingClientRect();
+  const W = r.width, H = r.height;
+  const cx = W/2, cy = H/2;
+  const R = Math.min(W,H)/2 - 36;
+  wctx.clearRect(0,0,W,H);
+
+  // rings
+  wctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  wctx.lineWidth = 1;
+  [0.35,0.7,1].forEach(f => { wctx.beginPath(); wctx.arc(cx,cy,R*f,0,Math.PI*2); wctx.stroke(); });
+
+  // spokes
+  for (let i=0;i<N;i++){
+    const a = (i/N)*Math.PI*2 - Math.PI/2;
+    const pass = state[PREDS[i][0]];
+    const x2 = cx + Math.cos(a)*R, y2 = cy + Math.sin(a)*R;
+    const x1 = cx + Math.cos(a)*R*0.34, y1 = cy + Math.sin(a)*R*0.34;
+    pulse[i] *= 0.92;
+    const lit = pass ? 1 : 0.12;
+    const col = pass ? '90,122,255' : '224,106,58';
+    wctx.strokeStyle = `rgba(${col},${lit*0.9})`;
+    wctx.lineWidth = pass ? 2.2 : 1;
+    wctx.beginPath(); wctx.moveTo(x1,y1); wctx.lineTo(x2,y2); wctx.stroke();
+
+    // tip dot
+    const tip = pass ? 1 : 0.18;
+    wctx.beginPath(); wctx.arc(x2,y2, pass?4:2.5, 0, Math.PI*2);
+    wctx.fillStyle = `rgba(${col},${(tip + pulse[i])})`;
+    wctx.fill();
+    if (pass){ wctx.beginPath(); wctx.arc(x2,y2, pass?9:5, 0, Math.PI*2); wctx.fillStyle = `rgba(${col},${0.12+pulse[i]*0.5})`; wctx.fill(); }
+
+    // label
+    const lx = cx + Math.cos(a)*(R+16), ly = cy + Math.sin(a)*(R+16);
+    wctx.fillStyle = pass ? `rgba(${col},0.95)` : 'rgba(255,255,255,0.22)';
+    wctx.font = '600 10px SF Mono, monospace';
+    wctx.textAlign = 'center'; wctx.textBaseline = 'middle';
+    wctx.fillText(PREDS[i][0], lx, ly);
+  }
+
+  // radar sweep
+  sweep += 0.012;
+  const sa = sweep % (Math.PI*2);
+  const grad = wctx.createConicGradient ? wctx.createConicGradient(sa, cx, cy) : null;
+  wctx.save();
+  wctx.translate(cx,cy); wctx.rotate(sa);
+  const sg = wctx.createLinearGradient(0,0,R,0);
+  sg.addColorStop(0,'rgba(90,122,255,0.25)'); sg.addColorStop(1,'rgba(90,122,255,0)');
+  wctx.strokeStyle = sg; wctx.lineWidth = 2;
+  wctx.beginPath(); wctx.moveTo(0,0); wctx.lineTo(R,0); wctx.stroke();
+  wctx.restore();
+  // pulse the spoke the sweep is over
+  const idx = Math.floor((((sa + Math.PI/2) % (Math.PI*2)) / (Math.PI*2)) * N) % N;
+  pulse[idx] = Math.min(1, pulse[idx] + (state[PREDS[idx][0]] ? 0.5 : 0.12));
+
+  // center value
+  wctx.beginPath(); wctx.arc(cx,cy,R*0.3,0,Math.PI*2);
+  const isP = state.prime;
+  wctx.fillStyle = isP ? 'rgba(245,196,81,0.10)' : 'rgba(255,255,255,0.03)';
+  wctx.fill();
+  wctx.strokeStyle = isP ? 'rgba(245,196,81,0.6)' : 'rgba(255,255,255,0.12)';
+  wctx.lineWidth = isP ? 2 : 1; wctx.stroke();
+  const cv = (valEl.value === '' ? '∅' : valEl.value);
+  wctx.fillStyle = isP ? '#f5c451' : 'rgba(255,255,255,0.85)';
+  wctx.font = '500 20px SF Mono, monospace';
+  wctx.textAlign = 'center'; wctx.textBaseline = 'middle';
+  const disp = cv.length > 10 ? cv.slice(0,9)+'…' : cv;
+  wctx.fillText(disp, cx, cy - 6);
+  wctx.fillStyle = isP ? 'rgba(245,196,81,0.7)' : 'rgba(255,255,255,0.3)';
+  wctx.font = '600 9px SF Mono, monospace';
+  wctx.fillText(isP ? '◈ PRIME' : 'value', cx, cy + 14);
+}
+
+// ===== Ambient field (subtle, distinct from portal/wave) =====
+const field = document.getElementById('field');
+const fctx = field.getContext('2d');
+let FW, FH, dots = [];
+function sizeField(){ FW = field.width = innerWidth; FH = field.height = innerHeight; }
+sizeField(); addEventListener('resize', sizeField);
+for (let i=0;i<70;i++) dots.push({x:Math.random()*FW,y:Math.random()*FH,vx:(Math.random()-0.5)*0.15,vy:(Math.random()-0.5)*0.15});
+function drawField(){
+  fctx.clearRect(0,0,FW,FH);
+  for (const d of dots){ d.x+=d.vx; d.y+=d.vy; if(d.x<0)d.x+=FW; if(d.x>FW)d.x-=FW; if(d.y<0)d.y+=FH; if(d.y>FH)d.y-=FH; }
+  for (let i=0;i<dots.length;i++){
+    for (let j=i+1;j<dots.length;j++){
+      const dx=dots[i].x-dots[j].x, dy=dots[i].y-dots[j].y, dist=Math.hypot(dx,dy);
+      if (dist<140){ fctx.strokeStyle=`rgba(90,122,255,${0.05*(1-dist/140)})`; fctx.lineWidth=0.5; fctx.beginPath(); fctx.moveTo(dots[i].x,dots[i].y); fctx.lineTo(dots[j].x,dots[j].y); fctx.stroke(); }
+    }
+  }
+  for (const d of dots){ fctx.beginPath(); fctx.arc(d.x,d.y,1,0,Math.PI*2); fctx.fillStyle='rgba(255,255,255,0.12)'; fctx.fill(); }
+  requestAnimationFrame(drawField);
+}
+drawField();
+
+// ===== Update pipeline =====
+function update(){
+  const s = valEl.value;
+  const state = analyze(s);
+  const passes = PREDS.filter(([n]) => state[n]).map(([n]) => n);
+  const fails = PREDS.filter(([n]) => !state[n]).map(([n]) => n);
+
+  readoutEl.innerHTML =
+    `<b>counts as</b> ${passes.length} / ${PREDS.length} frames<br>` +
+    passes.map(n => `<span class="chip pass">${n}</span>`).join('') +
+    (fails.length ? `<div style="margin-top:8px;"><b>dead air</b> (not counted as): ` + fails.map(n => `<span class="chip fail">${n}</span>`).join('') + `</div>` : '');
+
+  // frame builder (Rule 1: as enforces BOTH sides; not_as enforces positive-only, fails if it COUNTS as the neg)
+  const pos = posEl.value, neg = negEl.value;
+  eqEl.innerHTML = `x <span class="as">as ${pos}</span> <span class="na">not_as ${neg}</span>`;
+  const posPass = state[pos];
+  const negCounts = state[neg]; // if value counts as neg frame, not_as fires
+  let ok, reason;
+  if (pos !== neg && !posPass && negCounts){ ok=false; reason = `positive <b>${pos}</b> violated AND value counts as <b>${neg}</b>`; }
+  else if (pos !== neg && !posPass){ ok=false; reason = `positive constraint <b>${pos}</b> not satisfied`; }
+  else if (pos !== neg && negCounts){ ok=false; reason = `value <b>counts as ${neg}</b> → negative side fires (Rule 1)`; }
+  else if (pos === neg){ ok=false; reason = `frame <b>${pos}</b> cannot be both as and not_as`; }
+  else { ok=true; reason = `positive holds and value does not count as <b>${neg}</b>`; }
+
+  verdictEl.className = 'verdict ' + (ok ? 'ok' : 'bad');
+  verdictEl.textContent = (ok ? 'PASS · frame holds' : 'FAIL · constraint broken');
+
+  // trace
+  const beams = [];
+  beams.push(`<div class="beam"><span class="k">FRAME</span> x as ${pos} not_as ${neg} <span class="stamp ${posPass?'pass':'fail'}">${posPass?'PASS':'FAIL'}</span></div>`);
+  beams.push(`<div class="beam ${negCounts?'fail':''}"><span class="k">PIPE</span> resolve connections · atom(${neg}) <span class="stamp ${negCounts?'fail':'pass'}">${negCounts?'COUNTS AS':'clean'}</span></div>`);
+  if (state.prime){
+    beams.push(`<div class="beam"><span class="k">ATOM</span> prime(${s}) trial-division 2..√${s} <span class="stamp pass">PASS</span></div>`);
+  }
+  beams.push(`<div class="beam ${ok?'':'fail'}"><span class="k">OUTPUT</span> ${ok?'value counts as the frame':'constraint failed: (' + (negCounts?'negative violated':'positive not met') + ')'} <span class="stamp ${ok?'pass':'fail'}">${ok?'PASS':'FAIL'}</span></div>`);
+  traceEl.innerHTML = beams.join('');
+
+  return state;
+}
+
+let lastState = null;
+function loop(){
+  const st = update();
+  drawWheel(st);
+  requestAnimationFrame(loop);
+}
+sizeWheel();
+valEl.addEventListener('input', update);
+posEl.addEventListener('change', update);
+negEl.addEventListener('change', update);
+document.getElementById('preset').addEventListener('click', () => {
+  valEl.value = '007';
+  posEl.value = 'string';
+  negEl.value = 'digit';
+  update();
+});
+update();
+loop();
+</script>
+</body>
+</html>

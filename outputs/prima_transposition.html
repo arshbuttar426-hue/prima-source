@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prima — Transposition Engine</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:#fff;color:#1d1d1f;overflow-x:hidden;
+  transition:filter 0.8s,background 0.8s,color 0.8s
+}
+h2{font-size:clamp(2rem,5vw,3rem);font-weight:700;letter-spacing:-0.03em;line-height:1.05}
+h2 span{background:linear-gradient(135deg,#007AFF,#FF2D55);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+.hero{padding:120px 40px 60px;text-align:center;max-width:800px;margin:0 auto}
+.hero h2{font-size:clamp(2.5rem,6vw,3.8rem)}
+.hero p{color:#86868b;font-size:1.15rem;line-height:1.7;margin:20px 0 32px}
+.hero .btns{display:flex;gap:12px;justify-content:center}
+.btn{background:#007AFF;color:#fff;border:none;padding:13px 28px;border-radius:10px;font-size:14px;font-weight:600;font-family:'Inter';cursor:pointer;transition:all 0.3s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,122,255,0.3)}
+.btn.ghost{background:transparent;color:#1d1d1f;border:1.5px solid rgba(0,0,0,0.15)}
+.btn.ghost:hover{box-shadow:none;border-color:#1d1d1f}
+
+.code{max-width:500px;margin:36px auto 0;background:#1d1d1f;border-radius:14px;overflow:hidden;text-align:left;transition:all 0.8s}
+.code .bar{height:32px;background:rgba(0,0,0,0.2);display:flex;align-items:center;gap:6px;padding:0 12px}
+.code .bar span{width:9px;height:9px;border-radius:50%}
+.code .bar span:nth-child(1){background:#FF5F57}
+.code .bar span:nth-child(2){background:#FEBE2E}
+.code .bar span:nth-child(3){background:#28C840}
+.code .code-body{padding:16px 18px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8;color:#f5f5f7}
+.code .code-body .kw{color:#FF6B9D}.code .code-body .str{color:#5AC8FA}
+.code-cursor{display:inline-block;width:7px;height:13px;background:#007AFF;margin-left:2px;animation:blink 0.6s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+
+.sec{padding:60px 40px;max-width:960px;margin:0 auto}
+.sec-label{font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:#007AFF;font-weight:600;margin-bottom:10px;transition:color 0.8s}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.card{background:#f5f5f7;padding:28px 22px;transition:all 0.8s}
+.card .icon{font-size:1.5rem;margin-bottom:10px;transition:all 0.8s}
+.card h3{font-size:1rem;font-weight:600;margin-bottom:4px;transition:all 0.8s}
+.card p{font-size:0.85rem;color:#86868b;line-height:1.5;transition:color 0.8s}
+
+.cta-wrap{background:#f5f5f7;border-radius:20px;padding:64px 40px;text-align:center;max-width:960px;margin:40px auto;transition:all 0.8s}
+.cta-wrap h2{font-size:1.8rem}
+.cta-wrap p{color:#86868b;margin:12px 0 24px}
+
+.stat-row{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-top:32px}
+.stat{text-align:center;transition:all 0.8s}.stat .num{font-size:2rem;font-weight:700;color:#007AFF}.stat .lab{font-size:0.75rem;color:#86868b;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px}
+
+/* ─── PANEL ─── */
+.panel{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:200;padding:8px 12px;background:rgba(29,29,31,0.94);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border-radius:100px;display:flex;flex-wrap:wrap;gap:4px;justify-content:center;box-shadow:0 8px 40px rgba(0,0,0,0.25);max-width:95vw}
+.panel button{border:none;padding:7px 14px;border-radius:100px;font-size:10px;font-weight:600;font-family:'Inter';cursor:pointer;transition:all 0.2s;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.45);white-space:nowrap}
+.panel button:hover{background:rgba(255,255,255,0.14);color:rgba(255,255,255,0.8)}
+.panel button.active{background:#007AFF;color:#fff}
+.panel .domain{font-size:9px;color:rgba(255,255,255,0.2);padding:7px 8px;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;display:flex;align-items:center}
+
+.active-bar{position:fixed;bottom:78px;left:50%;transform:translateX(-50%);z-index:200;font-size:9px;color:rgba(255,255,255,0.4);display:flex;gap:4px;flex-wrap:wrap;justify-content:center;max-width:90vw}
+.active-bar span{padding:3px 8px;background:rgba(0,122,255,0.15);border-radius:100px;color:#007AFF;text-transform:uppercase;letter-spacing:0.05em;font-weight:500}
+
+/* ─── TRANSPOSITION FILTERS ─── */
+
+/* FINANCE: margin_risk → blur */
+body.filter-margin-risk{backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+body.filter-margin-risk .card{backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);background:rgba(245,245,247,0.6)}
+
+/* BIOLOGY: grow_spread → scale over time */
+body.filter-grow-spread .card{animation:growPulse 4s ease-in-out infinite}
+body.filter-grow-spread .card:nth-child(2){animation-delay:0.5s}
+body.filter-grow-spread .card:nth-child(3){animation-delay:1s}
+body.filter-grow-spread .card:nth-child(4){animation-delay:1.5s}
+body.filter-grow-spread .card:nth-child(5){animation-delay:2s}
+body.filter-grow-spread .card:nth-child(6){animation-delay:2.5s}
+@keyframes growPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+
+/* MUSIC: major_chord → open spacing */
+body.filter-major-chord .grid{gap:28px}
+body.filter-major-chord .card{padding:36px 28px}
+body.filter-major-chord .sec-label{letter-spacing:0.2em}
+body.filter-major-chord .hero p{line-height:2}
+body.filter-major-chord h2{letter-spacing:0.01em;word-spacing:0.08em}
+
+/* PHYSICS: mass_density → deepen shadows */
+body.filter-mass-density .card{box-shadow:0 8px 30px rgba(0,0,0,0.1)}
+body.filter-mass-density .card:hover{transform:translateY(-6px);box-shadow:0 16px 50px rgba(0,0,0,0.15)}
+body.filter-mass-density .code{box-shadow:0 24px 80px rgba(0,0,0,0.25)}
+body.filter-mass-density .cta-wrap{box-shadow:0 4px 20px rgba(0,0,0,0.06)}
+
+/* LEGAL: clause_risk → color bleed to red */
+body.filter-clause-risk .card{border:1px solid transparent;transition:border-color 0.8s}
+body.filter-clause-risk .card:nth-child(odd){border-color:rgba(255,45,85,0.1)}
+body.filter-clause-risk .card:nth-child(even){border-color:rgba(255,45,85,0.05)}
+body.filter-clause-risk .card:hover{background:rgba(255,45,85,0.03)}
+
+/* WEATHER: humidity → opacify */
+body.filter-humidity .card{opacity:0.92}
+body.filter-humidity .card:hover{opacity:1}
+body.filter-humidity .code{opacity:0.95}
+
+/* GEOLOGY: tectonic_drift → shift elements */
+body.filter-tectonic-drift .card:nth-child(odd){transform:translateX(-4px)}
+body.filter-tectonic-drift .card:nth-child(even){transform:translateX(4px)}
+body.filter-tectonic-drift .card:hover{transform:translateX(0)}
+body.filter-tectonic-drift .stat:nth-child(odd){transform:translateY(-4px)}
+body.filter-tectonic-drift .stat:nth-child(even){transform:translateY(4px)}
+
+/* MEDICAL: fever_temp → saturation spike */
+body.filter-fever-temp{filter:saturate(1.5)}
+
+/* ARCHITECTURE: load_bearing → structural grid lines */
+body.filter-load-bearing .grid::before{content:'';background:repeating-linear-gradient(0deg,transparent,transparent 99%,rgba(0,122,255,0.06) 100%);position:absolute;inset:0;pointer-events:none;z-index:-1}
+body.filter-load-bearing .card{position:relative}
+body.filter-load-bearing .card::after{content:'';position:absolute;inset:0;border:1px solid rgba(0,0,0,0.04);pointer-events:none;transition:border-color 0.8s}
+body.filter-load-bearing .card:hover::after{border-color:rgba(0,122,255,0.2)}
+
+/* CULINARY: spice_level → border-radius explosion */
+body.filter-spice-level .card{border-radius:8px}
+body.filter-spice-level .card:nth-child(3n+1){border-radius:24px}
+body.filter-spice-level .card:nth-child(3n+2){border-radius:4px}
+body.filter-spice-level .card:nth-child(3n+3){border-radius:32px}
+body.filter-spice-level .code{border-radius:24px}
+body.filter-spice-level .btn{border-radius:24px}
+
+/* ASTRONOMY: orbit_decay → circular motion */
+body.filter-orbit-decay .card{animation:orbitWobble 3s ease-in-out infinite}
+body.filter-orbit-decay .card:nth-child(odd){animation-delay:0s}
+body.filter-orbit-decay .card:nth-child(even){animation-delay:1.5s}
+@keyframes orbitWobble{0%,100%{transform:translate(0,0)}25%{transform:translate(3px,-2px)}50%{transform:translate(0,3px)}75%{transform:translate(-3px,-1px)}}
+
+/* OCEANOGRAPHY: tide_level → vertical rhythm */
+body.filter-tide-level .grid{gap:8px}
+body.filter-tide-level .card:nth-child(odd){margin-top:8px}
+body.filter-tide-level .card:nth-child(even){margin-bottom:8px}
+
+/* PSYCHOLOGY: anxiety_index → micro-vibrate */
+body.filter-anxiety-index .card{animation:anxietyShake 0.3s ease-in-out infinite;animation-play-state:paused}
+body.filter-anxiety-index .card:hover{animation-play-state:running}
+@keyframes anxietyShake{0%,100%{transform:translate(0,0)}25%{transform:translate(-1px,0.5px)}50%{transform:translate(0.5px,-0.5px)}75%{transform:translate(-0.5px,-0.5px)}}
+
+/* ECONOMICS: inflation_rate → scale everything up slowly */
+body.filter-inflation-rate{font-size:105%}
+body.filter-inflation-rate .card{padding:30px 24px}
+
+@media(max-width:768px){.grid{grid-template-columns:1fr}.hero{padding:100px 24px 40px}.hero h2{font-size:2rem}.panel{gap:3px;padding:6px 8px}.panel button{padding:6px 10px;font-size:9px}}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h2>One language.<br><span>Every domain.</span></h2>
+  <p>Filters from finance, biology, music, physics, law, geology, medicine, and astronomy — stacked onto one page. Each transposition reveals a new visual truth.</p>
+  <div class="btns"><button class="btn">Start Building</button><button class="btn ghost">View Source</button></div>
+  <div class="code"><div class="bar"><span></span><span></span><span></span></div><div class="code-body"><span class="kw">frame</span> Transposition {<br>&nbsp;&nbsp;calculate_risk → apply_glass<br>&nbsp;&nbsp;grow_spread → apply_scale<br>&nbsp;&nbsp;major_chord → apply_spacing<br>}<span class="code-cursor"></span></div></div>
+</div>
+
+<div class="sec">
+  <div class="sec-label">Capabilities</div>
+  <div class="grid">
+    <div class="card"><div class="icon">⟡</div><h3>Reverse Engineer</h3><p>Extract design DNA from any website. Compile to any framework.</p></div>
+    <div class="card"><div class="icon">◈</div><h3>Modular Stack</h3><p>Content. Style. Behavior. Three layers. Infinite combinations.</p></div>
+    <div class="card"><div class="icon">◆</div><h3>Universal IR</h3><p>One source file compiles to every platform. No lock-in.</p></div>
+    <div class="card"><div class="icon">⬡</div><h3>Physics Engine</h3><p>N-body, springs, reaction-diffusion. All defined as constraints.</p></div>
+    <div class="card"><div class="icon">◎</div><h3>Agent Skills</h3><p>Recall, learn, delete, health, primafy. On-demand intelligence.</p></div>
+    <div class="card"><div class="icon">◉</div><h3>Zero Dependencies</h3><p>Single binary. No npm. No pip. No API keys required.</p></div>
+  </div>
+  <div class="stat-row">
+    <div class="stat"><div class="num">71</div><div class="lab">Tests</div></div>
+    <div class="stat"><div class="num">2000</div><div class="lab">LOC C</div></div>
+    <div class="stat"><div class="num">14</div><div class="lab">Domains</div></div>
+    <div class="stat"><div class="num">∞</div><div class="lab">Stacks</div></div>
+  </div>
+</div>
+
+<div class="cta-wrap"><h2>Build with constraints.</h2><p>No framework lock-in. No rewrite debt. Filters from any domain.</p><button class="btn">Get Started</button></div>
+
+<div class="active-bar" id="activeBar"><span style="background:transparent;color:rgba(255,255,255,0.2)">no transpositions active</span></div>
+
+<div class="panel" id="panel">
+  <span class="domain">💰</span><button data-filter="margin-risk">Margin Risk</button>
+  <span class="domain">🧬</span><button data-filter="grow-spread">Growth</button>
+  <span class="domain">🎵</span><button data-filter="major-chord">Major Chord</button>
+  <span class="domain">⚛️</span><button data-filter="mass-density">Mass</button>
+  <span class="domain">⚖️</span><button data-filter="clause-risk">Clause Risk</button>
+  <span class="domain">🌊</span><button data-filter="tide-level">Tide</button>
+  <span class="domain">🏗️</span><button data-filter="load-bearing">Structure</button>
+  <span class="domain">🪐</span><button data-filter="orbit-decay">Orbit</button>
+  <span class="domain">🌡️</span><button data-filter="fever-temp">Fever</button>
+  <span class="domain">🌶️</span><button data-filter="spice-level">Spice</button>
+  <span class="domain">📈</span><button data-filter="inflation-rate">Inflation</button>
+  <span class="domain">🧠</span><button data-filter="anxiety-index">Anxiety</button>
+  <span class="domain">🌫️</span><button data-filter="humidity">Humidity</button>
+  <span class="domain">🏔️</span><button data-filter="tectonic-drift">Drift</button>
+</div>
+
+<script>
+const filters=new Set();
+document.querySelectorAll('.panel button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const f=btn.dataset.filter;
+    if(filters.has(f)){filters.delete(f);btn.classList.remove('active')}
+    else{filters.add(f);btn.classList.add('active')}
+    document.body.className='';filters.forEach(ff=>document.body.classList.add(`filter-${ff}`));
+    const bar=document.getElementById('activeBar');
+    bar.innerHTML=filters.size===0?'<span style="background:transparent;color:rgba(255,255,255,0.2)">no transpositions active</span>':[...filters].map(ff=>`<span>${ff}</span>`).join('');
+  });
+});
+</script>
+</body>
+</html>

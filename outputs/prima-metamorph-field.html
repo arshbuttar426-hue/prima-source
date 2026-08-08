@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Metamorphosis / Field — the phase becomes a geography</title>
+<style>
+  :root {
+    --bg:#08080c; --blue:#5a7aff; --orange:#e06a3a; --gold:#f5c451; --ink:#f5f5f7;
+  }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,'Inter',BlinkMacSystemFont,sans-serif;font-weight:300;overflow-x:hidden}
+  #stage{position:fixed;inset:0;z-index:0;pointer-events:none}
+  #morph{position:absolute;inset:0;width:100%;height:100%}
+  .wrap{position:relative;z-index:1}
+
+  nav{display:flex;align-items:center;padding:1.6rem 3rem;position:relative;z-index:2}
+  .brand{font-size:1rem;font-weight:200;letter-spacing:-0.03em}
+  .brand span{color:var(--blue)}
+  nav .links{margin-left:auto;display:flex;gap:2rem}
+  nav .links a{color:rgba(255,255,255,0.45);text-decoration:none;font-size:0.78rem;font-weight:400;letter-spacing:0.02em;transition:color 0.15s}
+  nav .links a:hover{color:var(--ink)}
+
+  .hero{min-height:92vh;display:grid;grid-template-columns:1.1fr 0.9fr;align-items:center;gap:3rem;padding:0 3rem 4rem}
+  .hero .statement{max-width:40rem}
+  .eyebrow{font-size:0.7rem;font-weight:500;text-transform:uppercase;letter-spacing:0.35em;color:rgba(255,255,255,0.3);margin-bottom:2rem}
+  .hero h1{font-weight:200;font-size:clamp(2.4rem,6vw,5rem);line-height:0.98;letter-spacing:-0.04em;margin-bottom:2rem}
+  .hero h1 .as{color:var(--blue)} .hero h1 .na{color:var(--orange)} .hero h1 .fr{color:var(--gold)}
+  .hero .lede{font-size:1rem;line-height:1.6;color:rgba(255,255,255,0.5);max-width:30rem;margin-bottom:2.5rem}
+  .hero .lede b.w{color:var(--blue);font-weight:400} .hero .lede b.l{color:var(--gold);font-weight:400} .hero .lede b.b{color:var(--orange);font-weight:400}
+
+  .hero .readout{padding-left:2.5rem;border-left:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:1.4rem}
+  .metric .k{font-size:0.6rem;font-weight:500;text-transform:uppercase;letter-spacing:0.2em;color:rgba(255,255,255,0.3);margin-bottom:0.4rem}
+  .metric .v{font-size:1.8rem;font-weight:200;letter-spacing:-0.02em;font-variant-numeric:tabular-nums}
+  .metric .v.b{color:var(--blue)} .metric .v.g{color:var(--gold)} .metric .v.o{color:var(--orange)}
+  #domReadout{font-size:0.85rem;font-weight:400;letter-spacing:0.03em;color:rgba(255,255,255,0.6)}
+  .hint{font-size:0.68rem;color:rgba(255,255,255,0.3);line-height:1.5;margin-top:0.6rem}
+  .hint b.w{color:var(--blue)} .hint b.g{color:var(--gold)} .hint b.o{color:var(--orange)}
+
+  .section{padding:7rem 3rem;border-top:1px solid rgba(255,255,255,0.06);position:relative;z-index:1}
+  .section .head{font-size:0.68rem;font-weight:500;text-transform:uppercase;letter-spacing:0.3em;color:rgba(255,255,255,0.3);margin-bottom:3rem}
+  .primitives{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,0.06)}
+  .primitive{background:var(--bg);padding:2.5rem 2rem}
+  .primitive .sym{font-size:1.6rem;font-weight:200;margin-bottom:1rem}
+  .primitive.as .sym{color:var(--blue)} .primitive.na .sym{color:var(--orange)} .primitive.fn .sym{color:var(--gold)}
+  .primitive .name{font-size:0.85rem;font-weight:500;margin-bottom:0.8rem}
+  .primitive .desc{font-size:0.82rem;line-height:1.6;color:rgba(255,255,255,0.45)}
+
+  .statement-sec{padding:8rem 3rem;text-align:center;border-top:1px solid rgba(255,255,255,0.06);position:relative;z-index:1}
+  .statement-sec .big{font-weight:200;font-size:clamp(1.6rem,4vw,3.2rem);line-height:1.15;letter-spacing:-0.03em;max-width:44rem;margin:0 auto;color:rgba(255,255,255,0.85)}
+  .statement-sec .big .as{color:var(--blue)} .statement-sec .big .fr{color:var(--gold)} .statement-sec .big .na{color:var(--orange)}
+
+  footer{padding:3rem;border-top:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:2rem;font-size:0.72rem;color:rgba(255,255,255,0.3);position:relative;z-index:1}
+  footer .brand{font-size:0.9rem}
+  footer .links{margin-left:auto;display:flex;gap:1.5rem}
+  footer .links a{color:rgba(255,255,255,0.35);text-decoration:none}
+  footer .links a:hover{color:var(--ink)}
+
+  @media(max-width:820px){
+    nav{padding:1.2rem 1.5rem} nav .links{display:none}
+    .hero{grid-template-columns:1fr;padding:2rem 1.5rem 3rem;gap:2rem}
+    .hero .readout{border-left:none;border-top:1px solid rgba(255,255,255,0.08);padding-left:0;padding-top:2rem}
+    .primitives{grid-template-columns:1fr}
+    .section,.statement-sec{padding:4rem 1.5rem}
+  }
+</style>
+</head>
+<body>
+
+<div id="stage"><canvas id="morph"></canvas></div>
+
+<div class="wrap">
+  <nav>
+    <div class="brand">prima<span>.</span></div>
+    <div class="links"><a href="#field">Field</a><a href="#primitives">Primitives</a><a href="#start">Begin</a></div>
+  </nav>
+
+  <section class="hero">
+    <div class="statement">
+      <div class="eyebrow">Constraint as metamorphosis · field</div>
+      <h1>One grid.<br>Three <span class="as">functions</span>.<br>A <span class="fr">living</span> boundary.</h1>
+      <p class="lede">
+        The same set of points. Two phase-sources orbit the field, and every node
+        samples a local phase from both. So one region <b class="w">flows blue</b>,
+        another <b class="l">lattices gold</b>, a third <b class="b">bursts orange</b> — and the
+        seams between them drift, breathe, and never cut the line.
+      </p>
+    </div>
+    <div class="readout">
+      <div class="metric"><div class="k">dominant</div><div class="v" id="domVal">—</div></div>
+      <div class="metric"><div class="k">as region</div><div class="v b" id="mAs">—</div></div>
+      <div class="metric"><div class="k">frontier region</div><div class="v g" id="mFr">—</div></div>
+      <div class="metric"><div class="k">not_as region</div><div class="v o" id="mNa">—</div></div>
+      <div id="domReadout">the phase is a geography</div>
+      <div class="hint">
+        Two sources orbit the grid — hover to halve their speed. Each node's phase blends
+        from both by distance, so the three functions coexist at once. The <b class="g">seams</b>
+        move, but the strands never break.
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="field">
+    <div class="head">Phase field</div>
+    <p style="color:rgba(255,255,255,0.5);font-size:0.95rem;max-width:34rem;line-height:1.6">
+      Where the original traced a single phase across the whole grid, this field gives every
+      node its own local phase. The Gaussian weights — one at 0, one at 0.5, one at 1,
+      summed to unity — still decide all three functions at once. The boundary is not drawn;
+      it emerges from the geometry.
+    </p>
+  </section>
+
+  <section class="section" id="primitives">
+    <div class="head">Three primitives</div>
+    <div class="primitives">
+      <div class="primitive as"><div class="sym">as</div><div class="name">Wave · flows</div><div class="desc">Horizontal strands, blue, continuous — where the local phase sits near 0.</div></div>
+      <div class="primitive fn"><div class="sym">fn[n]</div><div class="name">Lattice · crosses</div><div class="desc">Diagonal structure, gold — where the phase sits near the frontier at 0.5.</div></div>
+      <div class="primitive na"><div class="sym">not_as</div><div class="name">Burst · diverges</div><div class="desc">Radial to center, orange — where the phase approaches 1.</div></div>
+    </div>
+  </section>
+
+  <section class="statement-sec">
+    <div class="big">
+      Not one function that becomes another — a <span class="as">field</span> where all three
+      are true at once, in different places, forever in motion. The seam is not a line.
+      It is a <span class="fr">weather</span>.
+    </div>
+  </section>
+
+  <footer id="start">
+    <div class="brand">prima<span style="color:var(--blue)">.</span></div>
+    <div>metamorphosis · field</div>
+    <div class="links"><a href="#">Field</a><a href="#">Shape</a><a href="#">Mesh</a></div>
+  </footer>
+</div>
+
+<script>
+// ═══ Metamorphosis/FIELD: one node set, three functions, phase distributed in space ═══
+const C={bg:'#08080c',blue:'#5a7aff',orange:'#e06a3a',gold:'#f5c451',ink:'#f5f5f7'};
+const cv=document.getElementById('morph'),ctx=cv.getContext('2d');
+const DPR=Math.min(devicePixelRatio||1,2);
+let W=0,H=0;
+let COLS=30,ROWS=18;
+let nodes=[];
+let smx=-9,hasCursor=false;
+
+// two orbiting phase-sources
+const srcA={x:0,y:0,phaseBase:0,angle:0};
+const srcB={x:0,y:0,phaseBase:0.5,angle:2.1};
+
+function buildNodes(){
+  const padX=W*0.08,padY=H*0.18;
+  const gw=(W-padX*2)/(COLS-1),gh=(H-padY*2)/(ROWS-1);
+  const fresh=nodes.length===0;
+  const next=[];
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const tx=padX+c*gw,ty=padY+r*gh;
+    if(fresh)next.push({x:tx,y:ty,bx:tx,by:ty,bob:Math.random()*6.28});
+    else{const o=nodes[r*COLS+c];next.push({x:o.x,y:o.y,bx:tx,by:ty,bob:o.bob});}
+  }
+  nodes=next;
+}
+const idx=(c,r)=>r*COLS+c;
+
+// the goat's weights, unchanged
+function weights(ph){
+  const b=0.42;
+  const w0=Math.exp(-Math.pow((ph-0)/b,2));
+  const w1=Math.exp(-Math.pow((ph-0.5)/b,2));
+  const w2=Math.exp(-Math.pow((ph-1)/b,2));
+  const s=w0+w1+w2||1;
+  return [w0/s,w1/s,w2/s];
+}
+// wrap phase so the seam at 0↔1 is seamless
+function wrapPhase(p){p=((p%1)+1)%1;return Math.min(p,1-p)===p?p:1;}
+function blendPhase(da,db,pa,pb){
+  // average in signed circular space so the 0↔1 wrap doesn't create a seam artifact
+  let angA=pa*Math.PI*2,angB=pb*Math.PI*2;
+  const daWeight=1/(1+da*da*0.002),dbWeight=1/(1+db*db*0.002);
+  const tot=daWeight+dbWeight;
+  const mid=daWeight*angA+dbWeight*angB;
+  return (((mid/tot)%(Math.PI*2))+Math.PI*2)%(Math.PI*2)/(Math.PI*2);
+}
+
+function draw(){
+  requestAnimationFrame(draw);
+  const t=performance.now()*0.001;
+  const speed=hasCursor?0.22:0.45;
+
+  // orbit the sources around the stage
+  const sx=W/2,sy=H/2,Rorb=Math.max(W,H)*0.16;
+  srcA.x=sx+Math.cos(t*speed+0.4)*Rorb;
+  srcA.y=sy+Math.sin(t*speed+0.4)*Rorb*0.8;
+  srcB.x=sx+Math.cos(t*speed+2.8)*Rorb;
+  srcB.y=sy+Math.sin(t*speed+2.8)*Rorb*0.8;
+
+  // node motion: glide to target + bob
+  for(const n of nodes){
+    n.x+=(n.bx-n.x)*0.06;
+    n.y+=(n.by-n.y)*0.06;
+    n.x+=Math.sin(t*0.6+n.bob)*4.5;
+    n.y+=Math.cos(t*0.5+n.bob)*4.5;
+  }
+
+  ctx.clearRect(0,0,W,H);
+
+  // local weights per node by blending the two sources' phases by distance
+  const locals=nodes.map(n=>{
+    const da=Math.hypot(n.x-srcA.x,n.y-srcA.y);
+    const db=Math.hypot(n.x-srcB.x,n.y-srcB.y);
+    const ph=blendPhase(da,db,srcA.phaseBase,srcB.phaseBase);
+    return weights(ph);
+  });
+
+  // dominant colors per node drive the readout (+ per-node tint)
+  ctx.lineWidth=1;
+
+  // wave — horizontal, blue
+  ctx.strokeStyle=C.blue;ctx.globalAlpha=0.5;
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS-1;c++){
+    const a=nodes[idx(c,r)],b=nodes[idx(c+1,r)];
+    const al=(locals[idx(c,r)][0]+locals[idx(c+1,r)][0])*0.25;
+    if(al<=0.01)continue;
+    ctx.globalAlpha=al;
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+  }
+  // lattice — diagonal, gold
+  ctx.strokeStyle=C.gold;
+  for(let r=0;r<ROWS-1;r++)for(let c=0;c<COLS-1;c++){
+    const a=nodes[idx(c,r)],b=nodes[idx(c+1,r+1)];
+    const a2=nodes[idx(c+1,r)],b2=nodes[idx(c,r+1)];
+    const al=(locals[idx(c,r)][1]+locals[idx(c+1,r+1)][1])*0.2;
+    const al2=(locals[idx(c+1,r)][1]+locals[idx(c,r+1)][1])*0.2;
+    if(al>0.01){ctx.globalAlpha=al;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
+    if(al2>0.01){ctx.globalAlpha=al2;ctx.beginPath();ctx.moveTo(a2.x,a2.y);ctx.lineTo(b2.x,b2.y);ctx.stroke();}
+  }
+  // burst — radial to nearest source, orange (each node toward its dominant phase source)
+  ctx.strokeStyle=C.orange;
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const n=nodes[idx(c,r)];
+    const [wA,wF,wN]=locals[idx(c,r)];
+    if(wN<=0.01)continue;
+    ctx.globalAlpha=wN*0.22;
+    const da=Math.hypot(n.x-srcA.x,n.y-srcA.y),db=Math.hypot(n.x-srcB.x,n.y-srcB.y);
+    const tx=da<db?srcA.x:srcB.x,ty=da<db?srcA.y:srcB.y;
+    ctx.beginPath();ctx.moveTo(n.x,n.y);ctx.lineTo(tx,ty);ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+
+  // nodes — tinted by dominant local mode
+  let cntW=0,cntF=0,cntN=0;
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const n=nodes[idx(c,r)],[wA,wF,wN]=locals[idx(c,r)];
+    const dom=wA>=wF&&wA>=wN?'blue':(wN>=wF?'orange':'gold');
+    if(dom==='blue')cntW++;else if(dom==='gold')cntF++;else cntN++;
+    ctx.fillStyle=dom==='blue'?C.blue:dom==='gold'?C.gold:C.orange;
+    ctx.globalAlpha=0.5+0.5*(wA>=wF&&wA>=wN?wA:(wN>=wF?wN:wF));
+    ctx.beginPath();ctx.arc(n.x,n.y,1.6,0,6.2832);ctx.fill();
+  }
+  ctx.globalAlpha=1;
+
+  // phase source markers (invisible to keep it clean, subtle)
+  for(const s of [srcA,srcB]){
+    ctx.fillStyle=(s===srcA?C.blue:C.gold);
+    ctx.globalAlpha=0.18;
+    ctx.beginPath();ctx.arc(s.x,s.y,16,0,6.2832);ctx.strokeStyle=(s===srcA?C.blue:C.gold);ctx.lineWidth=0.5;ctx.stroke();
+    ctx.globalAlpha=0.4;
+    ctx.beginPath();ctx.arc(s.x,s.y,2,0,6.2832);ctx.fill();
+  }
+  ctx.globalAlpha=1;
+
+  // readout
+  const tot=nodes.length;
+  document.getElementById('mAs').textContent=Math.round(cntW/tot*100)+'%';
+  document.getElementById('mFr').textContent=Math.round(cntF/tot*100)+'%';
+  document.getElementById('mNa').textContent=Math.round(cntN/tot*100)+'%';
+  const dom=cntW>=cntF&&cntW>=cntN?C.blue:(cntN>=cntF?C.orange:C.gold);
+  const domLabel=cntW>=cntF&&cntW>=cntN?'as · flowing':(cntN>=cntF?'not_as · bursting':'frontier · latticing');
+  document.getElementById('domVal').innerHTML='<span style="color:'+dom+'">'+domLabel+'</span>';
+  document.getElementById('domReadout').style.color=dom;
+}
+
+function resize(){
+  W=innerWidth;H=innerHeight;
+  cv.width=W*DPR;cv.height=H*DPR;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  buildNodes();
+}
+document.addEventListener('mousemove',e=>{smx=e.clientX;hasCursor=true;});
+document.addEventListener('mouseleave',()=>{hasCursor=false;});
+window.addEventListener('resize',resize);
+resize();
+draw();
+</script>
+</body>
+</html>

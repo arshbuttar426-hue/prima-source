@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang=en>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>constraint ripple</title>
+<style>
+*{margin:0;padding:0}body{background:#08080d;overflow:hidden;cursor:crosshair}
+canvas{display:block}
+#hud{position:fixed;top:12px;left:50%;transform:translateX(-50%);display:flex;gap:16px;pointer-events:none;z-index:2}
+#hud span{color:rgba(255,255,255,0.22);font:10px monospace}
+</style>
+<canvas id=c></canvas>
+<div id=hud>
+<span id=info>click anywhere</span><span id=hops></span>
+</div>
+<script>
+const C=document.getElementById('c'),g=C.getContext('2d');
+const S=11,GAP=1;
+let COLS,ROWS,cells;
+
+function resize(){
+  C.width=window.innerWidth; C.height=window.innerHeight;
+  COLS=Math.floor(C.width/S); ROWS=Math.floor(C.height/S);
+  if(!cells)initGrid();
+}
+
+function initGrid(){
+  cells=Array.from({length:ROWS},(_,y)=>Array.from({length:COLS},(_,x)=>({
+    h:(x*3+y*5)%360,s:0.6+Math.sin(y*0.1)*0.15,l:0.42+Math.cos(x*0.08)*0.08,
+    oldH:0,targetH:0,oldS:0,targetS:0,oldL:0,targetL:0,
+    waveGen:-1,transitioning:false,
+  })));
+}
+
+const dr=[0,1,0,-1],dc=[1,0,-1,0];
+
+const WAVE_SPEED=45;
+let waveOrigin=null,waveStart=0;
+
+function ripple(ox,oy){
+  waveOrigin={x:ox,y:oy};waveStart=performance.now();
+
+  const queue=[{x:ox,y:oy,gen:0}];
+  const visited=new Set();visited.add(`${ox},${oy}`);
+  const source=cells[oy][ox];
+  source.oldH=source.h;source.oldS=source.s;source.oldL=source.l;
+  source.waveGen=0;source.transitioning=true;
+  let maxGen=0;
+
+  while(queue.length){
+    const cur=queue.shift();maxGen=Math.max(maxGen,cur.gen);
+
+    for(let d=0;d<4;d++){
+      const nx=cur.x+dc[d],ny=cur.y+dr[d];
+      if(nx<0||nx>=COLS||ny<0||ny>=ROWS)continue;
+      const k=`${nx},${ny}`;if(visited.has(k))continue;
+      visited.add(k);
+
+      const parentCell=cells[cur.y][cur.x];
+      const target=cells[ny][nx];
+      const epsilon=0.4+Math.random()*2.0;
+      target.oldH=target.h;target.oldS=target.s;target.oldL=target.l;
+      target.targetH=(parentCell.oldH+epsilon)%360;
+      target.targetS=parentCell.oldS+(Math.random()-0.5)*0.03;
+      target.targetL=parentCell.oldL+(Math.random()-0.5)*0.02;
+      target.targetS=Math.max(0.15,Math.min(1,target.targetS));
+      target.targetL=Math.max(0.1,Math.min(0.9,target.targetL));
+      target.waveGen=cur.gen+1;
+      target.transitioning=true;
+
+      queue.push({x:nx,y:ny,gen:cur.gen+1});
+    }
+  }
+
+  document.getElementById('hops').textContent=`max hops: ${maxGen}`;
+}
+
+function hslToRgb(h,s,l){
+  const c=(1-Math.abs(2*l-1))*s,x=c*(1-Math.abs((h/60)%2-1)),m=l-c/2;
+  let r,g,b;
+  if(h<60){r=c;g=x;b=0}else if(h<120){r=x;g=c;b=0}else if(h<180){r=0;g=c;b=x}else if(h<240){r=0;g=x;b=c}else if(h<300){r=x;g=0;b=c}else{r=c;g=0;b=x}
+  return[r+m,g+m,b+m];
+}
+
+function lerp(a,b,t){return a+(b-a)*t}
+function lerpH(a,b,t){const d=((b-a+180)%360+360)%360-180;return(a+d*t+360)%360}
+
+function draw(t){
+  if(!cells)return requestAnimationFrame(draw);
+  g.clearRect(0,0,C.width,C.height);
+  let transitioning=0;
+  const now=performance.now();
+
+  for(let y=0;y<ROWS;y++){
+    for(let x=0;x<COLS;x++){
+      const c=cells[y][x];
+      let h=c.h,s=c.s,l=c.l;
+
+      if(c.transitioning&&waveOrigin){
+        const arrival=waveStart+c.waveGen*WAVE_SPEED;
+        const duration=120+Math.random()*80;
+        if(now>=arrival){
+          const t=Math.min(1,(now-arrival)/duration);
+          const ease=1-Math.pow(1-t,3);
+          h=lerpH(c.oldH,c.targetH,ease);
+          s=lerp(c.oldS,c.targetS,ease);
+          l=lerp(c.oldL,c.targetL,ease);
+          if(t>=1){c.h=c.targetH;c.s=c.targetS;c.l=c.targetL;c.transitioning=false}
+          else transitioning++;
+        }
+      }
+
+      const lightness=l*(0.92+Math.sin(t*0.004+x*0.3+y*0.2)*0.06);
+      g.fillStyle=`hsl(${h},${(s*100).toFixed(0)}%,${(lightness*100).toFixed(0)}%)`;
+      g.fillRect(x*S+GAP,y*S+GAP,S-GAP*2,S-GAP*2);
+    }
+  }
+  document.getElementById('info').textContent=transitioning?`wave: ${transitioning} cells`:'settled';
+  requestAnimationFrame(draw);
+}
+
+addEventListener('click',e=>{
+  const cx=Math.floor(e.clientX/S),cy=Math.floor(e.clientY/S);
+  if(cx<0||cx>=COLS||cy<0||cy>=ROWS)return;
+  cells.forEach(r=>r.forEach(c=>{c.oldH=c.h;c.oldS=c.s;c.oldL=c.l;c.targetH=c.h;c.targetS=c.s;c.targetL=c.l;}));
+  ripple(cx,cy);
+});
+addEventListener('resize',resize);
+resize();requestAnimationFrame(draw);
+</script>
+</html>

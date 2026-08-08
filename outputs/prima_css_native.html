@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The frame is the architecture</title>
+<style>
+@layer tokens, base, layout, motion, platform;
+
+/* ═══════════ LAYER: TOKENS — one source of truth ═══════════ */
+@layer tokens{
+  :root{
+    /* spacing — 8pt grid, golden-derived rhythm */
+    --u:8px;
+    --s-1:calc(var(--u)*1);   /* 8    */
+    --s-2:calc(var(--u)*2);   /* 16   */
+    --s-3:calc(var(--u)*3);   /* 24   */
+    --s-4:calc(var(--u)*5);   /* 40   */
+    --s-5:calc(var(--u)*8);   /* 64   */
+    --s-6:calc(var(--u)*13);  /* 104  */
+    --s-7:calc(var(--u)*21);  /* 168  */
+
+    /* color — pure monochrome, luminance-stepped for contrast */
+    --bg:#000;
+    --surface:#0d0d0f;
+    --panel:#0a0a0c;
+    --ink:#f5f5f7;
+    --dim:#9a9aa2;
+    --faint:rgba(255,255,255,0.34);
+    --line:rgba(255,255,255,0.07);
+    --line-soft:rgba(255,255,255,0.045);
+    --glow:rgba(255,255,255,0.035);
+
+    /* type — GOLDEN modular scale, fluid via clamp() */
+    /* base 1rem, each step × φ = 1.618 */
+    --t-xxs:clamp(0.70rem, 0.62rem + 0.28vw, 0.82rem);
+    --t-xs: clamp(0.80rem, 0.70rem + 0.34vw, 0.92rem);
+    --t-sm: clamp(0.88rem, 0.78rem + 0.4vw,  1.00rem);
+    --t-md: clamp(1.00rem, 0.86rem + 0.6vw,  1.12rem);
+    --t-lg: clamp(1.62rem, 1.2rem  + 2.4vw,  2.62rem);
+    --t-xl: clamp(2.62rem, 1.6rem  + 4.6vw,  4.24rem);
+    --t-xxl:clamp(3.40rem, 1.9rem  + 7.0vw,  6.86rem);
+
+    /* measure */
+    --measure:65ch;
+
+    /* radius — one family */
+    --r-lg:24px; --r-md:18px; --r-sm:12px;
+
+    /* EASING GRAMMAR — one vocabulary, three voices */
+    --ease-shutter:cubic-bezier(0.9,0,0.1,1);   /* decisive / abrupt */
+    --ease-soft:cubic-bezier(0.22,0.61,0.36,1); /* clean settle       */
+    --ease-spring:cubic-bezier(0.34,1.56,0.64,1); /* buoyant          */
+
+    --dur-fast:260ms; --dur-mid:600ms; --dur-slow:900ms;
+  }
+}
+
+/* ═══════════ LAYER: BASE — reset & primitives ═══════════ */
+@layer base{
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%;accent-color:var(--ink)}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",sans-serif;
+    background:var(--bg);color:var(--ink);
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    font-size:var(--t-md);font-weight:400;line-height:1.618;overflow-x:hidden;
+  }
+  ::selection{background:rgba(255,255,255,0.18)}
+  :focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+  img,svg,video{max-width:100%;display:block}
+  .col{max-width:min(1100px,100% - var(--s-5));margin-inline:auto;padding-inline:var(--s-3)}
+  @media(min-width:600px){.col{max-width:min(1100px,100% - var(--s-6));padding-inline:var(--s-4)}}
+}
+
+/* ═══════════ LAYER: LAYOUT — regions, flex, grid ═══════════ */
+@layer layout{
+  .field{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(120% 90% at 50% 0%,var(--glow),transparent 60%)}
+  .field::after{content:"";position:absolute;inset:0;opacity:0.045;
+    background-image:linear-gradient(var(--line-soft) 1px,transparent 1px),
+                     linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);
+    background-size:calc(var(--u)*12) calc(var(--u)*12);
+    mask-image:radial-gradient(ellipse 70% 60% at 50% 40%,black,transparent 75%);}
+
+  nav{position:fixed;top:0;inset-inline:0;z-index:50;height:44px;display:flex;align-items:center;
+    backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);
+    background:rgba(0,0,0,0.65);border-bottom:1px solid var(--line-soft)}
+  nav .inner{width:100%;max-width:1100px;margin-inline:auto;display:flex;align-items:center;gap:var(--s-4);padding-inline:var(--s-3)}
+  @media(min-width:600px){nav .inner{padding-inline:var(--s-4)}}
+  nav{container-type:inline-size}
+  nav .links{margin-left:auto;display:flex;gap:clamp(var(--s-3),6cqw,var(--s-4));align-items:center}
+  nav .links a{color:var(--faint);text-decoration:none;font-size:var(--t-xs);letter-spacing:-0.01em}
+
+  .hero{position:relative;z-index:1;min-height:100svh;display:grid;place-items:center;text-align:center;padding:var(--s-7) var(--s-3) var(--s-5)}
+  .hero .inner{max-width:var(--measure)}
+  .eyebrow{font-size:var(--t-xxs);font-weight:500;letter-spacing:0.35em;text-transform:uppercase;color:var(--dim);margin-bottom:var(--s-3)}
+  .hero h1{font-weight:300;font-size:var(--t-xxl);letter-spacing:-0.045em;line-height:0.96;margin-bottom:var(--s-3)}
+  .hero .lede{font-size:var(--t-lg);font-weight:300;color:var(--dim);max-width:34rem;margin-inline:auto;letter-spacing:0}
+
+  .core{position:relative;z-index:1;padding:var(--s-5) 0 var(--s-6);
+    container-type:inline-size}
+  .core .col{display:flex;flex-direction:column;align-items:center;text-align:center}
+  .core h2{font-weight:300;font-size:var(--t-xl);letter-spacing:-0.03em;line-height:1.1;margin-bottom:var(--s-2)}
+  .core p{color:var(--dim);font-size:var(--t-md);max-width:32rem}
+
+  .frame-panel{margin-top:var(--s-4);position:relative;width:min(680px,100%);aspect-ratio:4/3;
+    border-radius:var(--r-lg);border:1px solid var(--line);background:var(--panel);overflow:hidden;
+    box-shadow:0 40px 80px -40px rgba(0,0,0,0.9),inset 0 1px 0 rgba(255,255,255,0.05)}
+  .frame-panel canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .frame-panel .rings{position:absolute;inset:0;pointer-events:none;z-index:2}
+  .frame-panel .rings::before{content:"";position:absolute;inset:8%;border:1px solid rgba(255,255,255,0.035);border-radius:50%}
+  .frame-panel .rings::after{content:"";position:absolute;inset:30%;border:1px solid rgba(255,255,255,0.025);border-radius:50%}
+  .frame-panel .badge{position:absolute;top:var(--s-2);inset-inline-start:var(--s-3);z-index:3;font-size:var(--t-xxs);letter-spacing:0.25em;text-transform:uppercase;color:var(--dim)}
+  .frame-panel .stage{position:absolute;top:var(--s-2);inset-inline-end:var(--s-3);z-index:3;display:flex;gap:6px}
+  .frame-panel .stage i{width:6px;height:6px;border-radius:50%;background:var(--ink);opacity:0.16;transition:opacity var(--dur-fast) var(--ease-soft)}
+  .frame-panel .stage i.on{opacity:1}
+  .frame-panel .readout{position:absolute;bottom:var(--s-2);inset-inline:0;z-index:3;display:flex;align-items:center;justify-content:center;gap:clamp(var(--s-3),6cqw,var(--s-4));flex-wrap:wrap;padding-inline:var(--s-2)}
+  .frame-panel .readout .r{font-size:var(--t-xs);color:var(--dim);display:flex;align-items:center;gap:var(--s-1)}
+  .frame-panel .readout .r b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+  .core .hint{margin-top:var(--s-2);font-size:var(--t-xs);color:var(--faint);letter-spacing:0.02em}
+
+  .statement{position:relative;z-index:1;padding:var(--s-7) 0;text-align:center;border-top:1px solid var(--line-soft)}
+  .statement .big{font-weight:300;font-size:var(--t-xl);letter-spacing:-0.03em;line-height:1.22;color:var(--ink);max-width:calc(var(--measure)*0.9);margin-inline:auto;position:relative;min-height:1.22em;cursor:pointer}
+  .statement .stack{display:block;contain:content}
+  #stackB{position:absolute;inset:0;visibility:hidden}
+  .statement .seam-x{display:inline-block;width:1.1em;height:1px;vertical-align:middle;background:var(--ink);margin-inline:0.06em}
+  .statement .hintm{font-size:var(--t-xxs);color:var(--faint);letter-spacing:0.25em;text-transform:uppercase;margin-top:var(--s-4);display:inline-flex;align-items:center;gap:var(--s-1)}
+
+  .principles{position:relative;z-index:1;padding:0 0 var(--s-6);border-top:1px solid var(--line-soft)}
+  .principles .kicker{font-size:var(--t-xxs);font-weight:500;letter-spacing:0.3em;text-transform:uppercase;color:var(--dim);margin:var(--s-6) 0 var(--s-4)}
+  .prims{display:grid;grid-template-columns:repeat(3,1fr);gap:0 1px;background:var(--line-soft);border:1px solid var(--line-soft);border-radius:var(--r-lg);overflow:hidden}
+  @media(max-width:760px){.prims{grid-template-columns:1fr}}
+  .prim{background:var(--surface);padding:var(--s-4) var(--s-3);position:relative;overflow:hidden}
+  .prim::after{content:"";position:absolute;inset-block:0;inset-inline-start:0;width:2px;background:var(--ink);transform:scaleY(0);transform-origin:top}
+  .prim .num{font-size:var(--t-xs);color:var(--faint);letter-spacing:0.2em;margin-bottom:var(--s-3)}
+  .prim .name{font-size:var(--t-md);font-weight:500;margin-bottom:var(--s-1)}
+  .prim .desc{font-size:var(--t-sm);line-height:1.7;color:var(--dim)}
+
+  footer{position:relative;z-index:1;padding:var(--s-5) 0 var(--s-6);color:var(--faint);font-size:var(--t-xs);text-align:center;border-top:1px solid var(--line-soft)}
+  footer .big{font-weight:300;color:var(--ink);font-size:var(--t-lg);letter-spacing:-0.02em;margin-bottom:var(--s-1)}
+  footer .small{margin-top:var(--s-2)}
+}
+
+/* ═══════════ LAYER: MOTION — compositor-only, one grammar ═══════════ */
+@layer motion{
+  nav .links a{transition:color var(--dur-fast) var(--ease-soft)}
+  nav .links a:hover{color:var(--ink)}
+  .hero h1 .gl{display:inline-block;opacity:0;transform:translateY(0.5em);will-change:transform,opacity}
+  .hero h1 .gl.in{opacity:1;transform:translateY(0);transition:transform var(--dur-mid) var(--ease-shutter),opacity var(--dur-mid) var(--ease-soft)}
+
+  .prim::after{transition:transform var(--dur-mid) var(--ease-shutter)}
+  .prim:hover::after{transform:scaleY(1)}
+  .prim .num{transition:color var(--dur-fast) var(--ease-soft),transform var(--dur-fast) var(--ease-soft)}
+  .prim:hover .num{color:var(--ink);transform:translateX(calc(var(--u)*0.75))}
+  .statement .stack{transition:transform var(--dur-mid) var(--ease-shutter),opacity var(--dur-fast) var(--ease-soft)}
+  .statement.swap #stackA{transform:translateY(100%);opacity:0}
+  .statement.swap #stackB{visibility:visible;transform:translateY(0);opacity:1;transition:transform var(--dur-mid) var(--ease-spring),opacity var(--dur-fast) var(--ease-soft)}
+
+  /* the SHUTTER — classic overlay fallback */
+  #shutter{position:fixed;inset:0;z-index:300;pointer-events:none;visibility:hidden}
+  #shutter .st{position:absolute;left:0;right:0;height:50.6%;background:#000;will-change:transform}
+  #shutter .st.t{top:0;transform:translateY(-101%)}
+  #shutter .st.b{bottom:0;transform:translateY(101%)}
+  #shutter.on{visibility:visible}
+  #shutter .seam{position:absolute;left:0;right:0;top:50%;height:1px;margin-top:-.5px;background:var(--ink);transform:scaleX(0)}
+  #shutter .st.t,#shutter .st.b{transition:transform var(--dur-fast) var(--ease-shutter)}
+  #shutter.on .st.t{transform:translateY(0)}
+  #shutter.on .st.b{transform:translateY(0)}
+  #shutter .seam{transition:transform 160ms var(--ease-shutter) 20ms}
+  #shutter.on .seam{transform:scaleX(1)}
+
+  /* View Transitions API — native upgrade when available */
+  @supports (view-transition-name: none){
+    ::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
+    ::view-transition-group(root){animation-duration:var(--dur-mid)}
+    .vt-shutter::view-transition-image-pair(root){background:#000}
+  }
+}
+
+/* ═══════════ LAYER: PLATFORM — reduced motion & os preference ═══════════ */
+@layer platform{
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+    .hero h1 .gl{opacity:1;transform:none}
+    #shutter{visibility:hidden!important}
+  }
+  @media (prefers-color-scheme:light){
+    /* keep monochrome identity; only warn is unnecessary — identity is neutral */
+  }
+}
+</style>
+</head>
+<body>
+
+<div id="shutter" aria-hidden="true"><div class="st t"></div><div class="st b"></div><div class="seam"></div></div>
+
+<div class="field"></div>
+
+<nav>
+  <div class="inner">
+    <a class="mark" href="#top" aria-label="Prima"></a>
+    <div class="links">
+      <a href="#core">The core</a>
+      <a href="#statement">Direction</a>
+      <a href="#principles">Principles</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="top">
+  <div class="inner">
+    <div class="eyebrow">Design · Engineering · Applied mathematics</div>
+    <h1>The frame<br>is the architecture.</h1>
+    <p class="lede">A working system, reduced to its truest parts. What something counts as — and what it absolutely does not.</p>
+  </div>
+</section>
+
+<!-- CORE -->
+<section class="core" id="core">
+  <div class="col">
+    <h2>One system. Three states.</h2>
+    <p>Move through the field — or let the scroll carry you. The strands never break; they transform.</p>
+    <div class="frame-panel">
+      <div class="rings"></div>
+      <div class="badge">constraint · metamorphosis</div>
+      <div class="stage"><i></i><i></i><i></i></div>
+      <canvas id="morph"></canvas>
+      <div class="readout">
+        <div class="r">longitudinal <b id="mA">—</b></div>
+        <div class="r">lattice <b id="mF">—</b></div>
+        <div class="r">radial <b id="mN">—</b></div>
+      </div>
+    </div>
+    <div class="hint">Cursor x and scroll both conduct the ratio between the three states — always summing to unity.</div>
+  </div>
+</section>
+
+<!-- STATEMENT -->
+<section class="statement" id="statement" aria-label="Transforming statement; click to flip">
+  <div class="col">
+    <div class="big" id="morphBig">
+      <span class="stack" id="stackA">Same parts, different frame — <span class="seam-x"></span> the only honest line is the one between them.</span>
+      <span class="stack" id="stackB">What a thing counts as, and what it absolutely does not — the seam is the entire law.</span>
+    </div>
+    <div class="hintm"><span class="seam-x"></span> tap to transform</div>
+  </div>
+</section>
+
+<!-- PRINCIPLES -->
+<section class="principles" id="principles">
+  <div class="col">
+    <div class="kicker">Principles</div>
+    <div class="prims">
+      <div class="prim" tabindex="0"><div class="num">01</div><div class="name">Precision</div><div class="desc">Everything is position or computation. No hidden state, no extra kinds. The system is exactly what it appears to be.</div></div>
+      <div class="prim" tabindex="0"><div class="num">02</div><div class="name">Restraint</div><div class="desc">Change one joint, change the result. Nothing is injected; only arrangement and sign are modulated.</div></div>
+      <div class="prim" tabindex="0"><div class="num">03</div><div class="name">Continuity</div><div class="desc">The line never breaks — it transforms. Structure endures while its function finds a new form.</div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="big">The frame is the architecture.</div>
+  <div class="small">Designed and built offline · compositor-native · prefers-reduced-motion safe</div>
+</footer>
+
+<script>
+/* ══════════ FLAGSHIP: abrupt navigation — View Transitions API, else shutter ══════════ */
+const shutter=document.getElementById('shutter');
+const supportsVT=document.startViewTransition;
+
+function scrollToTarget(target){
+  const el=(target==='#top')?document.body:document.querySelector(target);
+  if(el) el.scrollIntoView();
+}
+
+function abruptNav(hash){
+  const useVT=supportsVT && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  scrollToTarget(hash);
+  if(useVT){
+    document.documentElement.classList.add('vt-shutter');
+    const t=document.startViewTransition(async()=>{});
+    t.finished.finally(()=>document.documentElement.classList.remove('vt-shutter'));
+  }else{
+    shutter.classList.add('on');
+    setTimeout(()=>{ scrollToTarget(hash); },220);
+    setTimeout(()=>{ shutter.classList.remove('on'); },250);
+  }
+}
+
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',e=>{
+    const hash=a.getAttribute('href');
+    if(hash==='#'||hash==='#top'){ if(hash==='#top'){e.preventDefault();abruptNav('#top');} return; }
+    e.preventDefault();
+    abruptNav(hash);
+  });
+});
+
+/* ══════════ hero — generative letter reveal ══════════ */
+(function(){
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const h1=document.querySelector('.hero h1');
+  h1.innerHTML=h1.textContent.split('').map((ch,i)=>
+    ch==='\n'?'<br>':`<span class="gl" style="transition-delay:${reduce?0:i*0.022}s">${ch===' '?'&nbsp;':ch}</span>`).join('');
+  requestAnimationFrame(()=>document.querySelectorAll('.hero .gl').forEach(g=>g.classList.add('in')));
+})();
+
+/* ══════════ scroll spine ══════════ */
+let scrollPhase=0.5;
+function onScroll(){
+  const max=document.documentElement.scrollHeight-window.innerHeight;
+  scrollPhase=max>0?window.scrollY/max:0;
+}
+window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+
+/* ══════════ the metamorph grid — cursor x + scroll conduct the phase ══════════ */
+const CV=document.getElementById('morph');
+const ctx=CV.getContext('2d');
+const DPR=Math.min(window.devicePixelRatio||1,2);
+let W=0,H=0;
+const COLS=30,ROWS=16;
+let nodes=[];
+let cxp=0.5,p=0.5;
+function buildNodes(){
+  const padX=W*0.07,padY=H*0.18;
+  const gw=(W-padX*2)/(COLS-1),gh=(H-padY*2)/(ROWS-1);
+  const fresh=nodes.length===0,next=[];
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const tx=padX+c*gw,ty=padY+r*gh;
+    next.push(fresh?{x:tx,y:ty,bx:tx,by:ty,bob:Math.random()*6.28}:{...nodes[r*COLS+c],bx:tx,by:ty});
+  }
+  nodes=next;
+}
+function weights(ph){const b=0.42;
+  const w0=Math.exp(-Math.pow(ph/b,2)),w1=Math.exp(-Math.pow((ph-0.5)/b,2)),w2=Math.exp(-Math.pow((ph-1)/b,2));
+  const s=(w0+w1+w2)||1;return[w0/s,w1/s,w2/s];}
+const ix=(c,r)=>r*COLS+c;
+function draw(){
+  requestAnimationFrame(draw);
+  if(W===0)return;
+  const t=performance.now()*0.001;
+  const target=0.5+(cxp-0.5)*0.62+(scrollPhase-0.5)*0.38;
+  p+=(target-p)*0.045;
+  for(const n of nodes){n.x+=(n.bx-n.x)*0.08;n.y+=(n.by-n.y)*0.08;n.x+=Math.sin(t*0.6+n.bob)*7;n.y+=Math.cos(t*0.5+n.bob)*7;}
+  const[wA,wF,wN]=weights(p);
+  ctx.clearRect(0,0,W,H);
+  const white='#f5f5f7';
+  ctx.lineWidth=0.8;ctx.strokeStyle=white;ctx.globalAlpha=wA*0.5;
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS-1;c++){ctx.beginPath();ctx.moveTo(nodes[ix(c,r)].x,nodes[ix(c,r)].y);ctx.lineTo(nodes[ix(c+1,r)].x,nodes[ix(c+1,r)].y);ctx.stroke();}
+  ctx.lineWidth=0.6;ctx.globalAlpha=wF*0.42;
+  for(let r=0;r<ROWS-1;r++)for(let c=0;c<COLS-1;c++){ctx.beginPath();ctx.moveTo(nodes[ix(c,r)].x,nodes[ix(c,r)].y);ctx.lineTo(nodes[ix(c+1,r+1)].x,nodes[ix(c+1,r+1)].y);ctx.stroke();ctx.beginPath();ctx.moveTo(nodes[ix(c+1,r)].x,nodes[ix(c+1,r)].y);ctx.lineTo(nodes[ix(c,r+1)].x,nodes[ix(c,r+1)].y);ctx.stroke();}
+  const cx=W/2,cy=H/2;ctx.lineWidth=0.7;ctx.globalAlpha=wN*0.4;
+  for(const n of nodes){ctx.beginPath();ctx.moveTo(n.x,n.y);ctx.lineTo(cx,cy);ctx.stroke();}
+  const domA=wA>=wF&&wA>=wN,domN=wN>=wF;ctx.globalAlpha=1;
+  for(const n of nodes){const glow=domA?0.9:(domN?0.6:0.75);ctx.fillStyle=`rgba(245,245,247,${glow})`;const r=1.5+(domA?0.9:(domN?0:0.4));ctx.beginPath();ctx.arc(n.x,n.y,r,0,6.2832);ctx.fill();}
+  ctx.globalAlpha=1;
+  const pct=v=>Math.round(v*100)+'%';
+  document.getElementById('mA').textContent=pct(wA);
+  document.getElementById('mN').textContent=pct(wN);
+  document.getElementById('mF').textContent=pct(wF);
+  const stage=document.querySelectorAll('.frame-panel .stage i');
+  stage[0].classList.toggle('on',domA);stage[2].classList.toggle('on',domN);stage[1].classList.toggle('on',!domA&&!domN);
+}
+function resize(){const r=CV.parentElement.getBoundingClientRect();W=r.width;H=r.height;CV.width=Math.round(W*DPR);CV.height=Math.round(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);buildNodes();}
+new ResizeObserver(resize).observe(document.querySelector('.frame-panel'));
+const panel=document.querySelector('.frame-panel');
+document.addEventListener('mousemove',e=>{const r=panel.getBoundingClientRect();cxp=(e.clientX-r.left)/r.width;});
+document.addEventListener('touchmove',e=>{const r=panel.getBoundingClientRect();cxp=(e.touches[0].clientX-r.left)/r.width;},{passive:true});
+
+/* ══════════ statement — tap to transform ══════════ */
+const statement=document.querySelector('.statement');
+statement.addEventListener('click',()=>statement.classList.toggle('swap'));
+statement.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();statement.classList.toggle('swap');} });
+statement.setAttribute('tabindex','0');
+statement.setAttribute('role','button');
+
+resize();draw();
+</script>
+</body>
+</html>

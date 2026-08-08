@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>as/not_as — flow field CGC</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a10; overflow: hidden; }
+  canvas { display: block; }
+  .info { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10; font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: rgba(200,180,150,0.3); letter-spacing: 0.2em; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="info">as/not_as · flow field CGC</div>
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+let W, H, mx = 0, my = 0, t = 0;
+
+function resize() { W = c.width = window.innerWidth; H = c.height = window.innerHeight; }
+window.addEventListener('resize', resize); resize();
+window.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; }, { passive: true });
+
+// --- not_as: noise field computation ---
+function noise(x, y) {
+  let v = Math.sin(x * 0.004) * Math.cos(y * 0.004) * 0.6
+        + Math.sin(x * 0.011 + 1.3) * Math.cos(y * 0.009 + 0.7) * 0.4
+        + Math.sin(x * 0.023 - 0.4) * Math.sin(y * 0.017 + 0.9) * 0.3;
+  return v;
+}
+
+// --- not_as: mouse disturbance computes field direction ---
+function field(x, y) {
+  const n = noise(x, y);
+  const n2 = noise(x + 5, y + 5);
+  const angle = n * Math.PI * 2;
+  let ax = Math.cos(angle), ay = Math.sin(angle);
+
+  // mouse radial disturbance
+  const dx = mx - x, dy = my - y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < 200) {
+    const force = (1 - dist / 200) * 1.5;
+    const px = dx / (dist + 1), py = dy / (dist + 1);
+    // perpendicular push for swirl
+    ax += py * force;
+    ay -= px * force;
+  }
+
+  return { ax, ay, noise: n };
+}
+
+// --- particles ---
+const COUNT = 5000;
+const particles = [];
+
+function initParticles() {
+  particles.length = 0;
+  for (let i = 0; i < COUNT; i++) {
+    particles.push({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      vx: Math.random() * 2 - 1,
+      vy: Math.random() * 2 - 1,
+      hue: 25 + Math.random() * 45,
+      age: Math.random() * 200,
+    });
+  }
+}
+initParticles();
+window.addEventListener('resize', () => { resize(); initParticles(); });
+
+function draw() {
+  t += 0.016;
+
+  ctx.fillStyle = 'rgba(10, 8, 6, 0.12)';
+  ctx.fillRect(0, 0, W, H);
+
+  const mouseOnCanvas = mx > 0 && mx < W && my > 0 && my < H;
+
+  for (const p of particles) {
+    const f = field(p.x, p.y);
+    const speed = 2.2 + Math.abs(f.noise) * 0.8;
+    p.vx += (f.ax * speed - p.vx) * 0.06;
+    p.vy += (f.ay * speed - p.vy) * 0.06;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.age += 1;
+
+    if (p.x < -20) p.x = W + 20;
+    if (p.x > W + 20) p.x = -20;
+    if (p.y < -20) p.y = H + 20;
+    if (p.y > H + 20) p.y = -20;
+
+    if (p.age > 200 || (mouseOnCanvas && Math.hypot(mx-p.x, my-p.y) < 10 && Math.random() < 0.3)) {
+      p.x = Math.random() * W;
+      p.y = Math.random() * H;
+      p.vx = (Math.random() - 0.5) * 2;
+      p.vy = (Math.random() - 0.5) * 2;
+      p.age = 0;
+    }
+
+    const brightness = Math.abs(f.noise) * 0.5 + 0.3;
+    const hue = 28 + Math.abs(f.noise) * 35;
+    const sat = 50 + Math.abs(f.noise) * 30;
+
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 1.2, 0, Math.PI * 2);
+    ctx.fillStyle = `hsla(${hue}, ${sat}%, ${55 + brightness * 30}%, ${0.2 + brightness * 0.3})`;
+    ctx.fill();
+  }
+
+  if (mouseOnCanvas) {
+    const glow = ctx.createRadialGradient(mx, my, 0, mx, my, 140);
+    glow.addColorStop(0, 'rgba(220, 170, 100, 0.05)');
+    glow.addColorStop(1, 'rgba(220, 170, 100, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(mx - 140, my - 140, 280, 280);
+  }
+
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>

@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AURASCOPE — an optical law instrument</title>
+<style>
+@layer tokens, base, layout, law, motion, field, platform;
+
+@layer tokens {
+  :root {
+    --paper:   #f6f1e6;
+    --paper-2: #ece4d0;
+    --ink:     #2a2118;
+    --ink-2:   #6b5d49;
+    --amber:   #ffb14d;
+    --ember:   #e2641c;
+    --cyan:    #149ca8;
+    --wire:    #2a2118;
+    --max: 1200px;
+    --ease-out: cubic-bezier(0.22,0.61,0.36,1);
+    --law: 0;   /* signed sum, set from js */
+  }
+  html { background: var(--wire); }
+}
+
+@layer base {
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: "Helvetica Now", "Arial", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  ::selection { background: var(--amber); color: var(--ink); }
+}
+
+@layer layout {
+  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 24px; }
+  header { display: flex; align-items: baseline; justify-content: space-between; padding: 18px 0 12px; border-bottom: 3px solid var(--wire); gap: 16px; }
+  header .brand { font-weight: 800; letter-spacing: .14em; text-transform: uppercase; font-size: 14px; }
+  header .mono { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: var(--ink-2); letter-spacing: .12em; white-space: nowrap; }
+
+  .mast {
+    display: grid; grid-template-columns: 1.25fr .75fr; gap: 30px;
+    align-items: center; padding: 40px 0 20px;
+  }
+  .word { height: 1.05em; display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; overflow: hidden; }
+  .word span { font-weight: 900; font-size: clamp(3rem, 11vw, 8.4rem); line-height: .96; letter-spacing: -.03em; }
+
+  .lede { max-width: 30em; color: var(--ink-2); font-size: clamp(1rem, 1.5vw, 1.2rem); line-height: 1.55; }
+  .lede b { color: var(--ink); }
+
+  .fieldbox { margin: 6px 0 0; border: 3px solid var(--wire); }
+}
+
+@layer field {
+  #field { display: block; width: 100%; height: 180px; background: var(--wire); touch-action: none; }
+  .tagrow { display: flex; justify-content: space-between; font-family: ui-monospace, Menlo, monospace; font-size: 11px; letter-spacing: .14em; color: var(--ink-2); padding: 8px 4px; border-top: 2px solid var(--wire); }
+  .tagrow .as { color: var(--ember); font-weight: 700; }
+  .tagrow .not { color: var(--cyan); font-weight: 700; }
+}
+
+@layer law {
+  section.law { padding: 34px 0; border-bottom: 3px solid var(--wire); }
+  .section-kicker { font-family: ui-monospace, Menlo, monospace; font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: var(--ember); }
+  h2 { font-size: clamp(1.5rem, 2.6vw, 2.2rem); margin: 8px 0 22px; text-transform: uppercase; letter-spacing: .02em; }
+
+  .plate { border: 3px solid var(--wire); }
+  .atom { display: grid; grid-template-columns: 38px 1fr auto auto; gap: 16px; align-items: center; padding: 14px 16px; border-bottom: 2px solid var(--wire); }
+  .atom:last-child { border-bottom: none; }
+  .atom .sign { font-family: ui-monospace, Menlo, monospace; font-size: 20px; width: 34px; height: 34px; border: 3px solid var(--wire); display: grid; place-items: center; cursor: pointer; user-select: none; background: var(--paper-2); }
+  .atom .sign.on { background: var(--amber); }
+  .atom .kind { font-weight: 700; }
+  .atom .kind small { display: block; font-weight: 400; color: var(--ink-2); font-size: 12px; }
+  .atom input[type=range] { width: 180px; accent-color: var(--ember); }
+  .atom .w { font-family: ui-monospace, Menlo, monospace; font-size: 13px; width: 40px; text-align: right; font-variant-numeric: tabular-nums; }
+
+  .verdict { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
+  .v { border: 2px solid var(--wire); padding: 14px; background: var(--paper-2); }
+  .v .k { font-family: ui-monospace, Menlo, monospace; font-size: 11px; letter-spacing: .16em; color: var(--ink-2); }
+  .v .out { font-weight: 800; font-size: clamp(1.6rem, 3vw, 2.4rem); margin-top: 8px; font-variant-numeric: tabular-nums; line-height: 1; }
+  .v .bar { height: 8px; background: var(--wire); margin-top: 10px; }
+  .v .bar i { display: block; height: 100%; width: 50%; background: var(--amber); transition: width .18s var(--ease-out); }
+}
+
+@layer motion {
+  @media (prefers-reduced-motion: no-preference) {
+    .word span { transition: transform .8s var(--ease-out); }
+    .verdict .out { transition: color .3s var(--ease-out); }
+  }
+  @media (prefers-reduced-motion: reduce) { .word span { transform: none !important; } }
+}
+
+@layer platform {
+  @media (max-width: 760px) {
+    .mast { grid-template-columns: 1fr; }
+    .atom { grid-template-columns: 34px 1fr; grid-template-areas: "sign kind" "sign w" "slider slider"; }
+    .atom .sign { grid-area: sign; }
+    .atom .kind { grid-area: kind; }
+    .atom .w { grid-area: w; }
+    .atom input { grid-area: slider; width: 100%; }
+    .verdict { grid-template-columns: 1fr; }
+  }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">AURASCOPE</div>
+    <div class="mono">OPTICAL LAW / INSTRUMENT 0071</div>
+    <div class="mono">AS = CONVERGE · NOT_AS = DISPERSE</div>
+  </header>
+
+  <div class="mast">
+    <div>
+      <div class="word" id="word"><span>A</span><span>U</span><span>R</span><span>A</span><span>S</span></div>
+      <p class="lede">A design that is <b>measured, not decorated.</b> Your cursor maps the room into territory — near atoms <b>converge</b>, distant ones <b>disperse</b>, and the frontier re-binds them. Turn the law below and the entire instrument retunes live.</p>
+    </div>
+    <div class="fieldbox">
+      <canvas id="field" width="560" height="180"></canvas>
+      <div class="tagrow"><span class="as">AS · converge</span><span>FRONTIER</span><span class="not">NOT_AS · disperse</span></div>
+    </div>
+  </div>
+
+  <section class="law">
+    <div class="section-kicker">THE LAW — signed sum, recompiled live</div>
+    <h2>Turn the atoms, flip the signs</h2>
+    <div class="plate" id="plate"></div>
+    <div class="verdict">
+      <div class="v"><div class="k">AMBIENT LIGHT</div><div class="out" id="out-light">—</div><div class="bar"><i id="bar-light"></i></div></div>
+      <div class="v"><div class="k">SPECTRUM POSITION</div><div class="out" id="out-spectrum">—</div><div class="bar"><i id="bar-spectrum"></i></div></div>
+      <div class="v"><div class="k">SIGNAL ENERGY</div><div class="out" id="out-energy">—</div><div class="bar"><i id="bar-energy"></i></div></div>
+    </div>
+  </section>
+
+  <footer style="padding:26px 0 60px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap">
+    <span class="tagrow" style="border:none;padding:0;align-items:center;gap:14px">
+      <span>AURASCOPE · constraint-first optical instrument</span>
+    </span>
+    <span class="tagrow" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.14em;color:var(--ink-2);border:none;padding:0">law state persists in-page · no network</span>
+  </footer>
+
+</div>
+
+<script>
+const SETTINGS = {
+  light: { atoms: [
+    { kind: "BONE",   desc: "warmth of ground",  w: 60, pol: +1 },
+    { kind: "AMBER",  desc: "molten light source", w: 80, pol: +1 },
+    { kind: "EMBER",  desc: "cut of signal",     w: 45, pol: +1 },
+    { kind: "CYAN",   desc: "the not_as pole",   w: 40, pol: -1 },
+  ]},
+  spectrum: { atoms: [
+    { kind: "SPECTRUM", desc: "position along the band", w: 70, pol: +1 },
+    { kind: "STEPPED",  desc: "discrete band width",     w: 55, pol: +1 },
+    { kind: "BLEND",    desc: "forbidden continuity",    w: 60, pol: -1 },
+  ]},
+  energy: { atoms: [
+    { kind: "CONVERGE", desc: "pull of near territory",  w: 75, pol: +1 },
+    { kind: "DIVERGE",  desc: "push of far territory",   w: 50, pol: +1 },
+    { kind: "STILL",    desc: "rest state decay",        w: 35, pol: -1 },
+  ]},
+};
+
+const state = {};
+for (const key in SETTINGS) state[key] = { atoms: SETTINGS[key].atoms.map(a => ({...a})) };
+
+const clamp01 = v => Math.max(0, Math.min(1, v));
+function sum(key){
+  let s = 0, total = 0, count = 0;
+  for (const a of state[key].atoms){ s += a.pol * a.w / 100; total += a.w / 100; count++; }
+  // normalize: signed weighted mean in [-1,1]
+  return clamp01((s / count + 1) / 2);
+}
+
+function renderPlate(){
+  const plate = document.getElementById('plate');
+  plate.innerHTML = '';
+  for (const key in SETTINGS){
+    const h = document.createElement('div');
+    h.style.cssText = "font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.16em;color:var(--ink-2);text-transform:uppercase;padding:12px 16px 2px";
+    h.textContent = key;
+    plate.appendChild(h);
+    for (const a of state[key].atoms){
+      const row = document.createElement('div'); row.className = 'atom';
+      const sign = document.createElement('div'); sign.className = 'sign' + (a.pol>0?' on':''); sign.textContent = a.pol>0?'+':'−';
+      sign.onclick = () => { a.pol *= -1; sign.classList.toggle('on', a.pol>0); sign.textContent = a.pol>0?'+':'−'; apply(); };
+      const kind = document.createElement('div'); kind.className='kind'; kind.innerHTML = a.kind + '<small>'+a.desc+'</small>';
+      const inp = document.createElement('input'); inp.type='range'; inp.min=0; inp.max=100; inp.value=a.w;
+      inp.oninput = () => { a.w = +inp.value; row.querySelector('.w').textContent = a.w; apply(); };
+      const w = document.createElement('div'); w.className='w'; w.textContent = a.w;
+      row.append(sign, kind, inp, w);
+      plate.appendChild(row);
+    }
+  }
+}
+
+function apply(){
+  const L = sum('light'), S = sum('spectrum'), E = sum('energy');
+  setText('out-light', (L*100).toFixed(0)+'%');
+  setText('out-spectrum', (S*100).toFixed(0)+'%');
+  setText('out-energy', (E*100).toFixed(0)+'%');
+  setWidth('bar-light', L*100);
+  setWidth('bar-spectrum', S*100);
+  setWidth('bar-energy', E*100);
+
+  // retune the instrument: grounded physics, stepped (no gradient), amber->amber core
+  const amberMix = 30 + L*70;
+  document.body.style.background = `rgb(${246- Math.round(L*34)}, ${241- Math.round(L*30)}, ${230- Math.round(L*28)})`;
+  document.documentElement.style.setProperty('--amber', `hsl(${40 + Math.round(S*6)}, ${82 + Math.round(S*10)}%, ${amberMix}%)`);
+  document.documentElement.style.setProperty('--ember', `hsl(${Math.round(20 + S*4)}, 82%, 48%)`);
+  // signal energy drives letter displacement on the word
+  const word = document.getElementById('word');
+  word.style.setProperty('--e', E.toFixed(3));
+  word.querySelectorAll('span').forEach((s,i)=>{
+    const off = (E-0.5)*20*(i%2? 1 : -1);
+    s.style.transform = `translateY(${off}px)`;
+  });
+}
+
+function setText(id,t){ document.getElementById(id).textContent = t; }
+function setWidth(id,w){ document.getElementById(id).style.width = w+'%'; }
+
+const cv = document.getElementById('field'), ctx = cv.getContext('2d');
+let px = 0.5;
+function field(){
+  const W = cv.width, H = cv.height;
+  ctx.fillStyle = 'rgb(42,33,24)';
+  ctx.fillRect(0,0,W,H);
+  const BAND = 9; // discrete steps
+  for (let i=0;i<BAND;i++){
+    const x = (i+0.5)/BAND;
+    const dist = Math.abs(x - px);          // cursor territory
+    const frontier = dist < 0.09;
+    const near = !frontier && x < px;
+    let col;
+    if (near) { const t=(0.09-dist)/0.09; col = `hsl(${38+Math.round(t*10)}, 84%, ${58+Math.round(t*24)}%)`; }
+    else if (frontier) { col = `rgb(255,177,77)`; }
+    else { const t=(dist-0.09)/0.9; col = `hsl(${186-Math.round(t*4)}, ${76+Math.round(t*12)}%, ${48-Math.round(t*10)}%)`; }
+    const lx = Math.round(i*W/BAND), rx = Math.round((i+1)*W/BAND);
+    ctx.fillStyle = col; ctx.fillRect(lx, 0, rx-lx, H);
+  }
+  // seam between the discrete bands
+  ctx.strokeStyle = 'rgba(246,241,230,0.5)';
+  ctx.lineWidth = 2;
+  for (let i=1;i<BAND;i++){ const x=Math.round(i*W/BAND); ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  // cursor probe
+  ctx.fillStyle = 'rgba(246,241,230,0.9)';
+  ctx.beginPath(); ctx.arc(px*W, H*0.62, 5, 0, 6.283); ctx.fill();
+  requestAnimationFrame(field);
+}
+cv.addEventListener('pointermove', e=>{ const r=cv.getBoundingClientRect(); px = clamp01((e.clientX-r.left)/r.width); });
+
+renderPlate();
+apply();
+field();
+</script>
+</body>
+</html>

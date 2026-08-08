@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prima Index — System Topology</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --base: #08080c;
+    --blue: #5a7aff;
+    --orange: #e06a3a;
+    --gold: #f5c451;
+    --ink: #f5f5f7;
+    --surface: rgba(255,255,255,0.025);
+    --surface-hover: rgba(255,255,255,0.045);
+    --border: rgba(255,255,255,0.055);
+    --dim: rgba(255,255,255,0.45);
+    --faint: rgba(255,255,255,0.22);
+  }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  #field{position:fixed;inset:0;z-index:0;pointer-events:none}
+  body{
+    background:var(--base);color:var(--ink);
+    font-family:'Inter',-apple-system,sans-serif;font-weight:300;
+    height:100vh;display:flex;flex-direction:column;overflow:hidden;
+  }
+
+  /* ─── Top bar ─── */
+  .topbar{
+    display:flex;align-items:center;gap:1rem;
+    padding:0.85rem 2rem;border-bottom:1px solid var(--border);flex-shrink:0;background:rgba(8,8,12,0.75);backdrop-filter:blur(10px);z-index:2;position:relative;
+  }
+  .brand{font-size:0.9rem;font-weight:200;letter-spacing:-.025em}
+  .brand span{color:var(--blue)}
+  .topbar .tagline{font-size:.62rem;color:var(--dim);font-weight:400;letter-spacing:.04em}
+  .topbar .clock{margin-left:auto;font-size:.68rem;color:var(--dim);font-weight:400;font-variant-numeric:tabular-nums}
+  .status-dot{width:5px;height:5px;border-radius:50%;background:var(--blue);margin-right:.3rem;display:inline-block}
+  .status-dot.warn{background:var(--gold)}
+  .status-dot.crit{background:var(--orange)}
+
+  /* ─── Main grid ─── */
+  .grid{z-index:1;position:relative;
+    flex:1;display:grid;grid-template-columns:1fr 320px;
+    gap:1px;background:var(--border);overflow:hidden;
+  }
+  .panel{background:rgba(8,8,12,0.82);backdrop-filter:blur(12px);display:flex;flex-direction:column;overflow:hidden}
+  .panel-head{
+    padding:1.2rem 2rem .6rem;display:flex;align-items:baseline;gap:.75rem;flex-shrink:0;
+    opacity:0;transform:translateY(10px);animation:slideIn .6s ease forwards;
+  }
+  .panel-head:nth-child(2){animation-delay:.1s}
+  .panel-head:nth-child(3){animation-delay:.2s}
+  .panel-head:nth-child(4){animation-delay:.3s}
+  .panel-head:nth-child(5){animation-delay:.4s}
+  .panel-head .title{
+    font-size:.7rem;font-weight:500;text-transform:uppercase;
+    letter-spacing:.15em;color:var(--dim);
+  }
+  .panel-head .sub{font-size:.62rem;color:var(--faint);font-weight:400}
+
+  @keyframes slideIn{to{opacity:1;transform:translateY(0)}}
+
+  /* ─── Topology canvas ─── */
+  .topo-wrap{flex:1;position:relative;min-height:0}
+  #topo{display:block;width:100%;height:100%;position:absolute;inset:0}
+
+  /* ─── KPI row ─── */
+  .kpis{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+    background:var(--border);flex-shrink:0;
+  }
+  .kpi{
+    background:var(--base);padding:1rem 1.4rem;display:flex;flex-direction:column;gap:.2rem;
+    opacity:0;transform:translateY(10px);animation:slideIn .6s ease forwards;
+  }
+  .kpi:nth-child(1){animation-delay:.12s}
+  .kpi:nth-child(2){animation-delay:.18s}
+  .kpi:nth-child(3){animation-delay:.24s}
+  .kpi:nth-child(4){animation-delay:.30s}
+  .kpi .label{
+    font-size:.55rem;font-weight:500;text-transform:uppercase;
+    letter-spacing:.16em;color:var(--faint);
+  }
+  .kpi .value{
+    font-size:1.3rem;font-weight:200;letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums;line-height:1;
+  }
+
+  /* ─── Side panel ─── */
+  .log-list{flex:1;overflow-y:auto;padding:.5rem 1rem;display:flex;flex-direction:column;gap:1px}
+  .log-list::-webkit-scrollbar{width:3px}
+  .log-list::-webkit-scrollbar-thumb{background:var(--border)}
+  .log-entry{
+    display:flex;align-items:center;gap:.65rem;padding:.55rem .6rem;
+    border-radius:7px;cursor:default;transition:background .12s;
+    font-size:.68rem;font-weight:400;
+  }
+  .log-entry:hover{background:var(--surface-hover)}
+  .log-entry .l-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .log-entry .l-dot.b{background:var(--blue)}
+  .log-entry .l-dot.o{background:var(--orange)}
+  .log-entry .l-dot.g{background:var(--gold)}
+  .log-entry .l-time{font-size:.58rem;color:var(--faint);width:44px;text-align:right;font-variant-numeric:tabular-nums;flex-shrink:0}
+  .log-entry .l-msg{flex:1}
+  .log-entry .l-svc{font-size:.58rem;color:var(--dim);flex-shrink:0;font-weight:400}
+
+  /* ─── Tooltip ─── */
+  .tooltip{
+    position:absolute;pointer-events:none;opacity:0;
+    background:var(--base);border:1px solid var(--border);border-radius:10px;
+    padding:.8rem 1rem;transition:opacity .15s;z-index:10;
+    font-size:.68rem;min-width:160px;
+  }
+  .tooltip.show{opacity:1}
+  .tooltip .tt-name{font-weight:500;font-size:.78rem;margin-bottom:.35rem}
+  .tooltip .tt-row{display:flex;justify-content:space-between;gap:1rem;margin-top:.15rem}
+  .tooltip .tt-row .tt-k{color:var(--faint);font-weight:400}
+  .tooltip .tt-row .tt-v{font-weight:400;font-variant-numeric:tabular-nums}
+
+  @media(max-width:840px){
+    .grid{grid-template-columns:1fr}
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .topbar{padding:.7rem 1rem}
+    .panel-head{padding:.8rem 1rem .4rem}
+    .kpi{padding:.7rem 1rem}
+  }
+</style>
+</head>
+<body>
+<canvas id="field"></canvas>
+
+<div class="topbar">
+  <div><div class="brand">prima<span>· index</span></div><div class="tagline">SYSTEM TOPOLOGY</div></div>
+  <div class="clock" id="clock">--:--:--</div>
+</div>
+
+<div class="kpis">
+  <div class="kpi"><div class="label">as · operational</div><div class="value" style="color:var(--blue)" id="kAs">—</div></div>
+  <div class="kpi"><div class="label">not_as · degraded</div><div class="value" style="color:var(--orange)" id="kNa">—</div></div>
+  <div class="kpi"><div class="label">frontier · warming</div><div class="value" style="color:var(--gold)" id="kFr">—</div></div>
+  <div class="kpi"><div class="label">avg latency</div><div class="value" id="kLat">—</div></div>
+</div>
+
+<div class="grid">
+  <div class="panel">
+    <div class="panel-head"><div class="title">Constraint Topology</div><div class="sub">each node = service health evaluated by constraint</div></div>
+    <div class="topo-wrap"><canvas id="topo"></canvas></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><div class="title">Event Log</div><div class="sub" id="logCount">—</div></div>
+    <div class="log-list" id="logList"></div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ─── Constraint palette ───
+const C={base:'#08080c',blue:'#5a7aff',orange:'#e06a3a',gold:'#f5c451',ink:'#f5f5f7',dim:'rgba(255,255,255,0.45)'};
+
+// ─── Services — the topology ───
+const services = [
+  {id:'gateway',    name:'API Gateway',    status:'as', latency:12,  uptime:99.97, deps:['auth','cache','worker']},
+  {id:'auth',       name:'Auth Service',   status:'as', latency:28,  uptime:99.99, deps:['db','cache']},
+  {id:'db',         name:'Database',       status:'as', latency:3,   uptime:99.95, deps:[]},
+  {id:'cache',      name:'Redis Cache',    status:'as', latency:1,   uptime:99.99, deps:[]},
+  {id:'queue',      name:'Message Queue',  status:'frontier', latency:340,uptime:99.50, deps:[]},
+  {id:'worker',     name:'Worker Pool',    status:'as', latency:55,  uptime:99.89, deps:['queue','db']},
+  {id:'storage',    name:'Object Storage', status:'as', latency:18,  uptime:99.93, deps:[]},
+  {id:'cdn',        name:'CDN Edge',       status:'not_as', latency:890,uptime:97.20, deps:['storage']},
+  {id:'monitor',    name:'Telemetry',      status:'as', latency:2,   uptime:99.99, deps:[]},
+  {id:'config',     name:'Config Store',   status:'frontier', latency:110,uptime:99.65, deps:[]},
+];
+
+const statusColor = s => s==='as'?C.blue:s==='not_as'?C.orange:C.gold;
+const statusLabel = s => s==='as'?'as · op':s==='not_as'?'not_as · deg':'frontier · warm';
+
+// ─── KPI ───
+function updateKPIs(){
+  const a=services.filter(s=>s.status==='as').length;
+  const n=services.filter(s=>s.status==='not_as').length;
+  const f=services.filter(s=>s.status==='frontier').length;
+  document.getElementById('kAs').textContent=a;
+  document.getElementById('kNa').textContent=n;
+  document.getElementById('kFr').textContent=f;
+  const avg=Math.round(services.reduce((s,x)=>s+x.latency,0)/services.length);
+  document.getElementById('kLat').textContent=avg+'ms';
+}
+
+// ─── Event log ───
+function buildLog(){
+  const events=[
+    {t:'14:03',svc:'CDN Edge',msg:'latency spike — 890ms above threshold',s:'not_as'},
+    {t:'14:01',svc:'Config Store',msg:'sync delay — parity check running',s:'frontier'},
+    {t:'13:58',svc:'Message Queue',msg:'backlog clearing — 340ms drain',s:'frontier'},
+    {t:'13:55',svc:'Worker Pool',msg:'scaled to 8 instances',s:'as'},
+    {t:'13:52',svc:'Auth Service',msg:'token rotation complete',s:'as'},
+    {t:'13:50',svc:'API Gateway',msg:'routing table updated',s:'as'},
+    {t:'13:48',svc:'Telemetry',msg:'metrics snapshot archived',s:'as'},
+  ];
+  const el=document.getElementById('logList');
+  el.innerHTML=events.map(e=>`
+    <div class="log-entry">
+      <span class="l-dot ${e.s==='as'?'b':e.s==='not_as'?'o':'g'}"></span>
+      <span class="l-time">${e.t}</span>
+      <span class="l-msg">${e.msg}</span>
+      <span class="l-svc">${e.svc}</span>
+    </div>
+  `).join('');
+  document.getElementById('logCount').textContent=events.length+' events';
+}
+
+// ─── Topology canvas ───
+const cv=document.getElementById('topo');
+const ctx=cv.getContext('2d');
+const DPR=Math.min(window.devicePixelRatio||1,2);
+let W,H;
+let nodePositions=[];
+let hoverIdx=-1;
+
+function computePositions(){
+  nodePositions=[];
+  const cx=W/2,cy=H/2;
+  const n=services.length;
+  const R=Math.min(W,H)*0.33;
+  for(let i=0;i<n;i++){
+    const angle=-Math.PI/2+(i/n)*Math.PI*2;
+    nodePositions.push({x:cx+Math.cos(angle)*R,y:cy+Math.sin(angle)*R});
+  }
+}
+
+function drawTopology(){
+  ctx.clearRect(0,0,W,H);
+
+  // dependency links (behind nodes)
+  ctx.lineWidth=.7;
+  for(let i=0;i<services.length;i++){
+    const s=services[i];
+    for(const depId of s.deps){
+      const j=services.findIndex(x=>x.id===depId);
+      if(j<0)continue;
+      const a=nodePositions[i],b=nodePositions[j];
+      const hi=(hoverIdx===i||hoverIdx===j);
+      ctx.strokeStyle=hi?C.gold:'rgba(255,255,255,0.06)';
+      ctx.globalAlpha=hi?.32:.08;
+      ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+    }
+  }
+  ctx.globalAlpha=1;
+
+  // central hub
+  const cx=W/2,cy=H/2;
+  ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.arc(cx,cy,8,0,6.2832);ctx.stroke();
+  ctx.fillStyle=C.blue;ctx.globalAlpha=.5;
+  ctx.beginPath();ctx.arc(cx,cy,5,0,6.2832);ctx.fill();
+  ctx.globalAlpha=1;
+
+  // service nodes
+  for(let i=0;i<services.length;i++){
+    const s=services[i];
+    const p=nodePositions[i];
+    const col=statusColor(s.status);
+    const r=6+(s.latency/120);
+
+    // link to hub
+    ctx.strokeStyle=hoverIdx===i?col:'rgba(255,255,255,0.04)';
+    ctx.globalAlpha=hoverIdx===i?.28:.05;
+    ctx.lineWidth=.6;
+    ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(cx,cy);ctx.stroke();
+    ctx.globalAlpha=1;
+
+    // node ring
+    ctx.strokeStyle=col;ctx.lineWidth=1.2;ctx.globalAlpha=.7;
+    ctx.beginPath();ctx.arc(p.x,p.y,r,0,6.2832);ctx.stroke();
+    ctx.globalAlpha=1;
+
+    // node fill
+    ctx.fillStyle=col;
+    ctx.beginPath();ctx.arc(p.x,p.y,3,0,6.2832);ctx.fill();
+
+    // label
+    ctx.fillStyle=C.dim;ctx.font='9px Inter, sans-serif';ctx.textAlign='center';
+    ctx.globalAlpha=.55;
+    ctx.fillText(s.name,p.x,p.y+r+12);
+    ctx.globalAlpha=1;
+  }
+}
+
+// ─── Tooltip ───
+const tip=document.getElementById('tooltip');
+cv.addEventListener('mousemove',e=>{
+  const rect=cv.getBoundingClientRect();
+  const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  hoverIdx=-1;
+  for(let i=0;i<nodePositions.length;i++){
+    const p=nodePositions[i];
+    if(Math.hypot(mx-p.x,my-p.y)<28){hoverIdx=i;break}
+  }
+  if(hoverIdx>=0){
+    const s=services[hoverIdx];
+    tip.innerHTML=`
+      <div class="tt-name" style="color:${statusColor(s.status)}">${s.name}</div>
+      <div class="tt-row"><span class="tt-k">status</span><span class="tt-v" style="color:${statusColor(s.status)}">${statusLabel(s.status)}</span></div>
+      <div class="tt-row"><span class="tt-k">latency</span><span class="tt-v">${s.latency}ms</span></div>
+      <div class="tt-row"><span class="tt-k">uptime</span><span class="tt-v">${s.uptime}%</span></div>
+      <div class="tt-row"><span class="tt-k">deps</span><span class="tt-v">${s.deps.length? s.deps.join(', ') : 'none'}</span></div>
+    `;
+    tip.style.left=e.clientX+16+'px';tip.style.top=e.clientY-80+'px';
+    tip.classList.add('show');
+    cv.style.cursor='pointer';
+  }else{
+    tip.classList.remove('show');
+    cv.style.cursor='default';
+  }
+  drawTopology();
+});
+
+cv.addEventListener('mouseleave',()=>{hoverIdx=-1;tip.classList.remove('show');drawTopology()});
+
+// ─── Resize ───
+function resize(){
+  const rect=cv.parentElement.getBoundingClientRect();
+  W=rect.width;H=rect.height;
+  cv.width=W*DPR;cv.height=H*DPR;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  computePositions();
+  drawTopology();
+}
+
+// ─── Clock ───
+function tick(){
+  document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-GB',{hour12:false});
+}
+
+// ─── Periodic status shift (simulates live ops) ───
+function shiftStatus(){
+  const s=services[Math.floor(Math.random()*services.length)];
+  const states=['as','as','as','frontier','not_as'];
+  s.status=states[Math.floor(Math.random()*states.length)];
+  s.latency=s.status==='as'? Math.floor(1+Math.random()*60) : s.status==='frontier'? Math.floor(80+Math.random()*400) : Math.floor(500+Math.random()*1500);
+  s.uptime=99+Math.random()*(s.status==='as'?1:s.status==='frontier'?.5:.3);
+  updateKPIs();buildLog();drawTopology();
+}
+
+window.addEventListener('resize',resize);
+resize();updateKPIs();buildLog();tick();
+setInterval(tick,1000);
+setInterval(shiftStatus,8000);
+</script>
+
+<script>
+// ─── Living constraint field backdrop ───
+const fc=document.getElementById('field');
+const fcx=fc.getContext('2d');
+const fDPR=Math.min(window.devicePixelRatio||1,2);
+let fW,fH,fCols,fRows,sp,fNodes=[];
+let fmx=-9,fmy=-9,fsmx=-9,fsmy=-9,ft=0;
+const fR=220;
+function fInit(){
+  fW=window.innerWidth;fH=window.innerHeight;
+  fc.width=fW*fDPR;fc.height=fH*fDPR;
+  fc.style.width=fW+'px';fc.style.height=fH+'px';
+  fcx.setTransform(fDPR,0,0,fDPR,0,0);
+  sp=36;
+  fCols=Math.floor(fW/sp)+1;fRows=Math.floor(fH/sp)+1;
+  fNodes=[];
+  for(let r=0;r<fRows;r++){fNodes[r]=[];for(let c=0;c<fCols;c++){fNodes[r][c]={x:c*sp+(r%2?sp*.5:0),y:r*sp,s:0,pulse:Math.random()*6.28,base:Math.random()*.2}}}
+}
+function fSmooth(e0,e1,x){const k=Math.max(0,Math.min(1,(x-e0)/(e1-e0)));return k*k*(3-2*k)}
+function fDist(x1,y1,x2,y2){return Math.hypot(x2-x1,y2-y1)}
+function fDraw(){
+  requestAnimationFrame(fDraw);ft+=0.016;
+  fsmx+=(fmx-fsmx)*0.06;fsmy+=(fmy-fsmy)*0.06;
+  const b=1+Math.sin(ft*.5)*.06;
+  const R=fR*b,inner=R*.45;
+  for(let r=0;r<fRows;r++){for(let c=0;c<fCols;c++){const n=fNodes[r][c];const d=fDist(fsmx,fsmy,n.x,n.y);let tgt;if(d<inner)tgt=1;else if(d<R)tgt=1-fSmooth(inner,R,d);else tgt=Math.max(0,n.base*.15+Math.sin(n.pulse+ft)*.02);n.s+=(tgt-n.s)*.08}}
+  fcx.clearRect(0,0,fW,fH);fNodes.forEach((row,r)=>{
+    row.forEach((n,c)=>{
+      if(n.s<.02)return;
+      if(n.s>.4){fcx.beginPath();fcx.arc(n.x,n.y,1.2,0,6.2832);fcx.fillStyle='rgba(90,122,255,'+(.15+n.s*.4).toFixed(3)+')';fcx.fill()}
+      else if(n.s>.15){fcx.beginPath();fcx.arc(n.x,n.y,.9,0,6.2832);fcx.fillStyle='rgba(245,196,81,'+(n.s*.3).toFixed(3)+')';fcx.fill()}
+      else{fcx.beginPath();fcx.arc(n.x,n.y,.7,0,6.2832);fcx.fillStyle='rgba(224,106,58,'+(.06+n.s*.2).toFixed(3)+')';fcx.fill()}
+    })
+  });
+}
+document.addEventListener('mousemove',e=>{fmx=e.clientX;fmy=e.clientY});
+document.addEventListener('mouseleave',()=>{fmx=-9;fmy=-9});
+window.addEventListener('resize',()=>{fInit()});
+const origResize=window.onresize;window.addEventListener('resize',()=>{fInit();if(origResize)origResize()});
+fInit();fDraw();
+</script>
+</body>
+</html>

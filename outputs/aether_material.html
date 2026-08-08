@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aether — Design Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;450;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --s0: #121212;
+  --s1: #1E1E1E;
+  --s2: #242424;
+  --s3: #2C2C2C;
+  --s4: #333333;
+  --glass: rgba(255,255,255,0.03);
+  --glass-strong: rgba(255,255,255,0.06);
+  --primary: #BB86FC;
+  --primary-dim: #9C64E0;
+  --secondary: #03DAC6;
+  --secondary-dim: #018786;
+  --error: #CF6679;
+  --text: rgba(255,255,255,0.87);
+  --text-secondary: rgba(255,255,255,0.60);
+  --text-hint: rgba(255,255,255,0.38);
+  --border: rgba(255,255,255,0.08);
+  --border-focus: rgba(187,134,252,0.4);
+  --elevation-1: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+  --elevation-2: 0 3px 6px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2);
+  --elevation-3: 0 6px 12px rgba(0,0,0,0.4), 0 3px 6px rgba(0,0,0,0.2);
+  --elevation-4: 0 10px 24px rgba(0,0,0,0.5), 0 4px 8px rgba(0,0,0,0.3);
+  --glow: 0 0 40px rgba(187,134,252,0.15);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased;background:var(--bg)}
+body{font-family:'Inter',-apple-system,sans-serif;color:var(--text);background:var(--bg);overflow-x:hidden;line-height:1.5}
+
+.bg-ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-ambient .orb{position:absolute;border-radius:50%;filter:blur(120px);opacity:0.06}
+.bg-ambient .orb.a{width:600px;height:600px;background:var(--primary);top:-200px;left:-100px;animation:orbDrift 12s ease-in-out infinite}
+.bg-ambient .orb.b{width:400px;height:400px;background:var(--secondary);bottom:-100px;right:-50px;animation:orbDrift 15s ease-in-out infinite reverse}
+.bg-ambient .orb.c{width:300px;height:300px;background:var(--primary-dim);top:50%;left:60%;animation:orbDrift 18s ease-in-out infinite}
+@keyframes orbDrift{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(30px,-20px) scale(1.1)}66%{transform:translate(-20px,15px) scale(0.95)}}
+
+.bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.03;
+  background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size:64px 64px;mask-image:radial-gradient(ellipse 80% 50% at 50% 30%,black 30%,transparent 70%)
+}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:100;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 48px;transition:all 0.3s}
+nav.scrolled{background:rgba(10,10,15,0.88);backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);border-bottom:1px solid var(--border)}
+nav .brand{font-size:1.1rem;font-weight:700;letter-spacing:-0.02em;display:flex;align-items:center;gap:10px}
+nav .brand-dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary))}
+nav .links{display:flex;gap:32px}
+nav .links a{color:var(--text-secondary);text-decoration:none;font-size:13px;font-weight:450;letter-spacing:0.01em;position:relative;transition:color 0.2s;padding:4px 0}
+nav .links a::after{content:'';position:absolute;bottom:0;left:0;width:100%;height:1.5px;background:var(--primary);transform:scaleX(0);transition:transform 0.25s;border-radius:1px}
+nav .links a:hover{color:var(--text)}
+nav .links a:hover::after{transform:scaleX(1)}
+nav .nav-cta{background:linear-gradient(135deg,var(--primary),var(--primary-dim));color:var(--bg);border:none;padding:8px 20px;border-radius:100px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.25s}
+nav .nav-cta:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(187,134,252,0.3)}
+
+.main{position:relative;z-index:1}
+
+.hero{padding:160px 48px 120px;display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;max-width:1200px;margin:0 auto;min-height:90vh}
+.hero-content{display:flex;flex-direction:column;gap:24px;opacity:0;transform:translateY(30px);animation:slideUp 0.7s 0.1s forwards}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(187,134,252,0.08);border:1px solid rgba(187,134,252,0.15);border-radius:100px;font-size:12px;color:var(--primary);font-weight:500;width:fit-content;white-space:nowrap}
+.hero-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--primary);animation:pulseDot 2s infinite}
+@keyframes pulseDot{0%,100%{opacity:1}50%{opacity:0.3}}
+.hero h1{font-size:clamp(2.5rem,6vw,3.75rem);font-weight:800;letter-spacing:-0.03em;line-height:1.05;background:linear-gradient(135deg,var(--primary) 0%,#E0B0FF 30%,var(--secondary) 70%,#80FFE8 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:1.1rem;color:var(--text-secondary);line-height:1.7;max-width:460px;font-weight:400;letter-spacing:-0.01em}
+.hero-actions{display:flex;gap:14px;margin-top:8px}
+.btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-dim));color:var(--bg);border:none;padding:14px 28px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.3s;position:relative;overflow:hidden}
+.btn-primary::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--primary-dim),var(--primary));opacity:0;transition:opacity 0.3s}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:var(--glow)}
+.btn-primary:hover::after{opacity:1}
+.btn-ghost{background:transparent;color:var(--text);border:1.5px solid var(--border);padding:14px 28px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.3s}
+.btn-ghost:hover{border-color:var(--primary);background:rgba(187,134,252,0.05)}
+
+.hero-visual{position:relative;height:420px;opacity:0;transform:translateY(30px);animation:slideUp 0.7s 0.3s forwards}
+.hero-visual .code-panel{position:absolute;top:0;left:0;right:0;bottom:0;background:var(--s1);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:var(--elevation-3)}
+.hero-visual .code-titlebar{height:40px;background:var(--s2);display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--border)}
+.hero-visual .code-titlebar .dot{width:10px;height:10px;border-radius:50%}
+.hero-visual .code-titlebar .dot.r{background:#FF5F57}.hero-visual .code-titlebar .dot.y{background:#FEBE2E}.hero-visual .code-titlebar .dot.g{background:#28C840}
+.hero-visual .code-body{padding:20px;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.7;color:var(--text-secondary)}
+.hero-visual .code-body .kw{color:var(--primary)}.hero-visual .code-body .str{color:var(--secondary)}.hero-visual .code-body .fn{color:#FFD700}.hero-visual .code-body .prop{color:#87CEEB}
+.hero-visual .code-cursor{display:inline-block;width:8px;height:15px;background:var(--primary);vertical-align:middle;margin-left:2px;animation:cursorBlink 0.5s step-end infinite}
+@keyframes cursorBlink{50%{opacity:0}}
+.hero-visual .floating-ui{position:absolute;background:var(--glass-strong);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:14px;padding:16px;z-index:2;box-shadow:var(--elevation-2)}
+.hero-visual .floating-ui.preview{top:20px;right:-40px;width:180px;height:120px;display:flex;flex-direction:column;gap:8px}
+.hero-visual .floating-ui.preview .preview-rect{flex:1;background:var(--s3);border-radius:8px;border:1px solid var(--border)}
+.hero-visual .floating-ui.preview .preview-rect.active{background:linear-gradient(135deg,var(--primary),var(--primary-dim));border-color:transparent}
+.hero-visual .floating-ui.stats{bottom:20px;left:-30px;display:flex;gap:16px;padding:12px 18px}
+.hero-visual .floating-ui.stats .stat-num{font-size:1.5rem;font-weight:700;color:var(--primary)}
+.hero-visual .floating-ui.stats .stat-label{font-size:10px;color:var(--text-hint);text-transform:uppercase;letter-spacing:0.1em}
+
+@keyframes slideUp{to{opacity:1;transform:translateY(0)}}
+
+.sec{padding:100px 48px;max-width:1200px;margin:0 auto}
+.sec-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:var(--primary);margin-bottom:12px}
+.sec h2{font-size:clamp(1.8rem,4vw,2.25rem);font-weight:700;letter-spacing:-0.02em;line-height:1.15;margin-bottom:48px}
+
+.features-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.feature-card{background:var(--s1);border:1px solid var(--border);border-radius:20px;padding:36px 32px;position:relative;overflow:hidden;cursor:default;transition:all 0.35s;opacity:0;transform:translateY(30px)}
+.feature-card.visible{opacity:1;transform:translateY(0)}
+.feature-card::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(187,134,252,0.04),transparent 60%);opacity:0;transition:opacity 0.35s;z-index:0}
+.feature-card:hover{transform:translateY(-4px);border-color:var(--border-focus);box-shadow:var(--glow)}
+.feature-card:hover::before{opacity:1}
+.feature-card .icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:20px;position:relative;z-index:1;background:linear-gradient(135deg,rgba(187,134,252,0.12),rgba(3,218,198,0.06))}
+.feature-card h3{font-size:1.15rem;font-weight:600;letter-spacing:-0.01em;margin-bottom:8px;position:relative;z-index:1}
+.feature-card p{font-size:0.9rem;color:var(--text-secondary);line-height:1.6;position:relative;z-index:1}
+
+.showcase-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.showcase-card{background:var(--s1);border:1px solid var(--border);border-radius:16px;overflow:hidden;position:relative;cursor:pointer;aspect-ratio:3/4;transition:all 0.35s;opacity:0;transform:translateX(30px)}
+.showcase-card.visible{opacity:1;transform:translateX(0)}
+.showcase-card:hover{transform:translateY(-6px);border-color:var(--border-focus);box-shadow:var(--elevation-4)}
+.showcase-card .card-gradient{position:absolute;inset:0}
+.showcase-card .card-gradient.violet{background:linear-gradient(160deg,rgba(187,134,252,0.25),rgba(10,10,15,0.95) 70%)}
+.showcase-card .card-gradient.green{background:linear-gradient(160deg,rgba(3,218,198,0.25),rgba(10,10,15,0.95) 70%)}
+.showcase-card .card-gradient.blue{background:linear-gradient(160deg,rgba(100,149,237,0.25),rgba(10,10,15,0.95) 70%)}
+.showcase-card .card-gradient.teal{background:linear-gradient(160deg,rgba(0,206,201,0.25),rgba(10,10,15,0.95) 70%)}
+.showcase-card .card-content{position:absolute;bottom:0;left:0;right:0;padding:24px}
+.showcase-card .card-type{font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.5);margin-bottom:4px}
+.showcase-card .card-name{font-size:1.1rem;font-weight:600;letter-spacing:-0.01em}
+.showcase-card .card-icon{position:absolute;top:20px;right:20px;font-size:1.5rem;opacity:0.4}
+
+.pricing-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;align-items:start}
+.pricing-card{background:var(--s1);border:1px solid var(--border);border-radius:24px;padding:40px 32px;transition:all 0.35s;position:relative;opacity:0;transform:scale(0.95)}
+.pricing-card.visible{opacity:1;transform:scale(1)}
+.pricing-card:hover{transform:translateY(-4px);border-color:var(--border-focus)}
+.pricing-card.featured{background:var(--s2);border-color:var(--primary);box-shadow:var(--glow);transform:scale(1.03);animation:featuredFloat 4s ease-in-out infinite}
+.pricing-card.featured:hover{transform:scale(1.05);animation:none}
+@keyframes featuredFloat{0%,100%{transform:scale(1.03) translateY(0)}50%{transform:scale(1.03) translateY(-6px)}}
+.pricing-card .tier{font-size:0.95rem;font-weight:600;margin-bottom:16px}
+.pricing-card .price{font-size:3rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:4px}
+.pricing-card .price span{font-size:1rem;font-weight:400;color:var(--text-secondary)}
+.pricing-card .featured-badge{display:inline-block;padding:4px 12px;background:rgba(187,134,252,0.15);color:var(--primary);border-radius:100px;font-size:11px;font-weight:600;margin-bottom:16px}
+.pricing-card ul{list-style:none;margin:24px 0}
+.pricing-card ul li{padding:8px 0;color:var(--text-secondary);font-size:0.9rem;display:flex;align-items:center;gap:10px}
+.pricing-card ul li::before{content:'✓';color:var(--secondary);font-weight:700;font-size:0.8rem}
+.pricing-card .btn-primary{width:100%;text-align:center}
+
+footer{border-top:1px solid var(--border);margin-top:60px;padding:80px 48px 40px}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;max-width:1200px;margin:0 auto}
+footer .f-brand{font-size:1.1rem;font-weight:700;letter-spacing:-0.02em;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+footer .f-tagline{color:var(--text-secondary);font-size:0.9rem;line-height:1.6;max-width:280px}
+footer h4{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-hint);margin-bottom:16px;font-weight:600}
+footer a{display:block;color:var(--text-secondary);text-decoration:none;font-size:0.85rem;padding:5px 0;transition:color 0.2s}
+footer a:hover{color:var(--primary)}
+.footer-bottom{max-width:1200px;margin:40px auto 0;padding-top:24px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:0.8rem;color:var(--text-hint)}
+.footer-bottom .links{display:flex;gap:24px}
+.footer-bottom .links a{color:var(--text-hint)}
+
+@media(max-width:1024px){.hero{grid-template-columns:1fr;text-align:center;padding-top:120px}.hero p{margin:0 auto}.hero-actions{justify-content:center}.hero-visual{height:320px;margin-top:20px}.features-grid{grid-template-columns:1fr}.showcase-grid{grid-template-columns:1fr 1fr}.pricing-grid{grid-template-columns:1fr}.pricing-card.featured{transform:none;animation:none}.footer-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.showcase-grid{grid-template-columns:1fr}.hero h1{font-size:2rem}nav .links{display:none}}
+</style>
+</head>
+<body>
+
+<div class="bg-ambient"><div class="orb a"></div><div class="orb b"></div><div class="orb c"></div></div>
+<div class="bg-grid"></div>
+
+<nav id="nav">
+  <div class="brand"><div class="brand-dot"></div>Aether</div>
+  <div class="links">
+    <a href="#features">Features</a><a href="#showcase">Showcase</a><a href="#pricing">Pricing</a><a href="#">Docs</a>
+  </div>
+  <button class="nav-cta">Sign in</button>
+</nav>
+
+<div class="main">
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-badge"><div class="dot"></div>New: AI-powered layout suggestions</div>
+      <h1>Design at the speed of thought</h1>
+      <p>A collaborative design platform built for teams that ship daily. Prototype, iterate, deliver — all in one place.</p>
+      <div class="hero-actions">
+        <button class="btn-primary">Start designing free</button>
+        <button class="btn-ghost">See how it works</button>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="code-panel">
+        <div class="code-titlebar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <div class="code-body">
+          <span class="kw">frame</span> <span class="fn">LandingPage</span> {<br>
+          &nbsp;&nbsp;<span class="prop">layout</span>: <span class="str">"grid"</span><br>
+          &nbsp;&nbsp;<span class="prop">theme</span>: <span class="str">"dark_material"</span><br>
+          &nbsp;&nbsp;<span class="prop">accent</span>: <span class="str">"#BB86FC"</span><br>
+          &nbsp;&nbsp;<span class="prop">motion</span>: <span class="str">"spring"</span><br>
+          }<span class="code-cursor"></span>
+        </div>
+      </div>
+      <div class="floating-ui preview">
+        <div class="preview-rect active"></div>
+        <div class="preview-rect"></div>
+        <div class="preview-rect"></div>
+      </div>
+      <div class="floating-ui stats">
+        <div><div class="stat-num">0.2s</div><div class="stat-label">Compile</div></div>
+        <div><div class="stat-num">60</div><div class="stat-label">FPS</div></div>
+        <div><div class="stat-num" style="color:var(--secondary)">100%</div><div class="stat-label">Score</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="features">
+    <div class="sec-label">Everything you need</div>
+    <h2>Built for speed, designed for teams</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="icon">⬡</div><h3>Vector Networks</h3><p>Precision vector editing with infinite canvas. Every point, every curve, under your control.</p>
+      </div>
+      <div class="feature-card" style="transition-delay:0.1s">
+        <div class="icon">👥</div><h3>Real-time Collaboration</h3><p>Multiple designers, one file. See every cursor, every change, as it happens.</p>
+      </div>
+      <div class="feature-card" style="transition-delay:0.2s">
+        <div class="icon">⚡</div><h3>Smart Components</h3><p>Build once, reuse everywhere. Overrides, variants, and auto-layout that just works.</p>
+      </div>
+      <div class="feature-card" style="transition-delay:0.3s">
+        <div class="icon">&lt;/&gt;</div><h3>Dev Mode</h3><p>Inspect specs, export assets, copy CSS. The handoff designers and developers both love.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="showcase">
+    <div class="sec-label">Built with Aether</div>
+    <h2>See what's possible</h2>
+    <div class="showcase-grid">
+      <div class="showcase-card"><div class="card-gradient violet"></div><div class="card-icon">💳</div><div class="card-content"><div class="card-type">SaaS</div><div class="card-name">Stripe Dashboard</div></div></div>
+      <div class="showcase-card" style="transition-delay:0.1s"><div class="card-gradient green"></div><div class="card-icon">🎵</div><div class="card-content"><div class="card-type">Consumer</div><div class="card-name">Spotify Redesign</div></div></div>
+      <div class="showcase-card" style="transition-delay:0.2s"><div class="card-gradient blue"></div><div class="card-icon">📋</div><div class="card-content"><div class="card-type">Productivity</div><div class="card-name">Linear Mobile</div></div></div>
+      <div class="showcase-card" style="transition-delay:0.3s"><div class="card-gradient teal"></div><div class="card-icon">▲</div><div class="card-content"><div class="card-type">DevTools</div><div class="card-name">Vercel Analytics</div></div></div>
+    </div>
+  </section>
+
+  <section class="sec" id="pricing">
+    <div class="sec-label">Simple pricing</div>
+    <h2>Start free, scale as you grow</h2>
+    <div class="pricing-grid">
+      <div class="pricing-card"><div class="tier">Free</div><div class="price">$0<span>/mo</span></div><ul><li>3 projects</li><li>Unlimited viewers</li><li>Basic exports</li><li>Community support</li></ul><button class="btn-primary">Get started</button></div>
+      <div class="pricing-card featured"><div class="featured-badge">Most Popular</div><div class="tier">Pro</div><div class="price">$12<span>/mo</span></div><ul><li>Unlimited projects</li><li>Dev Mode</li><li>Custom fonts</li><li>Version history</li><li>Priority support</li></ul><button class="btn-primary">Start free trial</button></div>
+      <div class="pricing-card"><div class="tier">Team</div><div class="price">$45<span>/mo</span></div><ul><li>Everything in Pro</li><li>Admin controls</li><li>SSO</li><li>Dedicated support</li><li>Custom SLA</li></ul><button class="btn-primary">Contact sales</button></div>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="footer-grid">
+    <div><div class="f-brand"><div class="brand-dot"></div>Aether</div><p class="f-tagline">Design tool for the next generation. Built by designers, for designers.</p></div>
+    <div><h4>Product</h4><a href="#">Features</a><a href="#">Pricing</a><a href="#">Changelog</a><a href="#">Download</a></div>
+    <div><h4>Resources</h4><a href="#">Blog</a><a href="#">Documentation</a><a href="#">Community</a><a href="#">Templates</a></div>
+    <div><h4>Company</h4><a href="#">About</a><a href="#">Careers</a><a href="#">Press</a><a href="#">Contact</a></div>
+  </div>
+  <div class="footer-bottom">
+    <span>&copy; 2026 Aether Inc.</span>
+    <div class="links"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Cookies</a></div>
+  </div>
+</footer>
+
+<script>
+const nav=document.getElementById('nav');
+window.addEventListener('scroll',()=>nav.classList.toggle('scrolled',window.scrollY>50));
+
+const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')})},{threshold:0.1});
+document.querySelectorAll('.feature-card,.showcase-card,.pricing-card').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>

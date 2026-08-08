@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prima · Decrypter</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+    background:#08080c;color:#f5f5f7;-webkit-font-smoothing:antialiased;
+    font-weight:300;line-height:1.618;overflow:hidden;height:100vh;width:100vw;
+  }
+  #stage{position:fixed;inset:0;z-index:0;pointer-events:none}
+  #morph{position:absolute;inset:0;width:100%;height:100%}
+
+  #surface{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 48px;pointer-events:none}
+  #headline{font-weight:200;font-size:clamp(2rem,7vw,4.8rem);letter-spacing:-0.04em;line-height:1.08;text-align:center;max-width:36rem;margin-bottom:16px}
+  #sub{font-size:0.8rem;font-weight:400;letter-spacing:0.1em;text-transform:uppercase;color:#9a9aa2}
+
+  #controls{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);z-index:30;display:flex;gap:24px}
+  #controls button{padding:8px 20px;background:none;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:rgba(255,255,255,0.4);font-family:inherit;font-size:0.7rem;font-weight:400;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;transition:all 0.2s}
+  #controls button:hover{color:#f5f5f7;border-color:rgba(255,255,255,0.5)}
+  #controls button.active{color:#f5f5f7;border-color:#f5f5f7}
+  @media(max-width:600px){#surface{padding:0 24px}#controls{gap:12px}}
+</style>
+</head>
+<body>
+
+<div id="stage"><canvas id="morph"></canvas></div>
+
+<div id="surface">
+  <div id="headline"></div>
+  <div id="sub"></div>
+</div>
+
+<div id="controls">
+  <button data-mode="poem" class="active">Poem</button>
+  <button data-mode="clock">Clock</button>
+  <button data-mode="scramble">Scramble</button>
+  <button data-mode="type">Type</button>
+</div>
+
+<script>
+// ══ MORPH GRID — verbatim from prima-metamorph.html, adapted for content-driven phase ══
+
+const C = { bg:'#08080c', blue:'#5a7aff', orange:'#e06a3a', gold:'#f5c451', ink:'#f5f5f7' };
+const cv = document.getElementById('morph');
+const ctx = cv.getContext('2d');
+let DPR = Math.min(window.devicePixelRatio || 1, 2);
+let W, H;
+
+let COLS = 26, ROWS = 15;
+let nodes = [];
+let mx = -9, my = -9, smx = -9, smy = -9;
+let targetPhase = 0.0;
+let phase = 0.0;
+
+function buildNodes() {
+  const padX = W * 0.06, padY = H * 0.22;
+  const gw = (W - padX * 2) / (COLS - 1);
+  const gh = (H - padY * 2) / (ROWS - 1);
+  const fresh = nodes.length === 0;
+  const next = [];
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const tx = padX + c * gw, ty = padY + r * gh;
+    if (fresh) next.push({ x: tx, y: ty, bx: tx, by: ty, c, r, bob: Math.random() * 6.28 });
+    else { const old = nodes[r * COLS + c]; next.push({ x: old.x, y: old.y, bx: tx, by: ty, c, r, bob: old.bob }); }
+  }
+  nodes = next;
+}
+
+function weights(ph) {
+  const b = 0.42;
+  const w0 = Math.exp(-Math.pow((ph - 0) / b, 2));
+  const w1 = Math.exp(-Math.pow((ph - 0.5) / b, 2));
+  const w2 = Math.exp(-Math.pow((ph - 1) / b, 2));
+  const s = w0 + w1 + w2 || 1;
+  return [w0 / s, w1 / s, w2 / s];
+}
+
+function idx(c, r) { return r * COLS + c; }
+
+function draw() {
+  requestAnimationFrame(draw);
+  if (!W) return;
+
+  // Phase: cursor-driven when mouse active, content-driven otherwise
+  const tightness = Math.max(0.4, Math.min(1.4, 1280 / Math.max(W, 320)));
+  const phaseEase = 0.04 + (tightness - 0.4) * 0.05;
+  if (smx >= 0) targetPhase = smx / W;
+  else if (Math.abs(targetPhase - phase) < 0.01)
+    targetPhase += (0.5 - targetPhase) * 0.015;
+  phase += (targetPhase - phase) * phaseEase;
+
+  // Node motion
+  const t = performance.now() * 0.001;
+  for (const n of nodes) {
+    n.x += (n.bx - n.x) * 0.08;
+    n.y += (n.by - n.y) * 0.08;
+    if (smx >= 0) { const dx = n.x - mx, dy = n.y - my, d = Math.sqrt(dx*dx+dy*dy);
+      if (d < 120) { const f = (1-d/120)*16; n.x += (dx/d)*f; n.y += (dy/d)*f; } }
+    const ox = n.x, oy = n.y;
+    n.x = ox + Math.sin(t * 0.6 + n.bob) * 6;
+    n.y = oy + Math.cos(t * 0.5 + n.bob) * 6;
+  }
+
+  const [wA, wF, wN] = weights(phase);
+
+  ctx.clearRect(0, 0, W, H);
+
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = C.blue;
+  ctx.globalAlpha = wA * 0.5;
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS - 1; c++) {
+    const a = nodes[idx(c, r)], b = nodes[idx(c + 1, r)];
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+
+  ctx.strokeStyle = C.gold;
+  ctx.globalAlpha = wF * 0.4;
+  for (let r = 0; r < ROWS - 1; r++) for (let c = 0; c < COLS - 1; c++) {
+    const a = nodes[idx(c, r)], b = nodes[idx(c + 1, r + 1)];
+    const a2 = nodes[idx(c + 1, r)], b2 = nodes[idx(c, r + 1)];
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(a2.x, a2.y); ctx.lineTo(b2.x, b2.y); ctx.stroke();
+  }
+
+  const cx = W / 2, cy = H / 2;
+  ctx.strokeStyle = C.orange;
+  ctx.globalAlpha = wN * 0.35;
+  for (const n of nodes) { ctx.beginPath(); ctx.moveTo(n.x, n.y); ctx.lineTo(cx, cy); ctx.stroke(); }
+
+  let dom = wA >= wF && wA >= wN ? C.blue : (wN >= wF ? C.orange : C.gold);
+  if (!smx && wA < 0.15 && wF < 0.15 && wN < 0.15) dom = C.ink;
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = dom;
+  for (const n of nodes) { ctx.beginPath(); ctx.arc(n.x, n.y, 1.6, 0, 6.2832); ctx.fill(); }
+  ctx.globalAlpha = 1;
+}
+
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  buildNodes();
+}
+
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; smx = mx; smy = my; });
+document.addEventListener('mouseleave', () => { smx = -9; });
+document.addEventListener('touchmove', e => { smx = e.touches[0].clientX; });
+window.addEventListener('resize', resize);
+resize();
+draw();
+
+// ══ LETTER ENGINE — drives the grid's targetPhase from content ══
+
+const headlineEl = document.getElementById('headline');
+const subEl = document.getElementById('sub');
+
+const LINES = [
+  'THE FRAME IS THE ARCHITECTURE',
+  'NOT A FRAMEWORK NOT A SYNTAX',
+  'TWENTY SIX LETTERS IS ALL IT TAKES',
+  'ONE GRID INFINITE ARRANGEMENTS',
+  'THE LINE THAT BECOMES ITS OTHER',
+  'POSITION IS THE ONLY VARIABLE',
+  'WHERE CONSTRAINT MEETS COMPUTATION',
+  'THE SEAM IS THE ONLY HONEST LINE',
+];
+
+function colFor(ch) { const code = ch.toUpperCase().charCodeAt(0); return (code>=65&&code<=90)?code-65:-1; }
+
+let displayChars = [];
+
+function renderText(chars) {
+  headlineEl.textContent = chars.join('');
+  // Phase driven by content structure: vowel ratio + completeness
+  if (chars.length > 0) {
+    const last = chars[chars.length - 1];
+    const ci = colFor(last);
+    const vowelCount = chars.filter(c => 'AEIOU'.includes(c)).length;
+    const vowelRatio = vowelCount / chars.length;
+    const lenRatio = Math.min(1, chars.length / 40);
+    if (ci >= 0) targetPhase = 0.3 * (ci / 25) + 0.35 * vowelRatio + 0.35 * lenRatio;
+  }
+}
+
+// ── POEM ──
+let poemLine = 0, poemChar = 0, poemTimer;
+function runPoem() {
+  clearInterval(poemTimer); displayChars = []; poemLine = 0; poemChar = 0;
+  renderText([]); subEl.textContent = 'line 1/8';
+  poemTimer = setInterval(() => {
+    const line = LINES[poemLine];
+    if (poemChar < line.length) { displayChars.push(line[poemChar]); poemChar++; renderText(displayChars); }
+    else { poemLine = (poemLine + 1) % LINES.length; poemChar = 0; displayChars = []; renderText([]); subEl.textContent = 'line ' + (poemLine + 1) + '/8'; }
+  }, 100);
+}
+
+// ── CLOCK ──
+let clockTimer;
+function runClock() { clearInterval(clockTimer); subEl.textContent = 'real-time';
+  function tick() { const t = new Date().toTimeString().split(' ')[0].split(''); displayChars = t; renderText(t); }
+  tick(); clockTimer = setInterval(tick, 1000);
+}
+
+// ── SCRAMBLE ──
+let scrambleTimer;
+function runScramble() { clearInterval(scrambleTimer);
+  const phrase = LINES[Math.floor(Math.random() * LINES.length)].split('');
+  const scrambled = [...phrase].sort(() => Math.random() - 0.5); subEl.textContent = 'decrypting';
+  let revealIdx = 0; displayChars = scrambled; renderText(scrambled);
+  scrambleTimer = setInterval(() => {
+    if (revealIdx < phrase.length) { displayChars[revealIdx] = phrase[revealIdx]; revealIdx++; renderText(displayChars); }
+    else { clearInterval(scrambleTimer); setTimeout(runScramble, 2000); }
+  }, 200);
+}
+
+// ── TYPE ──
+let typeTimer; let onTypeKey;
+function runType() { clearInterval(typeTimer); displayChars = []; renderText([]); subEl.textContent = 'start typing';
+  document.addEventListener('keydown', onTypeKey = e => {
+    if (e.key === 'Backspace') displayChars.pop();
+    else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) displayChars.push(e.key.toUpperCase());
+    else if (e.key === 'Enter') displayChars = [];
+    renderText(displayChars);
+  });
+}
+function stopType() { document.removeEventListener('keydown', onTypeKey); }
+
+// ── CONTROLS ──
+const modes = { poem: runPoem, clock: runClock, scramble: runScramble, type: runType };
+document.querySelectorAll('#controls button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#controls button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); stopType(); [poemTimer, clockTimer, scrambleTimer].forEach(t => clearInterval(t));
+    modes[btn.dataset.mode]();
+  });
+});
+
+runPoem();
+</script>
+</body>
+</html>

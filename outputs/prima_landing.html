@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prima — Write Once. Compile Anywhere.</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;450;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;color:#1d1d1f;background:#fff;line-height:1;overflow-x:hidden}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:100;height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 48px;background:transparent;transition:all 0.3s}
+nav.scrolled{background:rgba(255,255,255,0.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(0,0,0,0.08)}
+nav .brand{font-size:15px;font-weight:700;letter-spacing:-0.02em}
+nav .links{display:flex;gap:28px;align-items:center}
+nav a{color:#1d1d1f;text-decoration:none;font-size:12px;font-weight:400;letter-spacing:-0.01em;opacity:0.75;transition:opacity 0.2s;padding:4px 0}
+nav a:hover{opacity:1}
+
+.hero{padding:140px 48px 80px;text-align:center;max-width:900px;margin:0 auto}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:5px 14px;background:rgba(0,122,255,0.06);border:1px solid rgba(0,122,255,0.12);border-radius:100px;font-size:12px;font-weight:500;color:#007AFF;margin-bottom:28px}
+.badge .dot{width:6px;height:6px;border-radius:50%;background:#007AFF;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.hero h1{font-size:clamp(2.8rem,7vw,4.5rem);font-weight:700;letter-spacing:-0.03em;line-height:1.05;margin-bottom:8px}
+.hero h1 .gradient{background:linear-gradient(135deg,#007AFF 0%,#5856D6 40%,#FF2D55 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero .hero-sub{font-size:1.15rem;color:#86868b;line-height:1.6;max-width:580px;margin:20px auto 32px;font-weight:400}
+.hero-actions{display:flex;gap:14px;justify-content:center}
+.btn-primary{background:#007AFF;color:#fff;border:none;padding:13px 28px;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer;transition:all 0.25s;font-family:'Inter'}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 18px rgba(0,122,255,0.25)}
+.btn-ghost{background:transparent;color:#1d1d1f;border:1.5px solid rgba(0,0,0,0.12);padding:13px 28px;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer;transition:all 0.25s;font-family:'Inter'}
+.btn-ghost:hover{border-color:rgba(0,0,0,0.25)}
+
+.code-block{margin:48px auto 0;max-width:560px;background:#1d1d1f;border-radius:14px;overflow:hidden;text-align:left;box-shadow:0 20px 60px rgba(0,0,0,0.12)}
+.code-block .bar{height:36px;background:#161617;display:flex;align-items:center;gap:7px;padding:0 14px}
+.code-block .bar .d{width:10px;height:10px;border-radius:50%}
+.code-block .bar .d.r{background:#FF5F57}.code-block .bar .d.y{background:#FEBE2E}.code-block .bar .d.g{background:#28C840}
+.code-block .code{padding:18px 20px;font-family:'JetBrains Mono','SF Mono',monospace;font-size:12.5px;line-height:1.75;color:#f5f5f7}
+.code-block .code .kw{color:#FF6B9D}.code-block .code .fn{color:#FFD580}.code-block .code .str{color:#5AC8FA}.code-block .code .prop{color:#A5D6FF}.code-block .code .cur{display:inline-block;width:7px;height:14px;background:#007AFF;vertical-align:middle;margin-left:1px;animation:blink 0.6s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+
+.sec{padding:80px 48px;max-width:1040px;margin:0 auto}
+.sec-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:#007AFF;margin-bottom:12px}
+.sec h2{font-size:2rem;font-weight:600;letter-spacing:-0.02em;line-height:1.15;margin-bottom:40px}
+
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:40px;background:#f5f5f7;border-radius:20px;padding:48px}
+.stat{text-align:center}
+.stat .num{font-size:2.5rem;font-weight:700;letter-spacing:-0.03em;margin-bottom:4px}
+.stat .num.accent{color:#007AFF}.stat .num.purple{color:#5856D6}.stat .num.rose{color:#FF2D55}.stat .num.teal{color:#34C759}
+.stat .lab{font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:#86868b;margin-bottom:4px}
+.stat .dsc{font-size:12px;color:#aeaeb2}
+
+.cap-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.cap-card{background:#f5f5f7;padding:36px 28px;transition:transform 0.3s;opacity:0;transform:translateY(20px)}
+.cap-card.visible{opacity:1;transform:translateY(0)}
+.cap-card:hover{transform:scale(1.02)}
+.cap-card .tag{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#007AFF;margin-bottom:12px}
+.cap-card h3{font-size:1.1rem;font-weight:600;letter-spacing:-0.01em;margin-bottom:8px}
+.cap-card p{font-size:0.9rem;color:#86868b;line-height:1.5}
+
+.cta-section{background:#f5f5f7;border-radius:24px;padding:80px 48px;text-align:center;max-width:1040px;margin:0 auto}
+.cta-section h2{font-size:2rem;font-weight:600;letter-spacing:-0.02em;margin-bottom:8px}
+.cta-section p{color:#86868b;font-size:1.05rem;margin-bottom:28px}
+
+.footer{padding:40px 48px;text-align:center;border-top:1px solid rgba(0,0,0,0.06);margin-top:80px}
+.footer p{font-size:12px;color:#aeaeb2}
+
+@media(max-width:768px){.stats-grid{grid-template-columns:1fr 1fr;padding:32px}.cap-grid{grid-template-columns:1fr}.hero{padding:100px 28px 60px}.hero h1{font-size:2.2rem}nav{padding:0 24px}.code-block{max-width:100%}}
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <span class="brand">Prima</span>
+  <div class="links">
+    <a href="#proof">Proof</a><a href="#capabilities">Capabilities</a><a href="#install">Install</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="badge"><div class="dot"></div>v0.2.0 — I/O, regex, pipes, iteration</div>
+  <h1>One language.<br><span class="gradient">Every framework.</span></h1>
+  <p class="hero-sub">Define your interface as constraints. Prima compiles the same source to vanilla HTML, React components, SwiftUI views, or Flutter widgets. No lock-in. No rewrite debt.</p>
+  <div class="hero-actions">
+    <button class="btn-primary">Get Started</button>
+    <button class="btn-ghost">View on GitHub</button>
+  </div>
+  <div class="code-block">
+    <div class="bar"><div class="d r"></div><div class="d y"></div><div class="d g"></div></div>
+    <div class="code">
+      <span class="kw">frame</span> <span class="fn">LandingPage</span> {<br>
+      &nbsp;&nbsp;<span class="prop">must_frost</span>: <span class="str">apple_hig</span><br>
+      &nbsp;&nbsp;<span class="prop">must_speak</span>: <span class="str">"Inter" weight(600)</span><br>
+      &nbsp;&nbsp;<span class="prop">must_breathe</span>: <span class="str">gap(24px)</span><br>
+      &nbsp;&nbsp;<span class="prop">must_respond</span>: <span class="str">scroll_reveal</span><br>
+      }<span class="cur"></span>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="proof">
+  <div class="sec-label">Proven</div>
+  <h2>Zero dependencies. Single binary.</h2>
+  <div class="stats-grid">
+    <div class="stat"><div class="num accent">71</div><div class="lab">Tests Passing</div><div class="dsc">24 frames, 40 functions, 5 step kinds</div></div>
+    <div class="stat"><div class="num purple">2000</div><div class="lab">Lines of C</div><div class="dsc">Zero dependencies. Single binary.</div></div>
+    <div class="stat"><div class="num rose">4</div><div class="lab">Runtime Pillars</div><div class="dsc">I/O, regex, pipes, iteration</div></div>
+    <div class="stat"><div class="num teal">21</div><div class="lab">Output Targets</div><div class="dsc">HTML, React, Vue, SwiftUI, Flutter…</div></div>
+  </div>
+</section>
+
+<section class="sec" id="capabilities" style="padding-top:0">
+  <div class="sec-label">Capabilities</div>
+  <h2>What Prima can do.</h2>
+  <div class="cap-grid">
+    <div class="cap-card"><div class="tag">Extraction</div><h3>Reverse-Engineer Design DNA</h3><p>Extract design constraints from any website. Compile to any framework. No copied code — extracted logic.</p></div>
+    <div class="cap-card" style="transition-delay:0.08s"><div class="tag">Modular</div><h3>Content, Style, Behavior</h3><p>Three files, zero coupling. Change one without touching the others. The compiler resolves priority.</p></div>
+    <div class="cap-card" style="transition-delay:0.16s"><div class="tag">Visual</div><h3>Physics & Motion</h3><p>N-body simulations, spring physics, marching squares, reaction-diffusion. All defined as constraints.</p></div>
+    <div class="cap-card" style="transition-delay:0.24s"><div class="tag">Universal</div><h3>Universal IR</h3><p>One .prima file compiles to web, CLI, mobile, desktop. Framework-agnostic forever.</p></div>
+    <div class="cap-card" style="transition-delay:0.32s"><div class="tag">Agents</div><h3>Agent-Native Skills</h3><p>Recall, learn, delete, health, primafy. Each with its own personality. Loaded on-demand.</p></div>
+    <div class="cap-card" style="transition-delay:0.4s"><div class="tag">Zero API</div><h3>Deterministic Scoring</h3><p>No LLM required. Verb-chain synthesis. 30 lines of SQL. Instant. Free.</p></div>
+  </div>
+</section>
+
+<div class="sec" id="install">
+  <div class="cta-section">
+    <h2>Start building with constraints.</h2>
+    <p>No framework lock-in. No rewrite debt. One language to rule every output.</p>
+    <button class="btn-primary" style="padding:15px 36px;font-size:16px">Install Prima</button>
+  </div>
+</div>
+
+<footer>
+  <p>&copy; 2026 Prima. Constraint engine. Compiles to anything.</p>
+</footer>
+
+<script>
+const nav=document.getElementById('nav');
+window.addEventListener('scroll',()=>nav.classList.toggle('scrolled',window.scrollY>20));
+const obs=new IntersectionObserver(e=>{e.forEach(en=>{if(en.isIntersecting)en.target.classList.add('visible')})},{threshold:0.1});
+document.querySelectorAll('.cap-card').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>

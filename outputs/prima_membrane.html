@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prima · Membrane</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:#08080c;color:#f5f5f7;-webkit-font-smoothing:antialiased;font-weight:300;overflow:hidden;height:100vh;width:100vw;cursor:crosshair}
+  #morph{position:fixed;inset:0;width:100%;height:100%}
+  #hint{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);z-index:10;font-size:0.7rem;font-weight:300;color:rgba(255,255,255,0.2);letter-spacing:0.06em;pointer-events:none;transition:opacity 0.5s}
+</style>
+</head>
+<body>
+
+<canvas id="morph"></canvas>
+<div id="hint">click — gravity well · right‑click — remove · drag — pull fabric</div>
+
+<script>
+const C = { bg:'#08080c', blue:'#5a7aff', orange:'#e06a3a', gold:'#f5c451', ink:'#f5f5f7' };
+const cv = document.getElementById('morph');
+const ctx = cv.getContext('2d');
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+let W, H;
+const COLS = 26, ROWS = 15;
+let nodes = [];
+let mx = -9, my = -9, smx = -9, smy = -9;
+let targetPhase = 0.5, phase = 0.5;
+let wells = [];
+let dragNode = -1;
+
+// 2mm in CSS pixels (≈ 2mm / 0.264583 mm-per-px at 96dpi ≈ 7.56px)
+const MAX_NBR_DIST = 7.5;
+
+function ix(c, r) { return r * COLS + c; }
+
+function buildNodes() {
+  const padX = W * 0.06, padY = H * 0.22;
+  const gw = (W - padX * 2) / (COLS - 1);
+  const gh = (H - padY * 2) / (ROWS - 1);
+  const fresh = nodes.length === 0;
+  const next = [];
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const tx = padX + c * gw, ty = padY + r * gh;
+    if (fresh) next.push({ x: tx, y: ty, bx: tx, by: ty, c, r, bob: Math.random() * 6.28, anchored: false });
+    else { const o = nodes[r * COLS + c]; next.push({ x: o.x, y: o.y, bx: tx, by: ty, c: c, r: r, bob: o.bob, anchored: o.anchored }); }
+  }
+  nodes = next;
+}
+
+function weights(ph) {
+  const b = 0.42;
+  const w0 = Math.exp(-Math.pow((ph - 0) / b, 2));
+  const w1 = Math.exp(-Math.pow((ph - 0.5) / b, 2));
+  const w2 = Math.exp(-Math.pow((ph - 1) / b, 2));
+  const s = w0 + w1 + w2 || 1;
+  return [w0 / s, w1 / s, w2 / s];
+}
+
+function addWell(x, y) {
+  wells.push({ x, y, strength: 1.0, radius: 70 + Math.random() * 40, life: 1.0 });
+}
+
+function removeNearestWell(x, y) {
+  let minDist = Infinity, minIdx = -1;
+  for (let i = 0; i < wells.length; i++) {
+    const d = Math.hypot(x - wells[i].x, y - wells[i].y);
+    if (d < minDist) { minDist = d; minIdx = i; }
+  }
+  if (minIdx >= 0) wells.splice(minIdx, 1);
+}
+
+function nearestNode(x, y) {
+  let minDist = Infinity, minIdx = -1;
+  for (let i = 0; i < nodes.length; i++) {
+    const d = Math.hypot(x - nodes[i].x, y - nodes[i].y);
+    if (d < minDist) { minDist = d; minIdx = i; }
+  }
+  return minDist < 30 ? minIdx : -1;
+}
+
+function enforceConstraints() {
+  // Multiple passes for stable convergence
+  for (let pass = 0; pass < 4; pass++) {
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const n = nodes[ix(c, r)];
+        if (n.anchored) continue;
+
+        // Right neighbor
+        if (c < COLS - 1) {
+          const nb = nodes[ix(c + 1, r)];
+          const dx = nb.x - n.x, dy = nb.y - n.y;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d > MAX_NBR_DIST && d > 0.1) {
+            const excess = (d - MAX_NBR_DIST) * 0.5;
+            const fx = (dx / d) * excess, fy = (dy / d) * excess;
+            if (!n.anchored) { n.x += fx; n.y += fy; }
+            if (!nb.anchored) { nb.x -= fx; nb.y -= fy; }
+          }
+        }
+        // Down neighbor
+        if (r < ROWS - 1) {
+          const nb = nodes[ix(c, r + 1)];
+          const dx = nb.x - n.x, dy = nb.y - n.y;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d > MAX_NBR_DIST && d > 0.1) {
+            const excess = (d - MAX_NBR_DIST) * 0.5;
+            const fx = (dx / d) * excess, fy = (dy / d) * excess;
+            if (!n.anchored) { n.x += fx; n.y += fy; }
+            if (!nb.anchored) { nb.x -= fx; nb.y -= fy; }
+          }
+        }
+      }
+    }
+  }
+}
+
+function draw() {
+  requestAnimationFrame(draw);
+  if (!W) return;
+
+  const t = performance.now() * 0.001;
+  const tightness = Math.max(0.4, Math.min(1.4, 1280 / Math.max(W, 320)));
+  const phaseEase = 0.04 + (tightness - 0.4) * 0.05;
+
+  if (smx >= 0) targetPhase = smx / W;
+  else targetPhase += (0.5 - targetPhase) * 0.015;
+  phase += (targetPhase - phase) * phaseEase;
+
+  const wellBias = Math.min(1, wells.length / 5);
+  const effectivePhase = phase * (1 - wellBias) + 0.7 * wellBias;
+  const [wA, wF, wN] = weights(effectivePhase);
+
+  // Reset to grid position, then apply forces
+  for (const n of nodes) {
+    if (n.anchored) continue;
+    n.x += (n.bx - n.x) * 0.02;
+    n.y += (n.by - n.y) * 0.02;
+  }
+
+  // Gravity wells
+  for (const w of wells) {
+    if (w.life <= 0) continue;
+    for (const n of nodes) {
+      if (n.anchored) continue;
+      const dx = w.x - n.x, dy = w.y - n.y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d < w.radius && d > 1) {
+        const force = (1 - d / w.radius) * w.strength * 2.5;
+        n.x += (dx / d) * force; n.y += (dy / d) * force;
+      }
+    }
+  }
+
+  // Drag
+  if (dragNode >= 0 && smx >= 0) {
+    const n = nodes[dragNode];
+    n.x += (mx - n.x) * 0.5; n.y += (my - n.y) * 0.5;
+    n.anchored = true;
+  } else if (dragNode >= 0) {
+    nodes[dragNode].anchored = false;
+    dragNode = -1;
+  }
+
+  // Cursor push
+  if (smx >= 0 && dragNode < 0) {
+    for (const n of nodes) {
+      if (n.anchored) continue;
+      const dx = n.x - mx, dy = n.y - my, d = Math.sqrt(dx * dx + dy * dy);
+      if (d < 120 && d > 1) { const f = (1 - d / 120) * 12; n.x += (dx / d) * f; n.y += (dy / d) * f; }
+    }
+  }
+
+  // THE CONSTRAINT: enforce max neighbor distance
+  enforceConstraints();
+
+  // Subtle oscillation — only at zero wells, and dampened
+  if (wells.length === 0 && dragNode < 0) {
+    for (const n of nodes) {
+      n.x += Math.sin(t * 0.6 + n.bob) * 3; n.y += Math.cos(t * 0.5 + n.bob) * 3;
+    }
+    enforceConstraints();
+  }
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Connections — wave (horizontal)
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = C.blue;
+  ctx.globalAlpha = wA * 0.5;
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS - 1; c++) {
+    const a = nodes[ix(c, r)], b = nodes[ix(c + 1, r)];
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+
+  // Connections — lattice (diagonal)
+  ctx.strokeStyle = C.gold;
+  ctx.globalAlpha = wF * 0.4;
+  for (let r = 0; r < ROWS - 1; r++) for (let c = 0; c < COLS - 1; c++) {
+    const a = nodes[ix(c, r)], b = nodes[ix(c + 1, r + 1)];
+    const a2 = nodes[ix(c + 1, r)], b2 = nodes[ix(c, r + 1)];
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(a2.x, a2.y); ctx.lineTo(b2.x, b2.y); ctx.stroke();
+  }
+
+  // Connections — burst (radial)
+  const gcx = W / 2, gcy = H / 2;
+  ctx.strokeStyle = C.orange;
+  ctx.globalAlpha = wN * 0.35;
+  for (const n of nodes) { ctx.beginPath(); ctx.moveTo(n.x, n.y); ctx.lineTo(gcx, gcy); ctx.stroke(); }
+
+  // Stressed connections — red highlight where distance > 2x max
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = C.orange;
+  ctx.globalAlpha = 0.6;
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS - 1; c++) {
+    const a = nodes[ix(c, r)], b = nodes[ix(c + 1, r)];
+    if (Math.hypot(a.x - b.x, a.y - b.y) > MAX_NBR_DIST * 1.8) {
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+  }
+
+  // Wells
+  for (const w of wells) {
+    w.life = Math.max(0, w.life - 0.0008);
+    if (w.life <= 0) continue;
+    const pulse = Math.sin(t * 3 + w.x) * 0.3 + 0.7;
+    ctx.strokeStyle = `rgba(245,245,247,${0.06 * w.life * pulse})`;
+    ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.arc(w.x, w.y, w.radius * pulse, 0, 6.2832); ctx.stroke();
+    ctx.fillStyle = `rgba(90,122,255,${0.3 * w.life})`;
+    ctx.beginPath(); ctx.arc(w.x, w.y, 3, 0, 6.2832); ctx.fill();
+  }
+  wells = wells.filter(w => w.life > 0);
+
+  // Nodes
+  ctx.globalAlpha = 1;
+  for (const n of nodes) {
+    const nearWell = wells.some(w => Math.hypot(n.x - w.x, n.y - w.y) < 50);
+    const stressed = (() => {
+      const r = n.r, c = n.c;
+      if (c < COLS - 1 && Math.hypot(n.x - nodes[ix(c + 1, r)].x, n.y - nodes[ix(c + 1, r)].y) > MAX_NBR_DIST * 1.5) return true;
+      if (r < ROWS - 1 && Math.hypot(n.x - nodes[ix(c, r + 1)].x, n.y - nodes[ix(c, r + 1)].y) > MAX_NBR_DIST * 1.5) return true;
+      return false;
+    })();
+    const col = stressed ? C.orange : (nearWell ? C.gold : (n.anchored ? C.blue : (wA >= wF && wA >= wN ? C.blue : (wN >= wF ? C.orange : C.gold))));
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(n.x, n.y, stressed ? 2.2 : (n.anchored ? 2.5 : 1.6), 0, 6.2832); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  document.getElementById('hint').style.opacity = (wells.length > 0 || dragNode >= 0) ? '0' : '1';
+}
+
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  buildNodes();
+}
+
+cv.addEventListener('mousedown', e => {
+  const r = cv.getBoundingClientRect();
+  const x = (e.clientX - r.left) * W / r.width;
+  const y = (e.clientY - r.top) * H / r.height;
+  const ni = nearestNode(x, y);
+  if (ni >= 0) { dragNode = ni; nodes[ni].anchored = true; }
+  else addWell(x, y);
+});
+cv.addEventListener('mousemove', e => {
+  const r = cv.getBoundingClientRect();
+  mx = (e.clientX - r.left) * W / r.width;
+  my = (e.clientY - r.top) * H / r.height;
+  smx = mx; smy = my;
+});
+cv.addEventListener('mouseup', () => {
+  if (dragNode >= 0) { nodes[dragNode].anchored = false; }
+  dragNode = -1;
+});
+cv.addEventListener('mouseleave', () => {
+  if (dragNode >= 0) { nodes[dragNode].anchored = false; }
+  dragNode = -1; smx = -9;
+});
+cv.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const r = cv.getBoundingClientRect();
+  removeNearestWell((e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height);
+});
+window.addEventListener('resize', resize);
+resize(); draw();
+</script>
+</body>
+</html>

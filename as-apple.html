@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>as / not_as</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #08080c; color: #f5f5f7; -webkit-font-smoothing: antialiased; }
+  canvas { position: fixed; top: 0; left: 0; z-index: 0; pointer-events: none; }
+
+  section { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 40px; }
+  .hero h1 { font-size: clamp(3rem, 8vw, 7rem); font-weight: 200; letter-spacing: -0.03em; line-height: 1; text-align: center; }
+  .hero h1 .as { color: #5a7aff; font-weight: 300; }
+  .hero h1 .na { color: #e06a3a; font-weight: 300; }
+  .hero h1 .slash { color: rgba(255,255,255,0.15); font-weight: 200; margin: 0 0.05em; }
+  .hero .tagline { font-size: 1.1rem; color: rgba(255,255,255,0.4); font-weight: 300; margin-top: 20px; letter-spacing: 0.02em; text-align: center; }
+
+  .section-title { font-size: 0.7rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.15em; color: rgba(255,255,255,0.2); margin-bottom: 24px; }
+  .section-heading { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 300; letter-spacing: -0.02em; margin-bottom: 16px; text-align: center; }
+  .section-body { font-size: 1rem; color: rgba(255,255,255,0.45); font-weight: 300; max-width: 520px; text-align: center; line-height: 1.7; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; max-width: 900px; width: 100%; margin-top: 48px; }
+  .card {
+    background: rgba(255,255,255,0.03); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+    border: 1px solid rgba(255,255,255,0.06); border-radius: 20px; padding: 32px;
+    transition: background 0.3s;
+  }
+  .card:hover { background: rgba(255,255,255,0.05); }
+  .card .icon { font-size: 1.6rem; margin-bottom: 16px; display: block; }
+  .card h3 { font-size: 1.05rem; font-weight: 500; margin-bottom: 8px; letter-spacing: -0.01em; }
+  .card p { font-size: 0.88rem; color: rgba(255,255,255,0.4); line-height: 1.6; font-weight: 300; }
+
+  .pipeline-display {
+    display: flex; flex-wrap: wrap; gap: 4px; align-items: center; justify-content: center;
+    font-family: 'SF Mono', 'Menlo', monospace; font-size: 0.75rem;
+    margin-top: 40px; padding: 12px 20px; background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;
+    transition: all 0.4s;
+  }
+  .pipeline-display .fn { padding: 4px 10px; border-radius: 4px; color: #e06a3a; background: rgba(224,106,58,0.1); }
+  .pipeline-display .conn { color: #5a7aff; font-weight: 600; padding: 0 2px; }
+  .pipeline-display .eq { color: rgba(255,255,255,0.2); margin: 0 8px; }
+  .pipeline-display .res { color: rgba(255,255,255,0.8); font-weight: 500; }
+
+  .demo-grid {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; margin-top: 32px;
+    font-family: 'SF Mono', 'Menlo', monospace;
+  }
+  .dm-node { width: 64px; height: 64px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; user-select: none; }
+  .dm-na { background: rgba(224,106,58,0.12); border: 1px solid rgba(224,106,58,0.3); color: #e06a3a; }
+  .dm-na.off { background: rgba(224,106,58,0.04); border-color: rgba(224,106,58,0.1); color: rgba(224,106,58,0.2); }
+  .dm-as { background: rgba(90,122,255,0.12); border: 1px solid rgba(90,122,255,0.3); color: #5a7aff; width: 40px; height: 40px; border-radius: 50%; font-weight: 600; font-size: 0.9rem; }
+  .dm-as.off { background: rgba(90,122,255,0.04); border-color: rgba(90,122,255,0.1); color: rgba(90,122,255,0.2); }
+  .dm-res { width: 64px; height: 64px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 500; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: #f5f5f7; }
+  .dm-arrow { color: rgba(255,255,255,0.1); font-size: 1rem; }
+
+  footer { position: relative; z-index: 1; text-align: center; padding: 60px 40px; font-size: 0.75rem; color: rgba(255,255,255,0.15); }
+
+  @media (max-width: 640px) {
+    section { padding: 60px 24px; }
+    .cards { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<section class="hero">
+  <h1><span class="as">as</span><span class="slash">/</span><span class="na">not_as</span></h1>
+  <p class="tagline">Two primitives. One rule. The joint is the architecture.</p>
+</section>
+
+<section>
+  <div class="section-title">Architecture</div>
+  <h2 class="section-heading">Everything is position or computation.</h2>
+  <p class="section-body">Every system reduces to two kinds of thing: the joint that connects, and the function that computes. No frameworks. No hidden state. No third primitive.</p>
+  <div class="cards">
+    <div class="card">
+      <span class="icon">◉</span>
+      <h3>as</h3>
+      <p>The connective joint. Pure position. Carries no value. Determines whether a function adds, subtracts, or idles. The architecture is the arrangement of as nodes.</p>
+    </div>
+    <div class="card">
+      <span class="icon">◼</span>
+      <h3>not_as</h3>
+      <p>The computational unit. Returns a number. Internals are free — loops, recursion, I/O. Externally it is only a value in an equation. Never calls another not_as directly.</p>
+    </div>
+    <div class="card">
+      <span class="icon">⌬</span>
+      <h3>The Rule</h3>
+      <p>All interconnections are + or −. No event bus, no dependency injection, no message queue. Debugging is linear trace. Modularity becomes free because the connections are arithmetic.</p>
+    </div>
+  </div>
+  <div class="pipeline-display" id="pipeViz">
+    <span class="fn">ambient(t)</span><span class="conn">+</span>
+    <span class="fn">ripple(m)</span><span class="conn">−</span>
+    <span class="fn">dampen</span><span class="conn">+</span>
+    <span class="fn">neighbors</span>
+    <span class="eq">=</span>
+    <span class="res" id="pipeVal">0</span>
+  </div>
+</section>
+
+<section>
+  <div class="section-title">Interactive</div>
+  <h2 class="section-heading">Change the joints. Change the result.</h2>
+  <p class="section-body">Same functions, different arrangement. Click the circles to toggle as connectors. Click the squares to toggle not_as nodes.</p>
+  <div class="demo-grid" id="demo"></div>
+  <div style="margin-top:20px;font-size:0.8rem;color:rgba(255,255,255,0.2);text-align:center;">Output = (10 if conn1 else 0) + (20 if conn2 else 0) + (30 if conn3 else 0)</div>
+</section>
+
+<section style="min-height:50vh;">
+  <div class="section-title">Proven</div>
+  <h2 class="section-heading">Tested. Verified. Shipping.</h2>
+  <p class="section-body">Goldbach's conjecture. Collatz trajectories. Real-time generative visuals. Interactive demos. All built with two primitives. All verifiable. All zero-dependency.</p>
+</section>
+
+<footer>as / not_as · 2026</footer>
+
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+let W, H, cols, rows, cs, rs, cur, prev, mx = 0, my = 0, pmx = 0, pmy = 0, t = 0;
+
+function initGrid() {
+  cols = Math.floor(W / 18);
+  rows = Math.floor(H / 18);
+  cs = W / cols;
+  rs = H / rows;
+  cur = Array(rows).fill().map(() => new Float32Array(cols));
+  prev = Array(rows).fill().map(() => new Float32Array(cols));
+}
+
+function resize() { W = c.width = window.innerWidth; H = c.height = window.innerHeight; initGrid(); }
+window.addEventListener('resize', resize);
+resize();
+
+window.addEventListener('mousemove', e => { pmx = mx; pmy = my; mx = e.clientX; my = e.clientY; }, { passive: true });
+
+function mouseSpeed() { return Math.hypot(mx - pmx, my - pmy); }
+
+function draw() {
+  t += 0.016;
+  const spd = Math.min(mouseSpeed() / 8, 1);
+  const mcol = Math.floor(mx / cs), mrow = Math.floor(my / rs);
+  const radius = 6;
+
+  for (let r = mrow - radius; r <= mrow + radius; r++) {
+    for (let cc = mcol - radius; cc <= mcol + radius; cc++) {
+      if (r < 0 || r >= rows || cc < 0 || cc >= cols) continue;
+      const dx = (cc * cs + cs / 2 - mx) / (radius * cs);
+      const dy = (r * rs + rs / 2 - my) / (radius * rs);
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 1) {
+        cur[r][cc] += spd * 0.6 * (1 - dist) * (1 - dist);
+      }
+    }
+  }
+
+  for (let r = 0; r < rows; r++) {
+    for (let cc = 0; cc < cols; cc++) {
+      const ambient = 0.0008 * Math.sin(cc * 0.6 + t * 1.3) * Math.cos(r * 0.6 + t * 0.9);
+      cur[r][cc] += ambient;
+
+      const up = r > 0 ? prev[r - 1][cc] : 0;
+      const dn = r < rows - 1 ? prev[r + 1][cc] : 0;
+      const lt = cc > 0 ? prev[r][cc - 1] : 0;
+      const rt = cc < cols - 1 ? prev[r][cc + 1] : 0;
+      const neighborAvg = (up + dn + lt + rt) * 0.5;
+      let val = neighborAvg - cur[r][cc];
+      val *= 0.965;
+      cur[r][cc] = val;
+    }
+  }
+
+  ctx.clearRect(0, 0, W, H);
+  for (let r = 0; r < rows; r++) {
+    for (let cc = 0; cc < cols; cc++) {
+      const v = cur[r][cc];
+      const av = Math.abs(v);
+      if (av < 0.002) continue;
+      const x = cc * cs + cs * 0.5;
+      const y = r * rs + rs * 0.5;
+      const sz = 1 + av * 4;
+      const alpha = 0.06 + av * 0.7;
+      const hue = 210 + v * 30;
+
+      ctx.beginPath();
+      ctx.arc(x, y, sz + 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(${hue}, 40%, 70%, ${alpha * 0.35})`;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(x, y, sz, 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(${hue}, 30%, 80%, ${alpha})`;
+      ctx.fill();
+    }
+  }
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.015)';
+  ctx.lineWidth = 0.5;
+  for (let r = 0; r < rows - 1; r++) {
+    for (let cc = 0; cc < cols - 1; cc++) {
+      const av = (Math.abs(cur[r][cc]) + Math.abs(cur[r][cc + 1])) * 0.5;
+      if (av < 0.008) continue;
+      ctx.globalAlpha = Math.min(av * 4, 0.3);
+      ctx.beginPath();
+      ctx.moveTo(cc * cs + cs * 0.5, r * rs + rs * 0.5);
+      ctx.lineTo((cc + 1) * cs + cs * 0.5, r * rs + rs * 0.5);
+      ctx.stroke();
+    }
+  }
+  for (let r = 0; r < rows - 1; r++) {
+    for (let cc = 0; cc < cols; cc++) {
+      const av = (Math.abs(cur[r][cc]) + Math.abs(cur[r + 1][cc])) * 0.5;
+      if (av < 0.008) continue;
+      ctx.globalAlpha = Math.min(av * 4, 0.3);
+      ctx.beginPath();
+      ctx.moveTo(cc * cs + cs * 0.5, r * rs + rs * 0.5);
+      ctx.lineTo(cc * cs + cs * 0.5, (r + 1) * rs + rs * 0.5);
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  const ctr = Math.floor(rows / 2), ctc = Math.floor(cols / 2);
+  const cv = ctr < rows && ctc < cols ? cur[ctr][ctc] : 0;
+  document.getElementById('pipeVal').textContent = cv.toFixed(3);
+
+  const tmp = prev; prev = cur; cur = tmp;
+  requestAnimationFrame(draw);
+}
+draw();
+
+// Demo
+const demo = document.getElementById('demo');
+const asStates = [true, true, true];
+const naStates = [true, true, true];
+const values = [10, 20, 30];
+const labels = ['n₁', 'n₂', 'n₃'];
+
+function renderDemo() {
+  let html = '';
+  for (let i = 0; i < 3; i++) {
+    html += `<div class="dm-node dm-na${naStates[i] ? '' : ' off'}" onclick="naStates[${i}]=!naStates[${i}];renderDemo()">${naStates[i] ? values[i] : '0'}</div>`;
+    if (i < 2) {
+      html += `<div class="dm-arrow">→</div>`;
+      html += `<div class="dm-node dm-as${asStates[i] ? '' : ' off'}" onclick="asStates[${i}]=!asStates[${i}];renderDemo()">${asStates[i] ? '+' : '−'}</div>`;
+      html += `<div class="dm-arrow">→</div>`;
+    }
+  }
+  let total = 0;
+  for (let i = 0; i < 3; i++) if (asStates[i] && naStates[i]) total += values[i];
+  html += `<div class="dm-arrow">=</div><div class="dm-node dm-res">${total}</div>`;
+  demo.innerHTML = html;
+}
+renderDemo();
+</script>
+</body>
+</html>

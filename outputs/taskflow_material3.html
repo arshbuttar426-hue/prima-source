@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TaskFlow — Project Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #D0BCFF; --on-primary: #381E72;
+  --primary-container: #4F378B; --on-primary-container: #EADDFF;
+  --secondary: #CCC2DC; --secondary-container: #4A4458;
+  --tertiary: #EFB8C8; --tertiary-container: #633B48;
+  --error: #F2B8B5; --error-container: #8C1D18;
+  --surface: #1C1B1F; --surface-low: #0F0F13; --surface-high: #28272C;
+  --surface-variant: #49454F; --on-surface: #E6E1E5;
+  --on-surface-variant: #CAC4D0; --outline: #938F99;
+  --outline-variant: #49454F; --elevation-1: 0 1px 2px rgba(0,0,0,0.3),0 1px 3px rgba(0,0,0,0.15);
+  --elevation-2: 0 1px 2px rgba(0,0,0,0.3),0 2px 6px rgba(0,0,0,0.15);
+  --elevation-3: 0 1px 3px rgba(0,0,0,0.3),0 4px 8px rgba(0,0,0,0.15);
+  --shape-xs:4px;--shape-sm:8px;--shape-md:12px;--shape-lg:16px;--shape-xl:28px;--shape-full:9999px;
+  --nav-width: 280px; --nav-height: 64px;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{font-size:16px}
+body{font-family:'Roboto',sans-serif;background:var(--surface);color:var(--on-surface);overflow-x:hidden;-webkit-font-smoothing:antialiased;display:flex;min-height:100vh}
+
+nav{position:fixed;top:0;left:0;bottom:0;width:var(--nav-width);background:var(--surface-low);border-right:1px solid var(--outline-variant);display:flex;flex-direction:column;z-index:50;overflow-y:auto}
+nav .nav-header{padding:20px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--outline-variant)}
+nav .nav-logo{width:32px;height:32px;border-radius:var(--shape-sm);background:var(--primary-container);display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--on-primary-container)}
+nav .nav-title{font-size:22px;font-weight:400;letter-spacing:0;line-height:28px}
+nav .nav-section{padding:8px 12px}
+nav .nav-section-label{font-size:11px;font-weight:500;letter-spacing:0.5px;line-height:16px;color:var(--on-surface-variant);padding:8px 12px;text-transform:uppercase}
+nav .nav-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--shape-full);color:var(--on-surface-variant);font-size:14px;font-weight:500;letter-spacing:0.1px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden}
+nav .nav-item:hover{background:rgba(208,188,255,0.08)}
+nav .nav-item.active{background:var(--secondary-container);color:var(--on-surface)}
+nav .nav-item .icon{font-size:1.25rem;width:24px;text-align:center;flex-shrink:0}
+nav .nav-item .badge{margin-left:auto;background:var(--primary-container);color:var(--on-primary-container);font-size:11px;font-weight:500;padding:2px 8px;border-radius:var(--shape-full);min-width:20px;text-align:center}
+
+.toolbar{position:fixed;top:0;left:var(--nav-width);right:0;height:var(--nav-height);background:var(--surface);display:flex;align-items:center;padding:0 24px;z-index:40;border-bottom:1px solid var(--outline-variant)}
+.toolbar .tabs{display:flex;gap:0}
+.toolbar .tab{padding:12px 20px;font-size:14px;font-weight:500;letter-spacing:0.1px;color:var(--on-surface-variant);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;background:none;border-top:none;border-left:none;border-right:none;font-family:'Roboto'}
+.toolbar .tab:hover{color:var(--on-surface);background:rgba(208,188,255,0.04)}
+.toolbar .tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+.toolbar .toolbar-actions{margin-left:auto;display:flex;gap:12px;align-items:center}
+.toolbar .icon-btn{width:40px;height:40px;border-radius:var(--shape-full);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;background:none;border:none;color:var(--on-surface-variant);font-size:1.25rem}
+.toolbar .icon-btn:hover{background:rgba(208,188,255,0.08)}
+.toolbar .avatar{width:32px;height:32px;border-radius:var(--shape-full);background:var(--tertiary-container);display:flex;align-items:center;justify-content:center;font-size:0.85rem;cursor:pointer}
+
+.main{padding:calc(var(--nav-height) + 24px) 24px 24px;margin-left:var(--nav-width);flex:1;min-width:0}
+
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px}
+.stat-card{background:var(--surface-high);border-radius:var(--shape-lg);padding:20px;display:flex;gap:16px;align-items:flex-start;box-shadow:var(--elevation-1);transition:all 0.2s;cursor:pointer;opacity:0;transform:translateY(12px)}
+.stat-card.visible{opacity:1;transform:translateY(0);transition:opacity 0.4s,transform 0.4s}
+.stat-card:hover{box-shadow:var(--elevation-2)}
+.stat-card .stat-icon{width:44px;height:44px;border-radius:var(--shape-md);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+.stat-card .stat-icon.purple{background:var(--primary-container);color:var(--on-primary-container)}
+.stat-card .stat-icon.teal{background:rgba(204,194,220,0.15);color:var(--secondary)}
+.stat-card .stat-icon.rose{background:rgba(239,184,200,0.15);color:var(--tertiary)}
+.stat-card .stat-icon.amber{background:rgba(255,213,128,0.12);color:#FFD580}
+.stat-card .stat-val{font-size:32px;font-weight:400;letter-spacing:0;line-height:40px;margin-bottom:2px}
+.stat-card .stat-label{font-size:12px;font-weight:500;letter-spacing:0.5px;color:var(--on-surface-variant);text-transform:uppercase}
+.stat-card .stat-delta{font-size:12px;font-weight:400;color:var(--primary);margin-top:6px}
+
+.section-title{font-size:22px;font-weight:400;letter-spacing:0;line-height:28px;margin-bottom:8px}
+.section-subtitle{font-size:14px;color:var(--on-surface-variant);margin-bottom:20px}
+
+.filter-row{display:flex;gap:8px;margin-bottom:20px}
+.filter-chip{padding:8px 16px;border-radius:var(--shape-sm);border:1px solid var(--outline);font-size:14px;font-weight:500;letter-spacing:0.1px;cursor:pointer;transition:all 0.2s;background:none;color:var(--on-surface-variant);font-family:'Roboto'}
+.filter-chip:hover{background:rgba(208,188,255,0.08)}
+.filter-chip.active{background:var(--secondary-container);color:var(--on-surface);border-color:transparent}
+
+.project-list{display:flex;flex-direction:column;gap:12px;margin-bottom:40px}
+.project-card{background:var(--surface-high);border-radius:var(--shape-lg);padding:20px 24px;box-shadow:var(--elevation-1);transition:all 0.25s;cursor:pointer;opacity:0;transform:translateY(12px)}
+.project-card.visible{opacity:1;transform:translateY(0);transition:opacity 0.4s,transform 0.4s}
+.project-card:hover{box-shadow:var(--elevation-2);transform:translateY(-1px)}
+.project-row{display:flex;align-items:center;gap:16px}
+.project-color{width:4px;height:40px;border-radius:2px;flex-shrink:0}
+.project-color.primary{background:var(--primary)}.project-color.secondary{background:var(--secondary)}.project-color.tertiary{background:var(--tertiary)}.project-color.error{background:var(--error)}
+.project-info{flex:1;min-width:0}
+.project-info .name{font-size:16px;font-weight:500;letter-spacing:0.15px;line-height:24px;margin-bottom:2px}
+.project-info .meta{font-size:12px;color:var(--on-surface-variant);display:flex;gap:12px}
+.project-progress{display:flex;align-items:center;gap:12px;min-width:200px}
+.project-progress .bar{flex:1;height:6px;background:var(--surface-variant);border-radius:3px;overflow:hidden}
+.project-progress .bar-fill{height:100%;border-radius:3px;transition:width 0.8s ease-out}
+.project-progress .bar-fill.primary{background:var(--primary)}.project-progress .bar-fill.secondary{background:var(--secondary)}.project-progress .bar-fill.tertiary{background:var(--tertiary)}.project-progress .bar-fill.error{background:var(--error)}
+.project-progress .pct{font-size:14px;font-weight:500;color:var(--on-surface-variant);min-width:36px;text-align:right}
+.project-status{font-size:12px;font-weight:500;padding:4px 12px;border-radius:var(--shape-sm);min-width:90px;text-align:center}
+.project-status.in-progress{background:rgba(208,188,255,0.12);color:var(--primary)}
+.project-status.review{background:rgba(204,194,220,0.12);color:var(--secondary)}
+.project-status.on-hold{background:rgba(242,184,181,0.12);color:var(--error)}
+.project-status.active-status{background:rgba(239,184,200,0.12);color:var(--tertiary)}
+.project-avatars{display:flex;align-items:center;gap:-6px}
+.project-avatars span{width:28px;height:28px;border-radius:var(--shape-full);display:flex;align-items:center;justify-content:center;font-size:0.7rem;border:2px solid var(--surface-high);margin-left:-6px}
+.project-avatars span:first-child{margin-left:0}
+
+.tasks-section{margin-bottom:40px}
+.task-group{margin-bottom:24px}
+.task-group-label{font-size:11px;font-weight:500;letter-spacing:0.5px;color:var(--on-surface-variant);text-transform:uppercase;margin-bottom:8px;padding-left:4px}
+.task-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--shape-md);transition:all 0.2s;cursor:pointer;opacity:0;transform:translateY(8px)}
+.task-item.visible{opacity:1;transform:translateY(0);transition:opacity 0.35s,transform 0.35s}
+.task-item:hover{background:rgba(208,188,255,0.04)}
+.task-check{width:18px;height:18px;border-radius:2px;border:2px solid var(--outline);flex-shrink:0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center}
+.task-check:hover{border-color:var(--primary)}
+.task-check.done{background:var(--primary);border-color:var(--primary)}
+.task-check.done::after{content:'✓';font-size:11px;color:var(--on-primary);font-weight:700}
+.task-info{flex:1;min-width:0}
+.task-info .task-title{font-size:14px;font-weight:400;letter-spacing:0.25px;line-height:20px}
+.task-info .task-title.done{text-decoration:line-through;color:var(--on-surface-variant)}
+.task-info .task-meta{font-size:12px;color:var(--on-surface-variant);margin-top:2px}
+.task-priority{padding:3px 10px;border-radius:var(--shape-full);font-size:11px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase}
+.task-priority.urgent{background:rgba(242,184,181,0.12);color:var(--error)}
+.task-priority.high{background:rgba(255,213,128,0.12);color:#FFD580}
+.task-priority.medium{background:rgba(208,188,255,0.12);color:var(--primary)}
+.task-priority.low{background:rgba(204,194,220,0.12);color:var(--secondary)}
+.task-due{font-size:12px;color:var(--on-surface-variant);min-width:80px;text-align:right}
+.task-avatar{width:24px;height:24px;border-radius:var(--shape-full);display:flex;align-items:center;justify-content:center;font-size:0.65rem;flex-shrink:0}
+
+.activity-feed{display:flex;flex-direction:column;gap:0}
+.activity-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;position:relative;opacity:0;transform:translateY(8px)}
+.activity-item.visible{opacity:1;transform:translateY(0);transition:opacity 0.35s,transform 0.35s}
+.activity-item::before{content:'';position:absolute;left:15px;top:36px;bottom:-12px;width:2px;background:var(--outline-variant)}
+.activity-item:last-child::before{display:none}
+.activity-dot{width:32px;height:32px;border-radius:var(--shape-full);display:flex;align-items:center;justify-content:center;font-size:0.85rem;flex-shrink:0}
+.activity-dot.complete{background:rgba(208,188,255,0.12);color:var(--primary)}
+.activity-dot.comment{background:rgba(204,194,220,0.12);color:var(--secondary)}
+.activity-dot.move{background:rgba(255,213,128,0.12);color:#FFD580}
+.activity-dot.create{background:rgba(239,184,200,0.12);color:var(--tertiary)}
+.activity-dot.upload{background:rgba(204,194,220,0.12);color:var(--secondary)}
+.activity-text{font-size:14px;font-weight:400;letter-spacing:0.25px;line-height:20px}
+.activity-text strong{font-weight:500}
+.activity-time{font-size:12px;color:var(--on-surface-variant);margin-top:2px}
+
+.ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,0.12);transform:scale(0);animation:ripple 0.5s ease-out}
+@keyframes ripple{to{transform:scale(4);opacity:0}}
+
+@media(max-width:1024px){
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  nav{display:none}
+  .toolbar{left:0}
+  .main{margin-left:0}
+}
+@media(max-width:600px){
+  .stats-grid{grid-template-columns:1fr}
+  .project-row{flex-wrap:wrap}
+  .toolbar .tabs{display:none}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-header">
+    <div class="nav-logo">◆</div>
+    <div class="nav-title">TaskFlow</div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-item active"><span class="icon">📊</span>Dashboard</div>
+    <div class="nav-item"><span class="icon">📋</span>Board<span class="badge">3</span></div>
+    <div class="nav-item"><span class="icon">📅</span>Timeline</div>
+    <div class="nav-item"><span class="icon">👥</span>Team</div>
+    <div class="nav-item"><span class="icon">⚙️</span>Settings</div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-label">Projects</div>
+    <div class="nav-item"><span class="icon" style="font-size:0.6rem;color:var(--primary)">●</span>Mobile App Redesign</div>
+    <div class="nav-item"><span class="icon" style="font-size:0.6rem;color:var(--secondary)">●</span>Landing Page v3</div>
+    <div class="nav-item"><span class="icon" style="font-size:0.6rem;color:var(--tertiary)">●</span>API Documentation</div>
+    <div class="nav-item"><span class="icon" style="font-size:0.6rem;color:var(--error)">●</span>Design System v2</div>
+  </div>
+</nav>
+
+<div class="toolbar">
+  <button class="tab active">Overview</button>
+  <button class="tab">Board</button>
+  <button class="tab">Timeline</button>
+  <button class="tab">Team</button>
+  <button class="tab">Settings</button>
+  <div class="toolbar-actions">
+    <button class="icon-btn">🔍</button>
+    <button class="icon-btn" style="position:relative">🔔<span style="position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--error)"></span></button>
+    <div class="avatar">AC</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="section-title">Good morning, Alex</div>
+  <div class="section-subtitle">Here's what's happening with your projects today.</div>
+
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon purple">📁</div><div><div class="stat-val">12</div><div class="stat-label">Active Projects</div><div class="stat-delta">+2 this week</div></div></div>
+    <div class="stat-card" style="transition-delay:0.08s"><div class="stat-icon teal">✅</div><div><div class="stat-val">8</div><div class="stat-label">Tasks Due Today</div><div class="stat-delta">3 completed</div></div></div>
+    <div class="stat-card" style="transition-delay:0.16s"><div class="stat-icon rose">👥</div><div><div class="stat-val">24</div><div class="stat-label">Team Members</div><div class="stat-delta">4 online now</div></div></div>
+    <div class="stat-card" style="transition-delay:0.24s"><div class="stat-icon amber">⏱</div><div><div class="stat-val">142</div><div class="stat-label">Hours Logged</div><div class="stat-delta">↑ 12% vs last week</div></div></div>
+  </div>
+
+  <div class="section-title">Your Projects</div>
+  <div class="section-subtitle">Track progress across all active initiatives</div>
+  <div class="filter-row">
+    <button class="filter-chip active">All</button>
+    <button class="filter-chip">Active</button>
+    <button class="filter-chip">On Hold</button>
+    <button class="filter-chip">Completed</button>
+  </div>
+
+  <div class="project-list">
+    <div class="project-card"><div class="project-row">
+      <div class="project-color primary"></div>
+      <div class="project-info"><div class="name">Mobile App Redesign</div><div class="meta">24 tasks · Due Aug 18</div></div>
+      <div class="project-progress"><div class="bar"><div class="bar-fill primary" style="width:78%"></div></div><span class="pct">78%</span></div>
+      <div class="project-status in-progress">In Progress</div>
+      <div class="project-avatars"><span>🟣</span><span>🟢</span><span>🟠</span><span>🔵</span><span>🟡</span><span style="background:var(--primary-container);font-size:0.55rem">+1</span></div>
+    </div></div>
+    <div class="project-card" style="transition-delay:0.06s"><div class="project-row">
+      <div class="project-color secondary"></div>
+      <div class="project-info"><div class="name">Landing Page v3</div><div class="meta">16 tasks · Due Aug 22</div></div>
+      <div class="project-progress"><div class="bar"><div class="bar-fill secondary" style="width:45%"></div></div><span class="pct">45%</span></div>
+      <div class="project-status in-progress">In Progress</div>
+      <div class="project-avatars"><span>🟢</span><span>🟣</span><span>🔵</span></div>
+    </div></div>
+    <div class="project-card" style="transition-delay:0.12s"><div class="project-row">
+      <div class="project-color tertiary"></div>
+      <div class="project-info"><div class="name">API Documentation</div><div class="meta">12 tasks · Due Aug 12</div></div>
+      <div class="project-progress"><div class="bar"><div class="bar-fill tertiary" style="width:92%"></div></div><span class="pct">92%</span></div>
+      <div class="project-status review">In Review</div>
+      <div class="project-avatars"><span>🟠</span><span>🟣</span></div>
+    </div></div>
+    <div class="project-card" style="transition-delay:0.18s"><div class="project-row">
+      <div class="project-color error"></div>
+      <div class="project-info"><div class="name">Design System v2</div><div class="meta">32 tasks · Due Sep 5</div></div>
+      <div class="project-progress"><div class="bar"><div class="bar-fill error" style="width:34%"></div></div><span class="pct">34%</span></div>
+      <div class="project-status on-hold">On Hold</div>
+      <div class="project-avatars"><span>🟣</span><span>🟢</span><span>🔵</span><span>🟡</span></div>
+    </div></div>
+    <div class="project-card" style="transition-delay:0.24s"><div class="project-row">
+      <div class="project-color primary"></div>
+      <div class="project-info"><div class="name">Onboarding Flow</div><div class="meta">20 tasks · Due Aug 30</div></div>
+      <div class="project-progress"><div class="bar"><div class="bar-fill primary" style="width:12%"></div></div><span class="pct">12%</span></div>
+      <div class="project-status active-status">Active</div>
+      <div class="project-avatars"><span>🔵</span><span>🟣</span><span>🟢</span></div>
+    </div></div>
+  </div>
+
+  <div class="section-title">Upcoming Tasks</div>
+  <div class="tasks-section">
+    <div class="task-group"><div class="task-group-label">Today</div>
+      <div class="task-item"><div class="task-check"></div><div class="task-info"><div class="task-title">Review wireframes for dashboard</div><div class="task-meta">Mobile App Redesign</div></div><div class="task-priority high">High</div><div class="task-due">2:00 PM</div><div class="task-avatar">🟣</div></div>
+      <div class="task-item" style="transition-delay:0.04s"><div class="task-check done"></div><div class="task-info"><div class="task-title done">Fix navigation scroll bug</div><div class="task-meta">Landing Page v3</div></div><div class="task-priority urgent">Urgent</div><div class="task-due">11:00 AM</div><div class="task-avatar">🟢</div></div>
+      <div class="task-item" style="transition-delay:0.08s"><div class="task-check"></div><div class="task-info"><div class="task-title">Update API endpoints documentation</div><div class="task-meta">API Documentation</div></div><div class="task-priority medium">Medium</div><div class="task-due">4:30 PM</div><div class="task-avatar">🟠</div></div>
+    </div>
+    <div class="task-group"><div class="task-group-label">Tomorrow</div>
+      <div class="task-item"><div class="task-check"></div><div class="task-info"><div class="task-title">Design component variants</div><div class="task-meta">Design System v2</div></div><div class="task-priority low">Low</div><div class="task-due">Tomorrow</div><div class="task-avatar">🟣</div></div>
+      <div class="task-item" style="transition-delay:0.04s"><div class="task-check"></div><div class="task-info"><div class="task-title">User testing session prep</div><div class="task-meta">Onboarding Flow</div></div><div class="task-priority high">High</div><div class="task-due">10:00 AM</div><div class="task-avatar">🔵</div></div>
+    </div>
+  </div>
+
+  <div class="section-title">Recent Activity</div>
+  <div class="activity-feed">
+    <div class="activity-item"><div class="activity-dot complete">✓</div><div><div class="activity-text"><strong>Sarah</strong> completed task <strong>Fix navigation scroll bug</strong></div><div class="activity-time">5 min ago</div></div></div>
+    <div class="activity-item" style="transition-delay:0.05s"><div class="activity-dot comment">💬</div><div><div class="activity-text"><strong>Mike</strong> commented on <strong>API Documentation PR #42</strong></div><div class="activity-time">18 min ago</div></div></div>
+    <div class="activity-item" style="transition-delay:0.1s"><div class="activity-dot move">↗</div><div><div class="activity-text"><strong>Alex</strong> moved <strong>Design System v2</strong> from Active to On Hold</div><div class="activity-time">1 hour ago</div></div></div>
+    <div class="activity-item" style="transition-delay:0.15s"><div class="activity-dot create">+</div><div><div class="activity-text"><strong>Emma</strong> created task <strong>User testing recruitment</strong></div><div class="activity-time">2 hours ago</div></div></div>
+    <div class="activity-item" style="transition-delay:0.2s"><div class="activity-dot upload">↑</div><div><div class="activity-text"><strong>Alex</strong> uploaded <strong>12 wireframes</strong> to Mobile App Redesign</div><div class="activity-time">3 hours ago</div></div></div>
+  </div>
+</div>
+
+<script>
+const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')})},{threshold:0.1});
+document.querySelectorAll('.stat-card,.project-card,.task-item,.activity-item').forEach(el=>obs.observe(el));
+
+document.querySelectorAll('.filter-chip').forEach(chip=>{chip.addEventListener('click',()=>{
+  chip.parentElement.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  chip.classList.add('active');
+})});
+
+document.querySelectorAll('.task-check:not(.done)').forEach(check=>{check.addEventListener('click',function(){
+  this.classList.add('done');
+  const title=this.parentElement.querySelector('.task-title');
+  if(title)title.classList.add('done');
+})});
+
+document.querySelectorAll('.filter-chip, .nav-item, .tab, .icon-btn').forEach(el=>{el.addEventListener('click',function(e){
+  const r=document.createElement('div');r.className='ripple';
+  const rect=this.getBoundingClientRect();
+  const size=Math.max(rect.width,rect.height);
+  r.style.width=r.style.height=size+'px';
+  r.style.left=(e.clientX-rect.left-size/2)+'px';
+  r.style.top=(e.clientY-rect.top-size/2)+'px';
+  this.appendChild(r);setTimeout(()=>r.remove(),500);
+})});
+</script>
+</body>
+</html>

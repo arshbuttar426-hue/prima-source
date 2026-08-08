@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Waveraft — Physics</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #08080c;
+  --surface: rgba(255,255,255,0.025);
+  --hover: rgba(255,255,255,0.06);
+  --accent: #5a7aff;
+  --rose: #ff6b9d;
+  --ink: #f5f5f7;
+  --mute: #6b6b80;
+  --border: rgba(255,255,255,0.06);
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body {
+  width:100%; height:100%; overflow:hidden;
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  cursor: default;
+}
+canvas { position:fixed; inset:0; z-index:0; }
+#ui { position:fixed; inset:0; z-index:1; pointer-events:none; }
+#ui > * { pointer-events:auto; }
+
+.overlay {
+  position: absolute; bottom:48px; left:50%; transform:translateX(-50%);
+  display:flex; gap:12px;
+}
+.overlay button {
+  background: var(--surface); color:var(--mute); border:1px solid var(--border);
+  padding:10px 20px; border-radius:100px; font-size:12px; font-weight:500; font-family:'Inter';
+  cursor:pointer; transition:all 0.2s;
+}
+.overlay button:hover, .overlay button.active { color:var(--ink); border-color:var(--accent); background:var(--hover); }
+
+.info {
+  position:absolute; top:48px; left:48px;
+  font-size:12px; color:var(--mute); font-weight:450;
+  line-height:1.8;
+}
+.info span { color:var(--ink); font-weight:600; }
+.info .val { color:var(--accent); }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div id="ui">
+  <div class="info">
+    <div>cards <span class="val" id="cardCount">12</span></div>
+    <div>fps <span class="val" id="fpsVal">60</span></div>
+    <div>force <span class="val" id="forceMode">attract</span></div>
+  </div>
+  <div class="overlay">
+    <button class="active" data-mode="attract">Attract</button>
+    <button data-mode="repel">Repel</button>
+    <button data-mode="spring">Spring</button>
+    <button data-mode="drift">Drift</button>
+    <button data-mode="gravity">Gravity</button>
+    <button data-mode="chaos">Chaos</button>
+  </div>
+</div>
+
+<script>
+const C = { bg:'#08080c', accent:'#5a7aff', rose:'#ff6b9d', ink:'#f5f5f7', mute:'#6b6b80', border:'rgba(255,255,255,0.06)', surface:'rgba(255,255,255,0.025)', hover:'rgba(255,255,255,0.06)' };
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H, DPR = Math.min(window.devicePixelRatio||1, 2);
+
+const LABELS = [
+  'Brand','Design','Code','Launch',
+  'Scale','Strategy','Research','Prototype',
+  'Waveraft','Ship','Iterate','Contact'
+];
+const WEIGHTS = [1.2,0.9,1.1,0.8, 1.0,1.15,0.85,0.95, 2.5,1.05,0.9,0.75];
+const ANCHOR_IDX = 8;
+const CARD_W = 140, CARD_H = 50;
+const GRID_COLS = 4;
+const GAP = 14;
+const PAD = 48;
+
+let cards = [];
+let mx = -999, my = -999, mouseDown = false, forceMode = 'attract';
+let frameCount = 0, lastFpsTime = performance.now(), fps = 60;
+
+function initGrid() {
+  cards = [];
+  const gridW = GRID_COLS * (CARD_W + GAP) - GAP;
+  const startX = PAD;
+  const startY = PAD;
+  for (let i = 0; i < LABELS.length; i++) {
+    const col = i % GRID_COLS;
+    const row = Math.floor(i / GRID_COLS);
+    const rx = startX + col * (CARD_W + GAP) + CARD_W/2;
+    const ry = startY + row * (CARD_H + GAP) + CARD_H/2;
+    cards.push({
+      label: LABELS[i],
+      weight: WEIGHTS[i],
+      isAnchor: i === ANCHOR_IDX,
+      x: rx + (Math.random()-0.5)*200,
+      y: ry + (Math.random()-0.5)*200,
+      vx: (Math.random()-0.5)*3,
+      vy: (Math.random()-0.5)*3,
+      rx, ry,
+      w: CARD_W, h: CARD_H
+    });
+  }
+}
+
+function update() {
+  const DT = 1;
+  const DAMPING = 0.92;
+  const REPEL_STR = 0.8;
+  const ATTRACT_STR = 0.3;
+  const ANCHOR_PULL = 12;
+  const MOUSE_RADIUS = 160;
+  const MOUSE_REPEL = 8;
+  const MOUSE_ATTRACT = 3;
+  const SPRING_K = 0.08;
+  const SPRING_D = 0.65;
+  const G_CONST = 0.15;
+  const BOUNCE = 0.6;
+  const MARGIN = 20;
+
+  // ─── forces ───
+  for (let i = 0; i < cards.length; i++) {
+    const a = cards[i];
+    let fx = 0, fy = 0;
+
+    // Spring to rest position
+    if (forceMode === 'spring') {
+      fx += (a.rx - a.x) * SPRING_K;
+      fy += (a.ry - a.y) * SPRING_K;
+    }
+
+    // Anchor attraction (gravity wells)
+    if (forceMode === 'gravity' || forceMode === 'attract') {
+      const anchor = cards[ANCHOR_IDX];
+      if (a !== anchor) {
+        const dx = anchor.x - a.x, dy = anchor.y - a.y;
+        const dist = Math.sqrt(dx*dx + dy*dy) + 40;
+        const force = (forceMode === 'gravity' ? G_CONST * anchor.weight * a.weight : ANCHOR_PULL * anchor.weight) / (dist * dist);
+        fx += (dx / dist) * force * 200;
+        fy += (dy / dist) * force * 200;
+      }
+    }
+
+    if (forceMode === 'attract') {
+      for (let j = 0; j < cards.length; j++) {
+        if (i === j) continue;
+        const b = cards[j];
+        if (b.isAnchor) continue;
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const dist = Math.sqrt(dx*dx + dy*dy) + 20;
+        if (dist < 8) continue;
+        const force = ATTRACT_STR / (dist * dist);
+        fx += (dx / dist) * force * 40;
+        fy += (dy / dist) * force * 40;
+      }
+    }
+
+    // Repulsion between all cards
+    if (forceMode === 'repel' || forceMode === 'chaos') {
+      for (let j = 0; j < cards.length; j++) {
+        if (i === j) continue;
+        const b = cards[j];
+        const dx = a.x - b.x, dy = a.y - b.y;
+        const dist = Math.sqrt(dx*dx + dy*dy) + 1;
+        if (dist > 300) continue;
+        const force = REPEL_STR / (dist * dist);
+        fx += (dx / dist) * force * 200;
+        fy += (dy / dist) * force * 200;
+      }
+    }
+
+    // Mouse interaction
+    if (mx > 0 && my > 0) {
+      const dx = a.x - mx, dy = a.y - my;
+      const dist = Math.sqrt(dx*dx + dy*dy) + 1;
+      if (dist < MOUSE_RADIUS) {
+        const force = mouseDown ? MOUSE_ATTRACT : MOUSE_REPEL;
+        const strength = force / (dist * dist);
+        const sign = mouseDown ? -1 : 1;
+        fx += (dx / dist) * strength * 1000 * sign;
+        fy += (dy / dist) * strength * 1000 * sign;
+      }
+    }
+
+    // Drift
+    if (forceMode === 'drift') {
+      fx += (Math.sin(a.rx * 0.01 + frameCount * 0.02) * 0.15);
+      fy += (Math.cos(a.ry * 0.013 + frameCount * 0.025) * 0.15);
+    }
+
+    if (forceMode === 'chaos') {
+      fx += (Math.random() - 0.5) * 2;
+      fy += (Math.random() - 0.5) * 2;
+    }
+
+    // Apply forces
+    a.vx += fx * DT * 0.02;
+    a.vy += fy * DT * 0.02;
+    a.vx *= DAMPING;
+    a.vy *= DAMPING;
+    a.x += a.vx;
+    a.y += a.vy;
+
+    // Collision with other cards
+    for (let j = 0; j < cards.length; j++) {
+      if (i === j) continue;
+      const b = cards[j];
+      const dx = a.x - b.x, dy = a.y - b.y;
+      const minDistX = (a.w + b.w) / 2 + 2;
+      const minDistY = (a.h + b.h) / 2 + 2;
+      if (Math.abs(dx) < minDistX && Math.abs(dy) < minDistY) {
+        const overlapX = minDistX - Math.abs(dx);
+        const overlapY = minDistY - Math.abs(dy);
+        if (overlapX < overlapY) {
+          const sign = dx > 0 ? 1 : -1;
+          a.x += sign * overlapX * 0.5;
+          b.x -= sign * overlapX * 0.5;
+          a.vx *= -BOUNCE; b.vx *= -BOUNCE;
+        } else {
+          const sign = dy > 0 ? 1 : -1;
+          a.y += sign * overlapY * 0.5;
+          b.y -= sign * overlapY * 0.5;
+          a.vy *= -BOUNCE; b.vy *= -BOUNCE;
+        }
+      }
+    }
+
+    // Boundary
+    if (a.x < MARGIN + a.w/2) { a.x = MARGIN + a.w/2; a.vx *= -BOUNCE; }
+    if (a.x > W - MARGIN - a.w/2) { a.x = W - MARGIN - a.w/2; a.vx *= -BOUNCE; }
+    if (a.y < MARGIN + a.h/2) { a.y = MARGIN + a.h/2; a.vy *= -BOUNCE; }
+    if (a.y > H - MARGIN - a.h/2) { a.y = H - MARGIN - a.h/2; a.vy *= -BOUNCE; }
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Background grid
+  ctx.strokeStyle = C.border;
+  ctx.lineWidth = 0.5 * DPR;
+  const GRID_S = 64;
+  for (let x = 0; x < W; x += GRID_S) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += GRID_S) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // Connections between anchor and others
+  const anchor = cards[ANCHOR_IDX];
+  for (const c of cards) {
+    if (c === anchor) continue;
+    const dx = anchor.x - c.x, dy = anchor.y - c.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const alpha = Math.max(0, 0.15 - dist / 1200) * (forceMode === 'spring' ? 0.3 : 1);
+    ctx.strokeStyle = `rgba(90,122,255,${alpha})`;
+    ctx.lineWidth = 0.5 * DPR;
+    ctx.beginPath();
+    ctx.moveTo(anchor.x, anchor.y);
+    ctx.lineTo(c.x, c.y);
+    ctx.stroke();
+  }
+
+  // Draw cards (back to front)
+  const sorted = [...cards].sort((a,b) => (a.isAnchor ? 1 : 0) - (b.isAnchor ? 1 : 0));
+  for (const c of sorted) {
+    const x = c.x - c.w/2, y = c.y - c.h/2;
+
+    // Shadow / glow
+    if (c.isAnchor) {
+      const grd = ctx.createRadialGradient(c.x, c.y, 10, c.x, c.y, c.w);
+      grd.addColorStop(0, `rgba(255,107,157,0.15)`);
+      grd.addColorStop(1, 'transparent');
+      ctx.fillStyle = grd;
+      ctx.fillRect(x - 40, y - 40, c.w + 80, c.h + 80);
+    }
+
+    // Card background
+    const vel = Math.sqrt(c.vx*c.vx + c.vy*c.vy);
+    const glowAlpha = Math.min(0.3, vel * 0.02);
+    ctx.fillStyle = c.isAnchor
+      ? `rgba(255,107,157,${0.08 + glowAlpha})`
+      : `rgba(255,255,255,${0.025 + glowAlpha})`;
+    ctx.beginPath();
+    roundRect(ctx, x, y, c.w, c.h, 12);
+    ctx.fill();
+
+    // Border
+    ctx.strokeStyle = c.isAnchor
+      ? `rgba(255,107,157,${0.3 + glowAlpha})`
+      : C.border;
+    ctx.lineWidth = 1 * DPR;
+    ctx.beginPath();
+    roundRect(ctx, x, y, c.w, c.h, 12);
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = c.isAnchor ? '#ff6b9d' : C.ink;
+    ctx.font = `${c.isAnchor ? 600 : 400} ${(c.isAnchor ? 15 : 12.5) * DPR}px Inter, system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.letterSpacing = '-0.01em';
+    ctx.fillText(c.label, c.x, c.y);
+
+    // Velocity trail (tiny dot behind)
+    if (vel > 1 && !c.isAnchor) {
+      ctx.fillStyle = `rgba(90,122,255,${glowAlpha})`;
+      ctx.beginPath();
+      ctx.arc(c.x - c.vx * 1.5, c.y - c.vy * 1.5, 3 * DPR, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.moveTo(x+r, y); ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+}
+
+function loop(ts) {
+  requestAnimationFrame(loop);
+  frameCount++;
+  if (ts - lastFpsTime > 500) {
+    fps = Math.round(frameCount / ((ts - lastFpsTime) / 1000));
+    frameCount = 0;
+    lastFpsTime = ts;
+    document.getElementById('fpsVal').textContent = fps;
+  }
+  update();
+  draw();
+}
+
+function resize() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.scale(DPR, DPR);
+  initGrid();
+}
+
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+document.addEventListener('mouseleave', () => { mx = -999; my = -999; });
+document.addEventListener('mousedown', () => { mouseDown = true; });
+document.addEventListener('mouseup', () => { mouseDown = false; });
+document.addEventListener('touchmove', e => { mx = e.touches[0].clientX; my = e.touches[0].clientY; });
+document.addEventListener('touchend', () => { mx = -999; my = -999; });
+window.addEventListener('resize', resize);
+
+document.querySelectorAll('.overlay button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.overlay button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    forceMode = btn.dataset.mode;
+    document.getElementById('forceMode').textContent = forceMode;
+  });
+});
+
+resize();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

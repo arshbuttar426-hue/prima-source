@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conductor — the scroll is a score</title>
+<style>
+  :root{
+    --bg:#000;--surface:#0d0d0f;--ink:#f5f5f7;--dim:#9a9aa2;--faint:rgba(255,255,255,0.32);
+    --line:rgba(255,255,255,0.07);--line-soft:rgba(255,255,255,0.045);--radius:20px;--unit:8px;--g:1.618;
+  }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:auto;-webkit-text-size-adjust:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",sans-serif;
+    background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    font-weight:400;line-height:1.618;overflow-x:hidden}
+  ::selection{background:rgba(255,255,255,0.18)}
+
+  /* fixed metamorph field — the whole page is the instrument */
+  #field{position:fixed;inset:0;z-index:0;pointer-events:none;background:
+    radial-gradient(120% 90% at 50% 0%,rgba(255,255,255,0.035),transparent 60%)}
+  #field canvas{position:absolute;inset:0;width:100%;height:100%}
+  #field::after{content:"";position:absolute;inset:0;opacity:0.045;
+    background-image:linear-gradient(var(--line-soft) 1px,transparent 1px),linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);
+    background-size:96px 96px;mask-image:radial-gradient(ellipse 70% 60% at 50% 40%,black,transparent 75%)}
+
+  /* shutter — the beat reveal */
+  #shutter{position:fixed;inset:0;z-index:300;pointer-events:none;visibility:hidden}
+  #shutter .st{position:absolute;left:0;right:0;height:50.6%;background:#000;transition:transform .26s cubic-bezier(.9,0,.1,1)}
+  #shutter .st.t{top:0;transform:translateY(-101%)}
+  #shutter .st.b{bottom:0;transform:translateY(101%)}
+  #shutter.on{visibility:visible}
+  #shutter.on .st.t{transform:translateY(0)}
+  #shutter.on .st.b{transform:translateY(0)}
+  #shutter .seam{position:absolute;left:0;right:0;top:50%;height:1px;margin-top:-.5px;background:var(--ink);transform:scaleX(0);transition:transform .16s cubic-bezier(.9,0,.1,1) .02s}
+  #shutter.on .seam{transform:scaleX(1)}
+
+  /* score spine — the notation */
+  #spine{position:fixed;left:24px;top:50%;transform:translateY(-50%);z-index:40;height:340px;width:1px;background:var(--line-soft);mix-blend-mode:screen}
+  #spine .fill{position:absolute;left:0;top:0;width:1px;height:0;background:var(--dim);opacity:.8}
+  #spine .staff{position:absolute;left:0;top:0;bottom:0;width:1px;
+    background:repeating-linear-gradient(to bottom,transparent 0,transparent 33.3%,rgba(255,255,255,0.06) 33.3%,rgba(255,255,255,0.06) 33.4%)}
+  #spine .beat{position:absolute;left:4px;width:10px;height:10px;border-radius:50%;border:1px solid var(--dim);transform:translateX(-5px);background:rgba(0,0,0,0.8);transition:background .2s,border-color .2s}
+  #spine .beat.on{background:var(--ink);border-color:var(--ink)}
+  #spine .beat .lbl{position:absolute;left:18px;top:50%;transform:translateY(-50%);font-size:8px;letter-spacing:.18em;text-transform:uppercase;white-space:nowrap;color:var(--faint)}
+  #spine .beat.on .lbl{color:var(--ink)}
+  @media(max-width:760px){#spine{display:none}}
+
+  nav{position:fixed;top:0;left:0;right:0;z-index:60;height:44px;display:flex;align-items:center;
+    backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);
+    background:rgba(0,0,0,0.65);border-bottom:1px solid var(--line-soft)}
+  nav .inner{max-width:980px;margin:0 auto;width:100%;display:flex;align-items:center;gap:32px;padding:0 48px}
+  @media(max-width:760px){nav .inner{padding:0 24px}}
+  .mark{width:9px;height:9px;border-radius:50%;background:var(--ink);opacity:.9;position:relative}
+  .mark::after{content:"";position:absolute;inset:-3px;border:1px solid var(--line);border-radius:50%}
+  nav .links{margin-left:auto;display:flex;gap:32px}
+  nav .links a{color:var(--faint);text-decoration:none;font-size:12px;letter-spacing:-0.01em;transition:color .2s;position:relative;padding-bottom:2px}
+  nav .links a::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--ink);transform:scaleX(0);transform-origin:left;transition:transform .3s}
+  nav .links a:hover{color:var(--ink)}
+  nav .links a:hover::after{transform:scaleX(1)}
+
+  /* full-viewport scored sections */
+  section{position:relative;z-index:1;min-height:100vh;display:grid;place-items:center;text-align:center;padding:96px 24px}
+  section .inner{max-width:46rem}
+  .eyebrow{font-size:11px;font-weight:500;letter-spacing:0.35em;text-transform:uppercase;color:var(--dim);margin-bottom:24px}
+  section h1{font-weight:300;font-size:clamp(2.6rem,8vw,5.4rem);letter-spacing:-0.045em;line-height:0.96;margin-bottom:22px}
+  section p{font-size:clamp(1rem,2.6vw,1.22rem);font-weight:300;color:var(--dim);max-width:30rem;margin:0 auto 24px}
+  .score-tag{font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:var(--faint);display:inline-flex;align-items:center;gap:10px}
+  .score-tag .seam-x{display:inline-block;width:1.4em;height:1px;background:var(--ink)}
+
+  footer{position:relative;z-index:1;padding:64px 24px 48px;color:var(--faint);font-size:12px;text-align:center;border-top:1px solid var(--line-soft)}
+  footer .big{font-weight:300;color:var(--ink);font-size:clamp(1.2rem,3vw,1.7rem);letter-spacing:-0.02em;margin-bottom:8px}
+
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="field"><canvas id="morph"></canvas></div>
+<div id="shutter"><div class="st t"></div><div class="st b"></div><div class="seam"></div></div>
+
+<div id="spine">
+  <div class="staff"></div>
+  <div class="fill"></div>
+  <div class="beat" data-s="0" style="top:0%"><span class="lbl"></span></div>
+  <div class="beat" data-s="1" style="top:25%"><span class="lbl">wave</span></div>
+  <div class="beat" data-s="2" style="top:50%"><span class="lbl">lattice</span></div>
+  <div class="beat" data-s="3" style="top:75%"><span class="lbl">burst</span></div>
+  <div class="beat" data-s="4" style="top:100%"><span class="lbl"></span></div>
+</div>
+
+<nav>
+  <div class="inner">
+    <div class="mark"></div>
+    <div class="links"><a href="#one">01</a><a href="#two">02</a><a href="#three">03</a><a href="#four">04</a></div>
+  </div>
+</nav>
+
+<section id="one">
+  <div><div class="eyebrow">Conductor · score in scroll</div>
+  <h1>Scroll is a<br>score, not a map.</h1>
+  <p>Five beats are notated against the page. The playhead is your scroll — and the whole field must transform at each beat. The seam snaps shut, and the line changes form.</p>
+  <div class="score-tag"><span class="seam-x"></span> begin to play <span class="seam-x"></span></div></div>
+</section>
+
+<section id="two"><div><div class="eyebrow">beat 01 · the wave</div>
+  <h1>Flow,<br>continuous.</h1>
+  <p>Near the first beat the strands run horizontal — one direction, unbroken. Scroll past the mark and the score tells the field to change.</p></div></section>
+
+<section id="three"><div><div class="eyebrow">beat 02 · the lattice</div>
+  <h1>Structure,<br>crossed.</h1>
+  <p>At the middle beat the same points diagonalize into a lattice. Nothing new is added — only re-arranged and re-signed.</p></div></section>
+
+<section id="four"><div><div class="eyebrow">beat 03 · the burst</div>
+  <h1>Divergence,<br>radial.</h1>
+  <p>Past the final beat the points burst to center. The score is complete — and the playhead returns, the field breathes again to wave.</p></div></section>
+
+<footer>
+  <div class="big">The scroll is a score. The frame is the architecture.</div>
+  <div>composed offline · monochrome · self-contained</div>
+</footer>
+
+<script>
+/* shutter — abrupt score-beat reveal */
+const shutter=document.getElementById('shutter');
+const busy=new Set();
+function abruptTo(target){
+  if(/^#\w/.test(target)&&!document.querySelector(target))return;
+  if(busy.has(target))return;busy.add(target);
+  const el=document.querySelector(target);
+  shutter.classList.add('on');
+  setTimeout(()=>{if(el)el.scrollIntoView();},230);
+  setTimeout(()=>shutter.classList.remove('on'),260);
+  setTimeout(()=>busy.delete(target),520);
+}
+document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',e=>{
+  const h=a.getAttribute('href');if(h==='#')return;e.preventDefault();abruptTo(h);
+}));
+
+/* hero letter reveal */
+(function(){const h1=document.querySelector('#one h1');
+  h1.innerHTML=h1.textContent.split('').map((ch,i)=>ch==='\n'?'<br>':`<span style="display:inline-block;opacity:0;transform:translateY(.5em);transition:opacity .5s,transform .5s cubic-bezier(.2,.8,.2,1);transition-delay:${i*0.02}s">${ch===' '?'&nbsp;':ch}</span>`).join('');
+  requestAnimationFrame(()=>h1.querySelectorAll('span').forEach(g=>g.style.opacity=1,g.style.transform='translateY(0)'));
+})();
+
+/* score spine + playhead */
+const SPI=document.querySelector('#spine .fill');
+const beats=document.querySelectorAll('#spine .beat');
+const TOTAL=5;
+let scrollPhase=0.5;
+function onScroll(){
+  const max=document.documentElement.scrollHeight-innerHeight;
+  const f=max>0?scrollY/max:0;
+  SPI.style.height=(f*100)+'%';
+  scrollPhase=f;
+  const near=Math.round(f*(TOTAL-1));
+  beats.forEach(b=>b.classList.toggle('on',+b.dataset.s===near));
+}
+addEventListener('scroll',onScroll,{passive:true});onScroll();
+
+/* the metamorph — conducted by the scroll score + cursor fine-tune */
+const CV=document.getElementById('morph'),ctx=CV.getContext('2d');
+const DPR=Math.min(devicePixelRatio||1,2);
+let W=0,H=0,COLS=32,ROWS=18,nodes=[],cxp=0.5,p=0.5;
+function buildNodes(){
+  const padX=W*0.08,padY=H*0.2,gw=(W-padX*2)/(COLS-1),gh=(H-padY*2)/(ROWS-1),fresh=nodes.length===0,next=[];
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const tx=padX+c*gw,ty=padY+r*gh;
+    next.push(fresh?{x:tx,y:ty,bx:tx,by:ty,bob:Math.random()*6.28}:{...nodes[r*COLS+c],bx:tx,by:ty});
+  }
+  nodes=next;
+}
+function weights(ph){const b=0.42;
+  const w0=Math.exp(-Math.pow(ph/b,2)),w1=Math.exp(-Math.pow((ph-0.5)/b,2)),w2=Math.exp(-Math.pow((ph-1)/b,2));
+  const s=(w0+w1+w2)||1;return[w0/s,w1/s,w2/s];}
+const ix=(c,r)=>r*COLS+c;
+
+// map beat index -> phase (0=wave ... 2=burst), 2 beats of rest at each end
+function phaseAtScroll(f){
+  const x=f*(TOTAL-1);
+  // piecewise: scores a 3-state lick across the playhead
+  const score=[0.0,0.0,0.5,1.0,1.0]; // wave -> (rest) -> lattice -> burst -> (rest)
+  // interpolate between nearby beats
+  const i=Math.floor(x),t=x-i;
+  const a=score[Math.max(0,Math.min(TOTAL-1,i))];
+  const b=score[Math.max(0,Math.min(TOTAL-1,i+1))];
+  const e=1-Math.pow(1-t,2); return a+(b-a)*e;
+}
+
+let lastBeat=-1;
+function draw(){
+  requestAnimationFrame(draw);
+  if(W===0)return;
+  const t=performance.now()*0.001;
+  // target = score phase + cursor fine-tune, scaled
+  const scoreP=phaseAtScroll(scrollPhase);
+  const target=scoreP + (cxp-0.5)*0.18;
+  p+=(target-p)*0.05;
+
+  // shutter on score-beat crossing (once per beat)
+  const near=Math.round(scrollPhase*(TOTAL-1));
+  if(near!==lastBeat&&near>0&&near<TOTAL-1){lastBeat=near;shutter.classList.add('on');setTimeout(()=>shutter.classList.remove('on'),260);}
+
+  for(const n of nodes){n.x+=(n.bx-n.x)*0.07;n.y+=(n.by-n.y)*0.07;n.x+=Math.sin(t*0.55+n.bob)*6;n.y+=Math.cos(t*0.45+n.bob)*6;}
+  const[wA,wF,wN]=weights(p);
+  ctx.clearRect(0,0,W,H);
+  const white='#f5f5f7';
+  ctx.lineWidth=0.7;ctx.strokeStyle=white;ctx.globalAlpha=wA*0.5;
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS-1;c++){ctx.beginPath();ctx.moveTo(nodes[ix(c,r)].x,nodes[ix(c,r)].y);ctx.lineTo(nodes[ix(c+1,r)].x,nodes[ix(c+1,r)].y);ctx.stroke();}
+  ctx.lineWidth=0.5;ctx.globalAlpha=wF*0.42;
+  for(let r=0;r<ROWS-1;r++)for(let c=0;c<COLS-1;c++){ctx.beginPath();ctx.moveTo(nodes[ix(c,r)].x,nodes[ix(c,r)].y);ctx.lineTo(nodes[ix(c+1,r+1)].x,nodes[ix(c+1,r+1)].y);ctx.stroke();ctx.beginPath();ctx.moveTo(nodes[ix(c+1,r)].x,nodes[ix(c+1,r)].y);ctx.lineTo(nodes[ix(c,r+1)].x,nodes[ix(c,r+1)].y);ctx.stroke();}
+  const cx=W/2,cy=H/2;ctx.lineWidth=0.6;ctx.globalAlpha=wN*0.4;
+  for(const n of nodes){ctx.beginPath();ctx.moveTo(n.x,n.y);ctx.lineTo(cx,cy);ctx.stroke();}
+  ctx.globalAlpha=1;
+  const domA=wA>=wF&&wA>=wN,domN=wN>=wF;
+  for(const n of nodes){const glow=domA?0.85:(domN?0.55:0.7);ctx.fillStyle=`rgba(245,245,247,${glow})`;const r=1.5+(domA?0.8:(domN?0:0.35));ctx.beginPath();ctx.arc(n.x,n.y,r,0,6.2832);ctx.fill();}
+  ctx.globalAlpha=1;
+}
+function resize(){W=innerWidth;H=innerHeight;CV.width=Math.round(W*DPR);CV.height=Math.round(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);buildNodes();}
+addEventListener('resize',resize);
+document.addEventListener('mousemove',e=>{cxp=e.clientX/W;});
+document.addEventListener('touchmove',e=>{cxp=e.touches[0].clientX/W;},{passive:true});
+resize();draw();
+</script>
+</body>
+</html>

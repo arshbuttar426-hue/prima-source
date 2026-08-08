@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prima CRM — Constraint Philosophy</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08080c;
+    --blue: #5a7aff;
+    --orange: #e06a3a;
+    --gold: #f5c451;
+    --ink: #f5f5f7;
+  }
+  *, *::before, *::after { margin:0; padding:0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-weight: 300;
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+    transition: background 0.4s;
+  }
+
+  /* ─── Ambient field: the void responds to aggregate constraint state ─── */
+  #ambient {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: var(--ambient-solid, transparent);
+    transition: background 0.6s;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    border-right: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    gap: 2rem;
+    z-index: 2;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(8px);
+  }
+  .logo { font-size: 1.1rem; font-weight: 200; letter-spacing: -0.03em; }
+  .logo span { color: var(--blue); }
+  .nav { display: flex; flex-direction: column; gap: 2px; }
+  .nav a {
+    color: rgba(255,255,255,0.45);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 400;
+    padding: 0.55rem 0.75rem;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.15s;
+    letter-spacing: -0.01em;
+  }
+  .nav a:hover, .nav a.active { background: rgba(255,255,255,0.04); color: var(--ink); }
+  .nav a .badge {
+    margin-left: auto;
+    background: rgba(90,122,255,0.2);
+    color: var(--blue);
+    font-size: 0.65rem;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 99px;
+  }
+  .nav-section {
+    font-size: 0.6rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: rgba(255,255,255,0.18);
+    padding: 0.75rem 0.75rem 0.25rem;
+  }
+  .user-card { margin-top: auto; display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem; border-radius: 8px; cursor: pointer; }
+  .user-card:hover { background: rgba(255,255,255,0.04); }
+  .avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--blue);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem; font-weight: 500; color: var(--ink);
+  }
+  .user-info .name { font-size: 0.78rem; font-weight: 400; }
+  .user-info .role { font-size: 0.65rem; color: rgba(255,255,255,0.45); }
+
+  /* Main */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; z-index: 2; position: relative; }
+  .topbar {
+    padding: 1.25rem 2rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+  }
+  .topbar h1 { font-weight: 200; font-size: 1.3rem; letter-spacing: -0.03em; }
+  .topbar h1 span { font-weight: 400; color: var(--blue); }
+  .topbar .meta { margin-left: auto; font-size: 0.72rem; color: rgba(255,255,255,0.45); font-weight: 400; }
+  .topbar .meta span { color: var(--ink); }
+
+  /* Constraint balance meter */
+  .balance {
+    padding: 0.75rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+  }
+  .balance .meter {
+    flex: 1;
+    height: 2px;
+    background: rgba(255,255,255,0.06);
+    position: relative;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .balance .meter-fill {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    background: var(--meter-color, var(--blue));
+    transition: width 0.4s;
+  }
+  .balance .label {
+    font-size: 0.65rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.35);
+    white-space: nowrap;
+  }
+
+  .stats-row {
+    padding: 0.75rem 2rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    gap: 2rem;
+    flex-shrink: 0;
+  }
+  .stat { font-size: 0.68rem; color: rgba(255,255,255,0.45); font-weight: 400; }
+  .stat .val {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 200;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+  .stat.b .val { color: var(--blue); }
+  .stat.o .val { color: var(--orange); }
+
+  .search-wrap {
+    padding: 1rem 2rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    gap: 0.75rem;
+    flex-shrink: 0;
+  }
+  .search-box {
+    flex: 1;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 0.5rem 0.85rem;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 300;
+    outline: none;
+    transition: border 0.15s;
+  }
+  .search-box:focus { border-color: rgba(90,122,255,0.2); }
+  .search-box::placeholder { color: rgba(255,255,255,0.18); }
+  .chip {
+    font-size: 0.72rem; font-weight: 400;
+    padding: 0.4rem 0.8rem;
+    border-radius: 99px;
+    border: 1px solid rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.45);
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+    font-family: inherit;
+  }
+  .chip:hover, .chip.active { background: rgba(255,255,255,0.04); color: var(--ink); }
+  .chip.b { border-color: rgba(90,122,255,0.2); color: var(--blue); }
+  .chip.b:hover, .chip.b.active { background: rgba(90,122,255,0.08); }
+  .chip.o { border-color: rgba(224,106,58,0.18); color: var(--orange); }
+  .chip.o:hover, .chip.o.active { background: rgba(224,106,58,0.08); }
+
+  /* Board */
+  .board {
+    flex: 1;
+    display: flex;
+    gap: 1px;
+    overflow-x: auto;
+    background: rgba(255,255,255,0.06);
+  }
+  .column {
+    flex: 1;
+    min-width: 220px;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    transition: background 0.3s;
+  }
+  .column.charged { background: var(--col-charge, transparent); }
+  .col-header {
+    padding: 1rem 1rem 0.5rem;
+    font-size: 0.65rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: rgba(255,255,255,0.18);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    transition: color 0.3s;
+  }
+  .col-header .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .col-header .dot.b { background: var(--blue); box-shadow: 0 0 5px var(--blue); }
+  .col-header .dot.o { background: var(--orange); }
+  .col-header .dot.g { background: var(--gold); box-shadow: 0 0 4px var(--gold); }
+  .col-header .count { margin-left: auto; color: rgba(255,255,255,0.45); font-weight: 300; font-size: 0.7rem; }
+  .col-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* Card — color emerges from constraint STATE, not label */
+  .card {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 0.85rem 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 2px;
+    background: var(--card-color, var(--ink));
+    opacity: var(--card-intensity, 0.3);
+    transition: opacity 0.2s;
+  }
+  .card:hover {
+    background: rgba(255,255,255,0.04);
+    transform: translateY(-1px);
+    --card-intensity: 1;
+  }
+  .card .title { font-size: 0.82rem; font-weight: 400; margin-bottom: 0.2rem; letter-spacing: -0.01em; }
+  .card .sub { font-size: 0.68rem; color: rgba(255,255,255,0.45); margin-bottom: 0.5rem; }
+  .card .tags { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+  .card .tag {
+    font-size: 0.6rem;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 99px;
+    letter-spacing: 0.03em;
+    border: 1px solid currentColor;
+    opacity: 0.85;
+  }
+  .tag.b { color: var(--blue); }
+  .tag.o { color: var(--orange); }
+  .tag.g { color: var(--gold); }
+  .card .footer {
+    margin-top: 0.65rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.63rem;
+    color: rgba(255,255,255,0.18);
+  }
+  .card .avatar-sm { width: 18px; height: 18px; border-radius: 50%; background: rgba(90,122,255,0.2); }
+  .card .field-line { margin-top: 0.4rem; font-size: 0.63rem; color: rgba(255,255,255,0.18); display: flex; gap: 0.35rem; align-items: center; }
+  .field-line .fl-val { color: rgba(255,255,255,0.45); font-weight: 400; }
+
+  .col-body::-webkit-scrollbar { width: 3px; }
+  .col-body::-webkit-scrollbar-track { background: transparent; }
+  .col-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .column { min-width: 160px; }
+    .search-wrap { padding: 0.75rem 1rem; }
+    .stats-row { gap: 1rem; padding: 0.5rem 1rem; }
+    .topbar { padding: 0.75rem 1rem; }
+    .balance { padding: 0.5rem 1rem; }
+  }
+</style>
+</head>
+<body>
+<div id="ambient"></div>
+
+<aside class="sidebar">
+  <div class="logo">prima<span>crm</span></div>
+  <nav class="nav">
+    <a href="#" class="active">Pipeline<span class="badge">12</span></a>
+    <a href="#">Creators<span class="badge">47</span></a>
+    <div class="nav-section">Relations</div>
+    <a href="#">as — enrolled</a>
+    <a href="#">not_as — pending</a>
+    <a href="#">frontier — review</a>
+    <div class="nav-section">Archive</div>
+    <a href="#">declined</a>
+    <a href="#">dormant</a>
+  </nav>
+  <div class="user-card">
+    <div class="avatar">AB</div>
+    <div class="user-info">
+      <div class="name">Arsh Buttar</div>
+      <div class="role">Frame Lead</div>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <h1>Constraint <span>Mesh</span></h1>
+    <div class="meta">Last sync: <span>just now</span></div>
+  </div>
+  <div class="balance">
+    <div class="label">as vs not_as</div>
+    <div class="meter"><div class="meter-fill" id="meterFill"></div></div>
+    <div class="label" id="balanceLabel">balanced</div>
+  </div>
+  <div class="stats-row">
+    <div class="stat b"><span class="val">18</span>as — enrolled</div>
+    <div class="stat o"><span class="val">7</span>not_as — pending</div>
+    <div class="stat"><span class="val">3</span>frontier — review</div>
+    <div class="stat"><span class="val">19</span>dormant</div>
+  </div>
+  <div class="search-wrap">
+    <input class="search-box" placeholder="Search creators, domains, frames..." />
+    <button class="chip active">All</button>
+    <button class="chip b">as — enrolled</button>
+    <button class="chip o">not_as — pending</button>
+    <button class="chip">frontier</button>
+  </div>
+  <div class="board" id="board"></div>
+</main>
+
+<script>
+const ROOT = getComputedStyle(document.documentElement);
+const C = {
+  bg: ROOT.getPropertyValue('--bg').trim(),
+  blue: ROOT.getPropertyValue('--blue').trim(),
+  orange: ROOT.getPropertyValue('--orange').trim(),
+  gold: ROOT.getPropertyValue('--gold').trim(),
+  ink: ROOT.getPropertyValue('--ink').trim(),
+};
+
+const pipeline = [
+  { col: 'enquiry',    label: 'Enquiry',    dot: 'o', color: 'orange', hex: C.orange },
+  { col: 'screening',  label: 'Screening',  dot: 'o', color: 'orange', hex: C.orange },
+  { col: 'onboarding', label: 'Onboarding', dot: 'g', color: 'gold',   hex: C.gold },
+  { col: 'active',     label: 'Active',     dot: 'b', color: 'blue',   hex: C.blue },
+  { col: 'graduated',  label: 'Graduated',  dot: 'b', color: 'blue',   hex: C.blue },
+];
+
+// badge: pass = as (blue), fail = not_as (orange), pend = frontier (gold)
+const cards = [
+  { id:1,  col:'enquiry',    title:'Elena Voss',       sub:'3D Artist · Berlin',         tags:[{t:'not_as',c:'o'},{t:'cold',c:'g'}],           field:'inquiry: 2d ago',       badge:'pend' },
+  { id:2,  col:'enquiry',    title:'Marcus Chen',      sub:'Game Dev · Singapore',       tags:[{t:'not_as',c:'o'}],                            field:'referred by Kai',       badge:'pend' },
+  { id:3,  col:'enquiry',    title:'Priya Nair',       sub:'Musician · Mumbai',          tags:[{t:'not_as',c:'o'},{t:'warm',c:'g'}],          field:'inquiry: 1d ago',       badge:'pend' },
+  { id:4,  col:'screening',  title:'Damien Okonkwo',   sub:'Writer · Lagos',             tags:[{t:'not_as',c:'o'},{t:'verified',c:'b'}],      field:'portfolio ok',          badge:'pend' },
+  { id:5,  col:'screening',  title:'Yuki Tanaka',      sub:'Designer · Tokyo',           tags:[{t:'not_as',c:'o'}],                            field:'awaiting refs',         badge:'fail' },
+  { id:6,  col:'screening',  title:'Lena Moreau',      sub:'Photographer · Paris',       tags:[{t:'not_as',c:'o'},{t:'verified',c:'b'}],      field:'interview set',         badge:'pend' },
+  { id:7,  col:'onboarding', title:'Ravi Deshmukh',    sub:'Engineer · Bangalore',       tags:[{t:'frontier',c:'g'},{t:'docs:sent',c:'b'}],   field:'contract pending',      badge:'pend' },
+  { id:8,  col:'onboarding', title:'Sofia Reyes',      sub:'Animator · Mexico City',     tags:[{t:'frontier',c:'g'}],                          field:'equipment shipped',     badge:'pass' },
+  { id:9,  col:'active',     title:'Kai Nakamura',     sub:'Composer · Osaka',           tags:[{t:'as',c:'b'},{t:'frame:prime',c:'b'}],       field:'active 4mo',            badge:'pass' },
+  { id:10, col:'active',     title:'Amara Osei',       sub:'Poet · Accra',               tags:[{t:'as',c:'b'}],                                field:'active 7mo · 3 frames', badge:'pass' },
+  { id:11, col:'active',     title:'Dimitri Volkov',   sub:'Physicist · Moscow',         tags:[{t:'as',c:'b'},{t:'frame:explos',c:'b'}],      field:'active 2mo',            badge:'pass' },
+  { id:12, col:'graduated',  title:'Fatima Al-Rashid', sub:'Architect · Dubai',          tags:[{t:'as',c:'b'},{t:'alumni',c:'g'}],            field:'graduated',             badge:'pass' },
+  { id:13, col:'graduated',  title:'Thomas Berg',      sub:'Researcher · Stockholm',     tags:[{t:'as',c:'b'},{t:'alumni',c:'g'}],            field:'graduated',             badge:'pass' },
+];
+
+const badgeColor = b => b === 'pass' ? C.blue : b === 'fail' ? C.orange : C.gold;
+const badgeIntensity = b => b === 'pass' ? 0.9 : b === 'fail' ? 0.7 : 0.5;
+
+const board = document.getElementById('board');
+
+pipeline.forEach(col => {
+  const el = document.createElement('div');
+  el.className = 'column';
+  el.dataset.col = col.col;
+  el.dataset.hex = col.hex;
+  const colCards = cards.filter(c => c.col === col.col);
+  el.innerHTML = `
+    <div class="col-header">
+      <span class="dot ${col.dot}"></span>
+      ${col.label}
+      <span class="count">${colCards.length}</span>
+    </div>
+    <div class="col-body">
+      ${colCards.map(c => `
+        <div class="card" data-id="${c.id}"
+             style="--card-color:${badgeColor(c.badge)}; --card-intensity:${badgeIntensity(c.badge)}">
+          <div class="title">${c.title}</div>
+          <div class="sub">${c.sub}</div>
+          <div class="tags">
+            ${c.tags.map(t => `<span class="tag ${t.c}">${t.t}</span>`).join('')}
+          </div>
+          <div class="field-line">⚡ <span class="fl-val">${c.field}</span></div>
+          <div class="footer">
+            <div class="avatar-sm"></div>
+            <span>Assigned to Frame Lead</span>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  board.appendChild(el);
+});
+
+// ─── Constraint balance: ambient field responds to aggregate state ───
+const asCount = cards.filter(c => c.badge === 'pass').length;
+const naCount = cards.filter(c => c.badge === 'fail').length;
+const frCount = cards.filter(c => c.badge === 'pend').length;
+const total = cards.length;
+
+const asRatio = asCount / total;
+const naRatio = naCount / total;
+const frRatio = frCount / total;
+
+// The meter shows the as:not_as:frontier balance
+const meterFill = document.getElementById('meterFill');
+meterFill.style.width = `${((asRatio + frRatio * 0.5) * 100).toFixed(1)}%`;
+
+const balanceLabel = document.getElementById('balanceLabel');
+if (asRatio > 0.5) { balanceLabel.textContent = 'leans as'; balanceLabel.style.color = C.blue; }
+else if (naRatio > 0.3) { balanceLabel.textContent = 'leans not_as'; balanceLabel.style.color = C.orange; }
+else { balanceLabel.textContent = 'frontier-weighted'; balanceLabel.style.color = C.gold; }
+
+// Ambient field: void leans toward dominant constraint
+const ambient = document.getElementById('ambient');
+if (asRatio > naRatio) {
+  ambient.style.setProperty('--ambient-solid', C.blue + '10');
+  document.getElementById('meterFill').style.setProperty('--meter-color', C.blue);
+} else {
+  ambient.style.setProperty('--ambient-solid', C.orange + '10');
+  document.getElementById('meterFill').style.setProperty('--meter-color', C.orange);
+}
+
+// ─── Cursor as light probe: charges the column it's near ───
+let mouseX = 0, mouseY = 0;
+document.addEventListener('mousemove', (e) => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+  const cols = document.querySelectorAll('.column');
+  cols.forEach(col => {
+    const rect = col.getBoundingClientRect();
+    const midX = rect.left + rect.width / 2;
+    const dist = Math.abs(mouseX - midX);
+    const proximity = Math.max(0, 1 - dist / (window.innerWidth * 0.2));
+    if (proximity > 0.1) {
+      col.classList.add('charged');
+      col.style.setProperty('--col-charge', `${col.dataset.hex}${Math.floor(proximity * 40).toString(16).padStart(2,'0')}`);
+      col.querySelector('.col-header').style.color = col.dataset.hex;
+    } else {
+      col.classList.remove('charged');
+      col.style.removeProperty('--col-charge');
+      col.querySelector('.col-header').style.color = '';
+    }
+  });
+});
+
+// ─── Card hover: strengthens the constraint color ───
+document.querySelectorAll('.card').forEach(card => {
+  card.addEventListener('mouseenter', () => {
+    card.style.setProperty('--card-intensity', '1');
+  });
+  card.addEventListener('mouseleave', () => {
+    card.style.setProperty('--card-intensity', card.dataset.intensity || '0.5');
+  });
+});
+</script>
+</body>
+</html>

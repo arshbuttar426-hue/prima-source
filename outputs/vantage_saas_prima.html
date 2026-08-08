@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vantage — Reverse-Engineered from Apple DNA, SaaS Recompile</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;color:#1d1d1f;background:#fff;line-height:1}
+
+nav{position:sticky;top:0;z-index:100;height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:rgba(255,255,255,0.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);font-size:12px;font-weight:400;letter-spacing:-0.01em;border-bottom:1px solid rgba(0,0,0,0.08)}
+nav .brand{font-weight:700;font-size:14px;letter-spacing:-0.02em}
+nav .links{display:flex;gap:20px}
+nav a{color:#1d1d1f;text-decoration:none;opacity:0.7;transition:opacity 0.2s}
+nav a:hover{opacity:1}
+nav .cta-nav{background:#1d1d1f;color:white;padding:6px 16px;border-radius:20px;font-weight:500;opacity:1;text-decoration:none}
+
+.hero{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:100px 24px 80px;min-height:70vh}
+.hero .badge{padding:6px 16px;background:rgba(0,102,204,0.08);color:#0066cc;border-radius:100px;font-size:13px;font-weight:500;margin-bottom:20px}
+.hero h1{font-size:clamp(2.5rem,6vw,3.5rem);font-weight:700;letter-spacing:-0.025em;line-height:1.05;max-width:650px}
+.hero .sub{font-size:clamp(1rem,2vw,1.25rem);font-weight:400;color:#86868b;margin-top:12px;line-height:1.4;max-width:480px}
+.hero .ctas{display:flex;gap:24px;margin-top:28px}
+.btn-primary{background:#1d1d1f;color:white;border:none;padding:14px 32px;border-radius:28px;font-size:15px;font-weight:500;cursor:pointer;transition:all 0.2s}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.12)}
+.cta-link{font-size:17px;color:#0066cc;text-decoration:none;font-weight:400}
+.cta-link::after{content:'';display:block;height:1px;background:#0066cc;transform:scaleX(0);transition:transform 0.2s}
+.cta-link:hover::after{transform:scaleX(1)}
+
+.hero-visual{max-width:900px;width:100%;margin-top:48px;height:320px;background:linear-gradient(160deg,#f5f5f7 0%,#e8e8ed 50%,#f5f5f7 100%);border-radius:24px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.hero-visual .dot-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;padding:24px}
+.hero-visual .dot{width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.hero-visual .dot.active{background:#0066cc}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:1200px;margin:0 auto;padding:0 24px 24px}
+.card{padding:48px;display:flex;flex-direction:column;align-items:flex-start;border-radius:24px;background:#f5f5f7;transition:transform 0.3s}
+.card:hover{transform:scale(1.01)}
+.card h2{font-size:clamp(1.5rem,3vw,2rem);font-weight:600;letter-spacing:-0.02em;line-height:1.1}
+.card .tag{font-size:1.05rem;color:#86868b;margin-top:8px;line-height:1.4}
+.card .cta-link{margin-top:20px}
+
+.strip{display:flex;overflow-x:auto;gap:24px;padding:40px 24px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;max-width:1200px;margin:0 auto}
+.strip::-webkit-scrollbar{display:none}
+.strip-item{flex:0 0 260px;scroll-snap-align:start;padding:28px 24px;border-radius:20px;background:#f5f5f7;cursor:pointer;transition:transform 0.3s}
+.strip-item:hover{transform:scale(1.02)}
+.strip-item .icon{width:44px;height:44px;border-radius:12px;background:white;margin-bottom:16px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
+.strip-item h4{font-size:16px;font-weight:600;margin-bottom:4px}
+.strip-item p{font-size:13px;color:#86868b;line-height:1.5}
+
+.pricing{max-width:900px;margin:60px auto;padding:0 24px;text-align:center}
+.pricing h2{font-size:2.5rem;font-weight:600;letter-spacing:-0.02em}
+.pricing .sub{color:#86868b;margin-top:8px;font-size:1.1rem}
+.pricing-cards{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:40px;text-align:left}
+.pricing-card{background:#f5f5f7;padding:40px;border-radius:20px;transition:transform 0.3s}
+.pricing-card:hover{transform:scale(1.02)}
+.pricing-card .name{font-size:1.3rem;font-weight:600}
+.pricing-card .price{font-size:2.5rem;font-weight:700;margin:12px 0}
+.pricing-card .price span{font-size:1rem;font-weight:400;color:#86868b}
+.pricing-card ul{list-style:none;margin:20px 0}
+.pricing-card ul li{padding:6px 0;color:#86868b;font-size:0.95rem}
+.pricing-card ul li::before{content:'✓';color:#0066cc;margin-right:8px;font-weight:600}
+.pricing-card .btn-primary{width:100%;text-align:center}
+
+footer{background:#f5f5f7;padding:60px 24px 30px;margin-top:60px}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:32px;max-width:980px;margin:0 auto}
+.footer-col h4{font-size:12px;font-weight:600;margin-bottom:12px}
+.footer-col a{display:block;font-size:12px;color:rgba(0,0,0,0.56);text-decoration:none;padding:4px 0;transition:color 0.2s}
+.footer-col a:hover{color:#1d1d1f}
+.footer-bottom{max-width:980px;margin:32px auto 0;padding-top:24px;border-top:1px solid rgba(0,0,0,0.08);text-align:center;font-size:12px;color:rgba(0,0,0,0.56)}
+.footer-bottom a{color:rgba(0,0,0,0.56)}
+
+.fade-up{opacity:0;transform:translateY(20px);transition:opacity 0.6s,transform 0.6s}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+
+@media(max-width:768px){.grid-2{grid-template-columns:1fr}.pricing-cards{grid-template-columns:1fr}.footer-grid{grid-template-columns:1fr 1fr}.hero h1{font-size:2rem}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">Vantage</div>
+  <div class="links">
+    <a href="#">Product</a><a href="#">Solutions</a><a href="#">Pricing</a><a href="#">Docs</a>
+  </div>
+  <a href="#" class="cta-nav">Start free</a>
+</nav>
+
+<section class="hero">
+  <div class="badge">Trusted by 10,000+ engineering teams</div>
+  <h1>Ship faster with the platform engineers love</h1>
+  <p class="sub">Vantage gives your team one place to deploy, monitor, and scale — without the ops overhead.</p>
+  <div class="ctas">
+    <button class="btn-primary">Start building →</button>
+    <a href="#" class="cta-link">Talk to sales →</a>
+  </div>
+  <div class="hero-visual">
+    <div class="dot-grid" style="position:relative;z-index:1">
+      <div class="dot active"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+      <div class="dot active"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+      <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+      <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot active"></div><div class="dot active"></div>
+    </div>
+  </div>
+</section>
+
+<div class="grid-2 fade-up">
+  <div class="card">
+    <h2>Deploy anywhere. Manage from one place.</h2>
+    <p class="tag">AWS, GCP, Azure, or your own hardware. Vantage abstracts it all into a single dashboard.</p>
+    <a href="#" class="cta-link">Learn more →</a>
+  </div>
+  <div class="card fade-up" style="transition-delay:0.1s">
+    <h2>Observability that doesn't overwhelm.</h2>
+    <p class="tag">Get the signal, skip the noise. Automatic alert correlation cuts incidents by 60%.</p>
+    <a href="#" class="cta-link">Learn more →</a>
+  </div>
+</div>
+
+<div class="strip">
+  <div class="strip-item"><div class="icon">🚀</div><h4>Zero Config Deploy</h4><p>Push to git. We handle the rest.</p></div>
+  <div class="strip-item"><div class="icon">📊</div><h4>Live Metrics</h4><p>Real-time dashboards for every service.</p></div>
+  <div class="strip-item"><div class="icon">🛡️</div><h4>Security Scans</h4><p>Vulnerability detection on every PR.</p></div>
+  <div class="strip-item"><div class="icon">⚡</div><h4>Edge Functions</h4><p>Deploy serverless at the edge. 0ms cold start.</p></div>
+  <div class="strip-item"><div class="icon">🔄</div><h4>CI/CD Built In</h4><p>No YAML. No config. Just shipping.</p></div>
+</div>
+
+<div class="pricing">
+  <h2>Simple pricing. No surprises.</h2>
+  <p class="sub">Start free. Scale when you're ready.</p>
+  <div class="pricing-cards fade-up">
+    <div class="pricing-card">
+      <div class="name">Starter</div>
+      <div class="price">$0<span>/month</span></div>
+      <ul><li>Up to 3 projects</li><li>1 GB bandwidth</li><li>Community support</li><li>Basic analytics</li></ul>
+      <button class="btn-primary">Get started</button>
+    </div>
+    <div class="pricing-card fade-up" style="transition-delay:0.1s;background:#1d1d1f;color:white">
+      <div class="name" style="color:white">Pro</div>
+      <div class="price" style="color:white">$29<span style="color:rgba(255,255,255,0.6)">/month</span></div>
+      <ul><li style="color:rgba(255,255,255,0.8)">Unlimited projects</li><li style="color:rgba(255,255,255,0.8)">100 GB bandwidth</li><li style="color:rgba(255,255,255,0.8)">Priority support</li><li style="color:rgba(255,255,255,0.8)">Advanced analytics</li></ul>
+      <button class="btn-primary" style="background:white;color:#1d1d1f">Start free trial</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-grid">
+    <div class="footer-col"><h4>Vantage</h4><a href="#">Vantage keeps engineering teams shipping. From startup to enterprise, one platform for everything you build.</a></div>
+    <div class="footer-col"><h4>Product</h4><a href="#">Deploy</a><a href="#">Monitor</a><a href="#">Security</a><a href="#">Edge</a><a href="#">Pricing</a></div>
+    <div class="footer-col"><h4>Company</h4><a href="#">About</a><a href="#">Blog</a><a href="#">Careers</a><a href="#">Contact</a></div>
+    <div class="footer-col"><h4>Legal</h4><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Security</a></div>
+  </div>
+  <div class="footer-bottom">Copyright &copy; 2026 Vantage Inc. All rights reserved.</div>
+</footer>
+
+<script>
+const observer=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')})},{threshold:0.1});
+document.querySelectorAll('.fade-up').forEach(el=>observer.observe(el));
+</script>
+</body>
+</html>

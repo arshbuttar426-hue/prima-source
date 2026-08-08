@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOLSTICE</title>
+<style>
+@layer tokens, base, motion, platform;
+
+@layer tokens{
+  :root{
+    --bg:#050404;
+    --ink:#f5f1e9;
+    --amber-hi:#ffd9a0;
+    --amber:#e8a768;
+    --ember:#c46a3a;
+    --deep:#1a1209;
+  }
+}
+
+@layer base{
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    height:100vh;overflow:hidden;background:var(--bg);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;
+    color:var(--ink);-webkit-font-smoothing:antialiased;
+  }
+  canvas{position:fixed;inset:0;display:block}
+
+  #word{position:fixed;inset:0;z-index:2;display:grid;place-items:center;pointer-events:none;text-align:center}
+  #word .inner{letter-spacing:0.62em;text-transform:uppercase;font-size:120%;font-weight:300;
+    color:rgba(245,241,233,0.85);text-indent:0.62em}
+  #word .small{margin-top:18px;font-size:10px;letter-spacing:0.5em;color:rgba(245,241,233,0.35);text-transform:uppercase;text-indent:0.5em}
+  @media(max-width:640px){#word .inner{font-size:80%}}
+}
+
+@layer motion{
+  @media(prefers-reduced-motion:reduce){canvas{display:none}}
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="word">
+  <div>
+    <div class="inner">Solstice</div>
+    <div class="small">the long light</div>
+  </div>
+</div>
+<script>
+const REDUCE=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const c=document.getElementById('c'),ctx=c.getContext('2d');
+const DPR=Math.min(devicePixelRatio||1,2);
+let W=0,H=0;
+function resize(){W=innerWidth;H=innerHeight;c.width=Math.round(W*DPR);c.height=Math.round(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0)}
+if(!REDUCE){resize();addEventListener('resize',resize)}
+
+// warm amber palette — lighten toward core, darken toward edge
+const CORE='#ffd9a0', MID='#e8a768', EMBER='#c46a3a', DEEP='#1a1209';
+function mix(colors,weights){
+  let r=0,g=0,b=0,t=0;
+  for(let i=0;i<colors.length;i++){const w=weights[i];t+=w;r+=parseInt(colors[i].slice(1,3),16)*w;g+=parseInt(colors[i].slice(3,5),16)*w;b+=parseInt(colors[i].slice(5,7),16)*w;}
+  r=(r/t)|0;g=(g/t)|0;b=(b/t)|0;
+  return `rgb(${r},${g},${b})`;
+}
+
+// filaments — the ribbons of light
+const FIL=18;
+const filaments=[];
+for(let i=0;i<FIL;i++){
+  const N=60;
+  const pts=[];
+  for(let j=0;j<N;j++){
+    pts.push({x:0,y:0,seed:Math.random()*100+n,F:{a:(Math.random()-0.5)*2.4,b:(Math.random()-0.5)*1.6,c:(Math.random()-0.5)*0.8}});
+  }
+  filaments.push({
+    pts,
+    speed:0.00006+Math.random()*0.00008,
+    drift:(Math.random()-0.5)*8,
+    amp:40+Math.random()*90,
+    baseY:(H/2)+(Math.random()-0.5)*H*0.5,
+    hue:Math.random(), // 0=core,1=ember weighting
+    alpha:0.15+Math.random()*0.3
+  });
+}
+
+function pos(f,p,t){
+  const x=p.seed*7 + t*f.speed*f.drift + Math.cos(t*0.00005+p.seed*13)*80;
+  const u=p.seed/W;
+  const y=f.baseY
+    + Math.sin(u*6.283 + t*f.speed*200)*36
+    + Math.sin(u*f.amp + t*f.speed*300 + f.amp)*f.amp*0.5;
+  return {x,y};
+}
+
+let lastFrame=performance.now();
+let tt=0;
+function frame(now){
+  const dt=Math.min((now-lastFrame)/1000,0.05);lastFrame=now;tt+=dt;
+
+  // fade toward bg for motion trails
+  ctx.globalCompositeOperation='source-over';
+  ctx.fillStyle='rgba(5,4,4,0.16)';
+  ctx.fillRect(0,0,W,H);
+
+  ctx.globalCompositeOperation='lighter';
+
+  // organize filaments far-to-near (depth) for correct overdraw
+  const az=[...filaments].sort((a,b)=>a.alpha-b.alpha);
+
+  for(const f of az){
+    // build the ribbon as a thick tapering strip
+    for(let pass=0;pass<2;pass++){
+      ctx.beginPath();
+      // core + secondary ribbon offset for width
+      const off=pass===0?6:18;
+      let started=false;
+      for(let j=0;j<f.pts.length;j++){
+        const p=f.pos(f.pts[j],tt);
+        // offset point perpendicular-ish via second sampling
+        const q=f.pos(f.pts[(j+Math.floor(f.pts.length*0.02))%f.pts.length],tt+0.3);
+        const nx=-(q.y-p.y),ny=(q.x-p.x);
+        const len=Math.hypot(nx,ny)||1;
+        const px=p.x+nx/len*off, py=p.y+ny/len*off;
+        if(!started){ctx.moveTo(px,py);started=true;}else ctx.lineTo(px,py);
+      }
+      // taper: walk back at reduced width
+      for(let j=f.pts.length-1;j>=0;j--){
+        const p=f.pos(f.pts[j],tt);
+        const q=f.pos(f.pts[(j-1+ f.pts.length)%f.pts.length],tt+0.3);
+        const nx=-(q.y-p.y),ny=(q.x-p.x);
+        const len=Math.hypot(nx,ny)||1;
+        const w=off*(0.15+0.85*(j/f.pts.length));
+        const px=p.x-nx/len*w, py=p.y-ny/len*w;
+        ctx.lineTo(px,py);
+      }
+      ctx.closePath();
+
+      const wc=f.hue;
+      const col=mix([CORE,MID,EMBER],[ (1-wc)*0.7, 0.2, wc*0.7 ]);
+      ctx.fillStyle=col;
+      ctx.globalAlpha=f.alpha*(pass===0?1:0.35);
+      ctx.fill();
+      ctx.globalAlpha=1;
+    }
+
+    // bright spine
+    ctx.beginPath();
+    for(let j=0;j<f.pts.length;j++){
+      const p=f.pos(f.pts[j],tt);
+      if(j===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);
+    }
+    ctx.strokeStyle=`rgba(255,245,230,${f.alpha*0.5})`;
+    ctx.lineWidth=1.2;
+    ctx.stroke();
+  }
+
+  // soft bloom overlay — central warm haze breathing
+  const breath=Math.sin(tt*0.4)*0.5+0.5;
+  const rad=Math.min(W,H)*0.16*(0.8+breath*0.4);
+  const g2=ctx.createRadialGradient(W*0.5,H*0.5,0,W*0.5,H*0.5,rad);
+  g2.addColorStop(0,`rgba(232,167,104,${0.05+breath*0.04})`);
+  g2.addColorStop(1,'rgba(232,167,104,0)');
+  ctx.fillStyle=g2;ctx.fillRect(0,0,W,H);
+
+  ctx.globalCompositeOperation='source-over';
+  requestAnimationFrame(frame);
+}
+if(!REDUCE)requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prima · Crypto Ledger</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08080c;
+    --blue: #5a7aff;
+    --orange: #e06a3a;
+    --gold: #f5c451;
+    --ink: #f5f5f7;
+  }
+  *, *::before, *::after { margin:0; padding:0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-weight: 300;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Top bar */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.1rem 2rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    flex-shrink: 0;
+  }
+  .brand { font-size: 1.05rem; font-weight: 200; letter-spacing: -0.03em; }
+  .brand span { color: var(--blue); }
+  .topbar .tagline {
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.35);
+    font-weight: 400;
+    letter-spacing: 0.02em;
+  }
+  .clock {
+    margin-left: auto;
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.45);
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* KPI row */
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: rgba(255,255,255,0.06);
+    flex-shrink: 0;
+  }
+  .kpi {
+    background: var(--bg);
+    padding: 1.1rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .kpi .label {
+    font-size: 0.62rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: rgba(255,255,255,0.3);
+  }
+  .kpi .value {
+    font-size: 1.5rem;
+    font-weight: 200;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi .delta {
+    font-size: 0.72rem;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+  }
+  .delta.up { color: var(--blue); }
+  .delta.down { color: var(--orange); }
+  .delta.flat { color: rgba(255,255,255,0.4); }
+
+  /* Main grid */
+  .grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 1px;
+    background: rgba(255,255,255,0.06);
+    overflow: hidden;
+  }
+  .panel {
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .panel-head {
+    padding: 1rem 1.4rem 0.5rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    flex-shrink: 0;
+  }
+  .panel-head .title {
+    font-size: 0.78rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.5);
+  }
+  .panel-head .sub {
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.3);
+    font-weight: 400;
+  }
+  .panel-head .live {
+    margin-left: auto;
+    font-size: 0.6rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--gold);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .live .pulse {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--gold);
+    animation: pulse 1.4s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+  /* Chart */
+  .chart-wrap { flex: 1; position: relative; min-height: 0; }
+  #chart { display: block; width: 100%; height: 100%; }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 1.2rem;
+    padding: 0.5rem 1.4rem 0.9rem;
+    flex-shrink: 0;
+    font-size: 0.66rem;
+    color: rgba(255,255,255,0.4);
+    font-weight: 400;
+  }
+  .legend .item { display: flex; align-items: center; gap: 0.4rem; }
+  .legend .swatch { width: 14px; height: 2px; }
+  .legend .swatch.b { background: var(--blue); }
+  .legend .swatch.o { background: var(--orange); }
+  .legend .swatch.g { background: var(--gold); }
+
+  /* Asset list */
+  .assets { flex: 1; overflow-y: auto; padding: 0.5rem; }
+  .assets::-webkit-scrollbar { width: 3px; }
+  .assets::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); }
+  .asset {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.6rem 0.7rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .asset:hover { background: rgba(255,255,255,0.04); }
+  .asset.active { background: rgba(90,122,255,0.08); }
+  .asset .sym {
+    font-size: 0.78rem;
+    font-weight: 500;
+    width: 42px;
+  }
+  .asset .bar {
+    flex: 1;
+    height: 2px;
+    background: rgba(255,255,255,0.08);
+    position: relative;
+    overflow: hidden;
+  }
+  .asset .bar-fill {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    transition: width 0.3s;
+  }
+  .asset .bar-fill.b { background: var(--blue); }
+  .asset .bar-fill.o { background: var(--orange); }
+  .asset .bar-fill.g { background: var(--gold); }
+  .asset .px {
+    font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
+    width: 70px;
+    text-align: right;
+    color: rgba(255,255,255,0.6);
+  }
+  .asset .chg {
+    font-size: 0.68rem;
+    font-variant-numeric: tabular-nums;
+    width: 60px;
+    text-align: right;
+  }
+  .chg.up { color: var(--blue); }
+  .chg.down { color: var(--orange); }
+
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: 1fr; }
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <div class="brand">prima<span> · ledger</span></div>
+    <div class="tagline">crypto constraint analytics</div>
+  </div>
+  <div class="clock" id="clock">--:--:--</div>
+</div>
+
+<div class="kpis">
+  <div class="kpi">
+    <div class="label">BTC / USD</div>
+    <div class="value" id="kpiPrice">—</div>
+    <div class="delta" id="kpiDelta">—</div>
+  </div>
+  <div class="kpi">
+    <div class="label">24h Volume</div>
+    <div class="value" id="kpiVol">—</div>
+    <div class="delta flat">global</div>
+  </div>
+  <div class="kpi">
+    <div class="label">BTC Dominance</div>
+    <div class="value" id="kpiDom">—</div>
+    <div class="delta flat">share</div>
+  </div>
+  <div class="kpi">
+    <div class="label">Fear / Greed</div>
+    <div class="value" id="kpiFg">—</div>
+    <div class="delta" id="kpiFgDelta">—</div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="panel">
+    <div class="panel-head">
+      <div class="title">Price Ledger</div>
+      <div class="sub" id="chartSub">BTC · 1m</div>
+      <div class="live"><span class="pulse"></span> live</div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="chart"></canvas>
+    </div>
+    <div class="legend">
+      <div class="item"><span class="swatch b"></span> price ≥ MA (as)</div>
+      <div class="item"><span class="swatch o"></span> price &lt; MA (not_as)</div>
+      <div class="item"><span class="swatch g"></span> moving average</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div class="title">Assets</div>
+      <div class="sub">constraint map</div>
+    </div>
+    <div class="assets" id="assets"></div>
+  </div>
+</div>
+
+<script>
+// ─── Constraint palette (no gradients) ───
+const C = {
+  bg: '#08080c',
+  blue: '#5a7aff',
+  orange: '#e06a3a',
+  gold: '#f5c451',
+  ink: '#f5f5f7',
+};
+
+// ─── Seeded RNG for deterministic-ish live data ───
+let seed = 0xA11CE;
+function rnd() {
+  seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+  return seed / 0x7fffffff;
+}
+
+// ─── Asset model ───
+const assets = [
+  { sym: 'BTC', price: 67250, base: 67250, vol: 1.0 },
+  { sym: 'ETH', price: 3540,  base: 3540,  vol: 1.4 },
+  { sym: 'SOL', price: 184,   base: 184,   vol: 2.2 },
+  { sym: 'BNB', price: 605,   base: 605,   vol: 0.9 },
+  { sym: 'XRP', price: 0.62,  base: 0.62,  vol: 1.8 },
+  { sym: 'ADA', price: 0.46,  base: 0.46,  vol: 1.6 },
+  { sym: 'DOGE', price: 0.158, base: 0.158, vol: 2.8 },
+  { sym: 'AVAX', price: 38.2, base: 38.2,  vol: 2.0 },
+  { sym: 'LINK', price: 17.4, base: 17.4,  vol: 1.7 },
+  { sym: 'MATIC', price: 0.72, base: 0.72, vol: 1.9 },
+];
+
+// Per-asset price history (for chart)
+const HISTORY = 120;
+assets.forEach(a => {
+  a.history = [];
+  let p = a.price;
+  for (let i = 0; i < HISTORY; i++) {
+    p += (rnd() - 0.5) * a.price * 0.004 * a.vol;
+    a.history.push(p);
+  }
+  a.price = p;
+  a.change24h = ((a.price - a.base) / a.base) * 100;
+});
+
+let activeSym = 'BTC';
+
+// ─── Render asset list ───
+const assetsEl = document.getElementById('assets');
+function renderAssets() {
+  assetsEl.innerHTML = assets.map(a => {
+    const up = a.change24h >= 0;
+    const col = up ? 'b' : 'o';
+    const w = Math.min(100, Math.abs(a.change24h) * 8 + 8);
+    const pxStr = a.price < 1 ? a.price.toFixed(4) : a.price.toLocaleString('en-US', {maximumFractionDigits: 2});
+    return `
+      <div class="asset ${a.sym === activeSym ? 'active' : ''}" data-sym="${a.sym}">
+        <div class="sym">${a.sym}</div>
+        <div class="bar"><div class="bar-fill ${col}" style="width:${w}%"></div></div>
+        <div class="px">$${pxStr}</div>
+        <div class="chg ${up ? 'up' : 'down'}">${up ? '+' : ''}${a.change24h.toFixed(2)}%</div>
+      </div>`;
+  }).join('');
+  assetsEl.querySelectorAll('.asset').forEach(el => {
+    el.addEventListener('click', () => {
+      activeSym = el.dataset.sym;
+      document.getElementById('chartSub').textContent = `${activeSym} · 1m`;
+      renderAssets();
+      drawChart();
+    });
+  });
+}
+
+// ─── KPI update ───
+function updateKPIs() {
+  const btc = assets.find(a => a.sym === 'BTC');
+  document.getElementById('kpiPrice').textContent = '$' + btc.price.toLocaleString('en-US', {maximumFractionDigits: 2});
+  const d = btc.change24h;
+  const de = document.getElementById('kpiDelta');
+  de.className = 'delta ' + (d >= 0 ? 'up' : 'down');
+  de.textContent = `${d >= 0 ? '▲' : '▼'} ${Math.abs(d).toFixed(2)}% (24h)`;
+
+  document.getElementById('kpiVol').textContent = '$' + (42.1 + rnd() * 3).toFixed(1) + 'B';
+  document.getElementById('kpiDom').textContent = (54.2 + rnd() * 0.8).toFixed(1) + '%';
+
+  const fg = Math.round(40 + rnd() * 40);
+  document.getElementById('kpiFg').textContent = fg;
+  const fge = document.getElementById('kpiFgDelta');
+  fge.className = 'delta ' + (fg >= 50 ? 'up' : 'down');
+  fge.textContent = fg >= 50 ? 'greed' : 'fear';
+}
+
+// ─── Chart ───
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+let DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+function resizeChart() {
+  const r = canvas.parentElement.getBoundingClientRect();
+  canvas.width = r.width * DPR;
+  canvas.height = r.height * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  drawChart();
+}
+
+function drawChart() {
+  const a = assets.find(x => x.sym === activeSym);
+  const W = canvas.width / DPR;
+  const H = canvas.height / DPR;
+  ctx.clearRect(0, 0, W, H);
+
+  const data = a.history;
+  const n = data.length;
+  let min = Math.min(...data);
+  let max = Math.max(...data);
+  const pad = (max - min) * 0.12 || 1;
+  min -= pad; max += pad;
+  const range = max - min || 1;
+
+  const xAt = i => (i / (n - 1)) * W;
+  const yAt = v => H - ((v - min) / range) * H;
+
+  // Moving average (frontier)
+  const MA = 20;
+  const ma = [];
+  for (let i = 0; i < n; i++) {
+    let s = 0, c = 0;
+    for (let j = Math.max(0, i - MA + 1); j <= i; j++) { s += data[j]; c++; }
+    ma.push(s / c);
+  }
+
+  // ─── Grid lines (solid, faint) ───
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1;
+  for (let g = 1; g < 5; g++) {
+    const y = (H / 5) * g;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // ─── Price line: color = constraint result (price vs MA) ───
+  // Segment-by-segment: blue when price ≥ MA, orange when price < MA
+  ctx.lineWidth = 1.6;
+  for (let i = 1; i < n; i++) {
+    const above = data[i] >= ma[i];
+    ctx.strokeStyle = above ? C.blue : C.orange;
+    ctx.beginPath();
+    ctx.moveTo(xAt(i - 1), yAt(data[i - 1]));
+    ctx.lineTo(xAt(i), yAt(data[i]));
+    ctx.stroke();
+  }
+
+  // ─── Moving average line (gold, solid) ───
+  ctx.strokeStyle = C.gold;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const x = xAt(i), y = yAt(ma[i]);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // ─── Last point marker ───
+  const lx = xAt(n - 1), ly = yAt(data[n - 1]);
+  const lastAbove = data[n - 1] >= ma[n - 1];
+  ctx.fillStyle = lastAbove ? C.blue : C.orange;
+  ctx.beginPath();
+  ctx.arc(lx, ly, 3, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// ─── Live tick ───
+function tick() {
+  assets.forEach(a => {
+    const drift = (rnd() - 0.5) * a.price * 0.003 * a.vol;
+    a.price = Math.max(0.0001, a.price + drift);
+    a.history.push(a.price);
+    if (a.history.length > HISTORY) a.history.shift();
+    a.change24h = ((a.price - a.base) / a.base) * 100;
+  });
+  renderAssets();
+  updateKPIs();
+  drawChart();
+}
+
+// ─── Clock ───
+function updateClock() {
+  const d = new Date();
+  document.getElementById('clock').textContent =
+    d.toLocaleTimeString('en-GB', { hour12: false });
+}
+
+// ─── Boot ───
+renderAssets();
+updateKPIs();
+resizeChart();
+updateClock();
+setInterval(tick, 1000);
+setInterval(updateClock, 1000);
+window.addEventListener('resize', resizeChart);
+</script>
+</body>
+</html>
