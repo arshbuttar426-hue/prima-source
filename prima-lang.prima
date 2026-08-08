@@ -1,0 +1,133 @@
+-- prima-lang.prima
+-- Landing page for the prima language, written in prima.
+-- Run:   ./prima prima-lang.prima
+
+line_text as string not_as number;
+count_val as number not_as negative;
+
+space build {
+    fn[0] = concat,
+    fn[1] = repeat,
+    fn[2] = upper,
+};
+
+-- emit a line
+pipe emit(text) {
+    text as line_text;
+    output text;
+};
+
+-- concat two bindings
+pipe join(a, b) {
+    a as line_text;
+    b as line_text;
+    -> fn[0] from build(a, b);
+    output result;
+};
+
+-- repeat a char n times, output
+pipe rule(ch, n) {
+    ch as line_text;
+    n as count_val;
+    -> fn[1] from build(ch, n);
+    output result;
+};
+
+-- section header: rule + indent + text + rule
+pipe header(text, indent, rule_ch, n) {
+    text as line_text;
+    indent as line_text;
+    rule_ch as line_text;
+    n as count_val;
+    -> fn[1] from build(rule_ch, n);
+    output result;
+    -> fn[0] from build(indent, text);
+    output result;
+    -> fn[1] from build(rule_ch, n);
+    output result;
+};
+
+-- big header: rule + uppercase(text)
+pipe big_h(text, rule_ch, n) {
+    text as line_text;
+    rule_ch as line_text;
+    n as count_val;
+    -> fn[1] from build(rule_ch, n);
+    output result;
+    -> fn[2] from build(text);
+    output result;
+    -> fn[1] from build(rule_ch, n);
+    output result;
+};
+
+-- ===== landing page =====
+
+big_h("  prima", "=", 52);
+emit("  the frame is the architecture");
+emit("");
+
+header("what is prima", "  ", "-", 52);
+emit("  Prima is a constraint-first programming language.");
+emit("  Every value is validated through frames,");
+emit("  transformed by index-selected functions, and");
+emit("  routed through linear pipelines. No hidden");
+emit("  state. No type system. Just three primitives.");
+emit("");
+
+header("the three primitives", "  ", "-", 52);
+emit("  as        positive constraint: what a value counts as");
+emit("  not_as    negative constraint: what it does NOT count as");
+emit("  fn[n]     index-selected computation from a named space");
+emit("");
+
+header("frames define the shape of data", "  ", "-", 52);
+emit("  A frame declares what a value counts as —");
+emit("  and does not count as:");
+emit("  name     as  string    not_as  empty");
+emit("  score    as  number    not_as  negative");
+emit("  item     as  alpha     not_as  zero");
+emit("");
+
+header("spaces group functions by index", "  ", "-", 52);
+emit("  space math  { fn[0]=add, fn[1]=sub, fn[2]=mul };");
+emit("  space text  { fn[0]=upper, fn[1]=lower, fn[2]=reverse };");
+emit("");
+
+header("pipelines chain everything", "  ", "-", 52);
+emit("  pipe process(x) {");
+emit("      x as score;");
+emit("      -> fn[0] from math(x, 2);");
+emit("      result not_as negative;");
+emit("      output result;");
+emit("  };");
+emit("");
+
+header("demo: string ops in prima", "  ", "-", 52);
+join("  concat(hello, world): ", "helloworld");
+join("  upper(prima):          ", "PRIMA");
+join("  repeat(abc, 3):        ", "abcabcabc");
+emit("");
+
+header("build and run", "  ", "-", 52);
+emit("  cc -o prima prima.c -lm");
+emit("  ./prima test.prima");
+emit("  ./prima -            (REPL mode)");
+emit("");
+
+header("built-in frames (23)", "  ", "-", 52);
+emit("  nil number int float string alpha alnum digit");
+emit("  lowercase uppercase empty zero positive negative");
+emit("  nonzero even odd any non_numeric truthy falsy");
+emit("  finite prime");
+emit("");
+
+header("built-in functions (28)", "  ", "-", 52);
+emit("  add sub mul div double square abs negate upper");
+emit("  lower reverse concat length capitalize trim repeat");
+emit("  pow min max sqrt floor ceil round mod title");
+emit("  replace substr split type");
+emit("");
+
+rule("-", 52);
+emit("  prima  .  the frame is the architecture  .  2026");
+rule("-", 52);

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prima · Gravity Wells</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:#08080c;color:#f5f5f7;-webkit-font-smoothing:antialiased;font-weight:300;overflow:hidden;height:100vh;width:100vw;cursor:crosshair}
+  #morph{position:fixed;inset:0;width:100%;height:100%}
+  #hint{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);z-index:10;font-size:0.7rem;font-weight:300;color:rgba(255,255,255,0.2);letter-spacing:0.06em;pointer-events:none;transition:opacity 0.5s}
+</style>
+</head>
+<body>
+
+<canvas id="morph"></canvas>
+<div id="hint">click — gravity well · right‑click — remove</div>
+
+<script>
+// ══ MORPH GRID — proven engine ══
+const C = { bg:'#08080c', blue:'#5a7aff', orange:'#e06a3a', gold:'#f5c451', ink:'#f5f5f7' };
+const cv = document.getElementById('morph');
+const ctx = cv.getContext('2d');
+let DPR = Math.min(window.devicePixelRatio || 1, 2);
+let W, H;
+let COLS = 26, ROWS = 15;
+let nodes = [];
+let mx = -9, my = -9, smx = -9, smy = -9;
+let targetPhase = 0.5, phase = 0.5;
+
+function buildNodes() {
+  const padX = W * 0.06, padY = H * 0.22;
+  const gw = (W - padX * 2) / (COLS - 1);
+  const gh = (H - padY * 2) / (ROWS - 1);
+  const fresh = nodes.length === 0;
+  const next = [];
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const tx = padX + c * gw, ty = padY + r * gh;
+    if (fresh) next.push({ x: tx, y: ty, bx: tx, by: ty, c, r, bob: Math.random() * 6.28 });
+    else { const old = nodes[r * COLS + c]; next.push({ x: old.x, y: old.y, bx: tx, by: ty, c, r, bob: old.bob }); }
+  }
+  nodes = next;
+}
+
+function weights(ph) {
+  const b = 0.42;
+  const w0 = Math.exp(-Math.pow((ph - 0) / b, 2));
+  const w1 = Math.exp(-Math.pow((ph - 0.5) / b, 2));
+  const w2 = Math.exp(-Math.pow((ph - 1) / b, 2));
+  const s = w0 + w1 + w2 || 1;
+  return [w0 / s, w1 / s, w2 / s];
+}
+
+function idx(c, r) { return r * COLS + c; }
+
+// ══ GRAVITY WELLS ══
+let wells = [];
+
+function addWell(x, y) {
+  wells.push({ x, y, strength: 1.0, radius: 80 + Math.random() * 60, life: 1.0 });
+}
+
+function removeNearestWell(x, y) {
+  let minDist = Infinity, minIdx = -1;
+  for (let i = 0; i < wells.length; i++) {
+    const d = Math.hypot(x - wells[i].x, y - wells[i].y);
+    if (d < minDist) { minDist = d; minIdx = i; }
+  }
+  if (minIdx >= 0) wells.splice(minIdx, 1);
+}
+
+function draw() {
+  requestAnimationFrame(draw);
+  if (!W) return;
+
+  const t = performance.now() * 0.001;
+  const tightness = Math.max(0.4, Math.min(1.4, 1280 / Math.max(W, 320)));
+  const phaseEase = 0.04 + (tightness - 0.4) * 0.05;
+
+  // Phase: cursor x when active, else autonomous slow drift
+  if (smx >= 0) targetPhase = smx / W;
+  else targetPhase += (0.5 - targetPhase) * 0.015;
+  phase += (targetPhase - phase) * phaseEase;
+
+  // Well count drives bias toward burst (more wells = more chaotic)
+  const wellBias = Math.min(1, wells.length / 5);
+  const effectivePhase = phase * (1 - wellBias) + 0.7 * wellBias;
+
+  const [wA, wF, wN] = weights(effectivePhase);
+
+  // Node motion: grid position + cursor push + gravity well attraction
+  for (const n of nodes) {
+    n.x += (n.bx - n.x) * 0.08;
+    n.y += (n.by - n.y) * 0.08;
+
+    // Cursor push
+    if (smx >= 0) {
+      const dx = n.x - mx, dy = n.y - my, d = Math.sqrt(dx * dx + dy * dy);
+      if (d < 120) { const f = (1 - d / 120) * 16; n.x += (dx / d) * f; n.y += (dy / d) * f; }
+    }
+
+    // Gravity wells — attract nodes within radius
+    for (const w of wells) {
+      if (w.life <= 0) continue;
+      const dx = w.x - n.x, dy = w.y - n.y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d < w.radius && d > 1) {
+        const force = (1 - d / w.radius) * w.strength * 2.5;
+        n.x += (dx / d) * force;
+        n.y += (dy / d) * force;
+      }
+    }
+
+    // Oscillation — reduced when near wells
+    const wellProximity = wells.reduce((min, w) => {
+      const d = Math.hypot(n.x - w.x, n.y - w.y);
+      return Math.min(min, d);
+    }, Infinity);
+    const oscillation = Math.max(0.2, Math.min(1, wellProximity / 150));
+    const ox = n.x, oy = n.y;
+    n.x = ox + Math.sin(t * 0.6 + n.bob) * 6 * oscillation;
+    n.y = oy + Math.cos(t * 0.5 + n.bob) * 6 * oscillation;
+  }
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Connection mode A: horizontal flow (wave) — blue
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = C.blue;
+  ctx.globalAlpha = wA * 0.5;
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS - 1; c++) {
+    const a = nodes[idx(c, r)], b = nodes[idx(c + 1, r)];
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+
+  // Connection mode F: diagonal lattice — gold
+  ctx.strokeStyle = C.gold;
+  ctx.globalAlpha = wF * 0.4;
+  for (let r = 0; r < ROWS - 1; r++) for (let c = 0; c < COLS - 1; c++) {
+    const a = nodes[idx(c, r)], b = nodes[idx(c + 1, r + 1)];
+    const a2 = nodes[idx(c + 1, r)], b2 = nodes[idx(c, r + 1)];
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(a2.x, a2.y); ctx.lineTo(b2.x, b2.y); ctx.stroke();
+  }
+
+  // Connection mode N: radial burst to center — orange
+  const cx = W / 2, cy = H / 2;
+  ctx.strokeStyle = C.orange;
+  ctx.globalAlpha = wN * 0.35;
+  for (const n of nodes) { ctx.beginPath(); ctx.moveTo(n.x, n.y); ctx.lineTo(cx, cy); ctx.stroke(); }
+
+  // Draw wells — pulsing rings
+  for (const w of wells) {
+    w.life = Math.max(0, w.life - 0.001);
+    if (w.life <= 0) continue;
+
+    // Outer ring
+    const pulse = Math.sin(t * 3 + w.x) * 0.3 + 0.7;
+    ctx.strokeStyle = `rgba(245,245,247,${0.08 * w.life * pulse})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(w.x, w.y, w.radius * pulse, 0, 6.2832); ctx.stroke();
+
+    // Inner ring
+    ctx.strokeStyle = `rgba(90,122,255,${0.15 * w.life})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(w.x, w.y, w.radius * 0.4, 0, 6.2832); ctx.stroke();
+
+    // Center dot
+    ctx.fillStyle = `rgba(245,245,247,${0.6 * w.life})`;
+    ctx.beginPath(); ctx.arc(w.x, w.y, 3, 0, 6.2832); ctx.fill();
+  }
+
+  // Clean dead wells
+  wells = wells.filter(w => w.life > 0);
+
+  // Nodes — color shift near wells
+  ctx.globalAlpha = 1;
+  for (const n of nodes) {
+    const nearWell = wells.some(w => Math.hypot(n.x - w.x, n.y - w.y) < w.radius * 0.6);
+    const baseColor = nearWell ? C.gold : (wA >= wF && wA >= wN ? C.blue : (wN >= wF ? C.orange : C.gold));
+    ctx.fillStyle = baseColor;
+    ctx.beginPath(); ctx.arc(n.x, n.y, nearWell ? 2.2 : 1.6, 0, 6.2832); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // Hint
+  const hint = document.getElementById('hint');
+  hint.style.opacity = wells.length > 0 ? '0' : '1';
+}
+
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); buildNodes();
+}
+
+// Interaction
+cv.addEventListener('click', e => {
+  const r = cv.getBoundingClientRect();
+  addWell((e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height);
+});
+cv.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const r = cv.getBoundingClientRect();
+  removeNearestWell((e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height);
+});
+
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; smx = mx; smy = my; });
+document.addEventListener('mouseleave', () => { smx = -9; });
+document.addEventListener('touchmove', e => { smx = e.touches[0].clientX; });
+window.addEventListener('resize', resize);
+resize(); draw();
+</script>
+</body>
+</html>

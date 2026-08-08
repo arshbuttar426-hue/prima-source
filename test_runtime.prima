@@ -1,0 +1,118 @@
+-- test_runtime.prima: exercise I/O, regex, pipe composition, iteration
+
+space io {
+    fn[0] = read_file,
+    fn[1] = write_file,
+    fn[2] = file_exists,
+    fn[3] = capture,
+};
+
+space strings {
+    fn[0] = upper,
+    fn[1] = split_list,
+    fn[2] = join_list,
+    fn[3] = length,
+};
+
+space regex_ops {
+    fn[0] = regex_match,
+    fn[1] = regex_extract,
+    fn[2] = regex_replace,
+};
+
+-- 1. I/O: file_exists
+pipe check_file(path) {
+    -> fn[2] from io(path);
+    output result;
+};
+
+check_file("test.prima");
+
+-- 2. I/O: read_file
+pipe read(path) {
+    -> fn[0] from io(path);
+    output result;
+};
+
+read("test.prima");
+
+-- 3. I/O: write_file (write then read back)
+pipe write_then_read(path, content) {
+    -> fn[1] from io(path, content);
+    -> fn[0] from io(path);
+    output result;
+};
+
+write_then_read("/tmp/prima_test_write.txt", "hello prima");
+
+-- 4. Regex: match
+pipe has_digits(s) {
+    -> fn[0] from regex_ops(s, "[0-9]+");
+    output result;
+};
+
+has_digits("abc123");
+
+-- 5. Regex: extract
+pipe extract_number(s) {
+    -> fn[1] from regex_ops(s, "([0-9]+)");
+    output result;
+};
+
+extract_number("score: 42 points");
+
+-- 6. Regex: match (negative case)
+has_digits("hello");
+
+-- 7. Regex: replace
+pipe replace_digits(s) {
+    -> fn[2] from regex_ops(s, "[0-9]+", "X");
+    output result;
+};
+
+replace_digits("abc123def456");
+
+-- 8. Split into list + join back
+pipe split_and_join(s, delim) {
+    -> fn[1] from strings(s, delim);
+    output result;
+};
+
+split_and_join("a,b,c,d", ",");
+
+-- 9. For-each: iterate and transform each element
+pipe process_each(s, delim) {
+    s as string;
+    -> fn[1] from strings(s, delim);
+    for item in result {
+        -> fn[0] from strings(item);
+        output result;
+    };
+};
+
+process_each("hello,world,prima", ",");
+
+-- 10. Pipe composition: call a sub-pipe from within a pipe
+pipe uppercase(s) {
+    -> fn[0] from strings(s);
+    output result;
+};
+
+pipe compose_test(s) {
+    -> pipe uppercase(s);
+    output result;
+};
+
+compose_test("hello");
+
+-- 11. For-each with filtering via constraints (only strings pass)
+pipe filter_strings(s, delim) {
+    s as string;
+    -> fn[1] from strings(s, delim);
+    for item in result {
+        item as string;
+        output item;
+    };
+};
+
+filter_strings("alpha,123,beta,456", ",");

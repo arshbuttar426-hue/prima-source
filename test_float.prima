@@ -1,0 +1,6 @@
+space m { fn[0]=sqrt; fn[1]=ceil; fn[2]=floor; fn[3]=round; fn[4]=type; };
+pipe p(x, op) { -> fn[op] from m(x); output result; };
+p(9.0, 0);
+p(3.7, 1);
+p(3.7, 2);
+p(3.5, 3);

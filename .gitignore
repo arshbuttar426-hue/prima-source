@@ -1,0 +1,27 @@
+# OS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# Build artifacts
+prima
+prima-test
+prima-validate
+prima.c.bak
+
+# Scraped/private data — NOT part of the release
+data/
+speedup_*.csv
+speedup_*.json
+speedup_*.md
+lead_scraper.py
+bulk_leads.py
+leads.prima
+
+# Internal tooling / unrelated projects
+pedp/
+intueina-maintenance-spec.md

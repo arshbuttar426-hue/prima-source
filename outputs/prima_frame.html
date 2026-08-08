@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE FRAME — a live recompiler</title>
+<style>
+@layer tokens, base, layout, motion, platform;
+
+/* ═══════ TOKENS — golden modular, 8pt grid, monochrome ═══════ */
+@layer tokens{
+  :root{
+    --u:8px;
+    --s-1:calc(var(--u)*1); --s-2:calc(var(--u)*2); --s-3:calc(var(--u)*3);
+    --s-4:calc(var(--u)*5); --s-5:calc(var(--u)*8); --s-6:calc(var(--u)*13); --s-7:calc(var(--u)*21);
+    --bg:#060607; --surface:rgba(255,255,255,0.035); --surface-hi:rgba(255,255,255,0.06);
+    --ink:#f5f5f7; --dim:#9a9aa2; --faint:rgba(255,255,255,0.34);
+    --line:rgba(255,255,255,0.09); --line-soft:rgba(255,255,255,0.05);
+    --t-xxs:clamp(.70rem,.62rem+.28vw,.82rem); --t-xs:clamp(.80rem,.70rem+.34vw,.92rem);
+    --t-sm:clamp(.88rem,.78rem+.4vw,1rem);  --t-md:clamp(1rem,.86rem+.6vw,1.12rem);
+    --t-lg:clamp(1.62rem,1.2rem+2.4vw,2.62rem); --t-xl:clamp(2.62rem,1.6rem+4.6vw,4.24rem);
+    --mono:'SF Mono','Menlo',monospace;
+    --ease-shutter:cubic-bezier(.9,0,.1,1); --ease-soft:cubic-bezier(.22,.61,.36,1); --ease-spring:cubic-bezier(.34,1.56,.64,1);
+    --r-lg:22px; --r-sm:12px;
+  }
+}
+
+/* ═══════ BASE ═══════ */
+@layer base{
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",sans-serif;
+    background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    font-size:var(--t-md);line-height:1.618;overflow-x:hidden}
+  ::selection{background:rgba(255,255,255,.18)}
+  :focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+}
+
+/* ═══════ LAYOUT ═══════ */
+@layer layout{
+  #field{position:fixed;inset:0;z-index:0;pointer-events:none;background:#060607}
+  #field canvas{position:absolute;inset:0;width:100%;height:100%}
+  #field .axis{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--line);transform:translateX(-.5px)}
+
+  /* nav */
+  nav{position:fixed;top:0;inset-inline:0;z-index:50;height:44px;display:flex;align-items:center;
+    backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);
+    background:rgba(6,6,7,.6);border-bottom:1px solid var(--line-soft)}
+  nav .inner{width:100%;max-width:1320px;margin-inline:auto;display:flex;align-items:center;gap:var(--s-3);padding-inline:var(--s-3)}
+  @media(min-width:600px){nav .inner{padding-inline:var(--s-4),60px}}
+  .brand{font-size:var(--t-xs);font-weight:600;letter-spacing:.18em;text-transform:uppercase;display:flex;gap:.5em;align-items:baseline}
+  .brand b{font-weight:600}
+  .brand .state{color:var(--dim);font-weight:400}
+  nav .hint{margin-left:auto;font-size:var(--t-xxs);color:var(--faint);letter-spacing:.08em;font-family:var(--mono)}
+  @media(max-width:760px){nav .hint{display:none}}
+
+  .app{position:relative;z-index:1;max-width:1320px;margin-inline:auto;padding:calc(44px + var(--s-5)) var(--s-3) var(--s-5)}
+  @media(min-width:900px){.app{padding-left:var(--s-3);padding-right:var(--s-3)}}
+
+  /* --- THE LAW (left) --- */
+  .law{width:100%;margin-bottom:var(--s-5)}
+  @media(min-width:900px){.law{position:fixed;left:max(var(--s-3),calc(50% - 660px + var(--s-3)));top:44px;bottom:0;width:340px;padding-top:var(--s-5);padding-right:var(--s-4);overflow-y:auto}}
+  .law .kicker{font-size:var(--t-xxs);letter-spacing:.3em;text-transform:uppercase;color:var(--dim);margin-bottom:var(--s-3);display:flex;align-items:center;gap:var(--s-2)}
+  .law .kicker::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+  .presets{display:flex;gap:var(--s-1);flex-wrap:wrap;margin-bottom:var(--s-3)}
+  .presets button{font-family:inherit;background:var(--surface);border:1px solid var(--line);color:var(--dim);
+    font-size:var(--t-xxs);letter-spacing:.08em;padding:6px 12px;border-radius:100px;cursor:pointer;transition:all .2s var(--ease-soft)}
+  .presets button:hover{color:var(--ink);border-color:var(--faint)}
+  .presets button.on{color:var(--ink);border-color:var(--ink);background:var(--surface-hi)}
+  .law textarea{width:100%;min-height:220px;background:#0a0a0c;border:1px solid var(--line);border-radius:var(--r-sm);
+    color:var(--ink);font-family:var(--mono);font-size:var(--t-xs);line-height:1.9;padding:var(--s-3);
+    resize:vertical;outline:none;caret-color:var(--ink)}
+  .law textarea:focus{border-color:var(--faint)}
+  .law .verbs{margin-top:var(--s-3);display:flex;gap:var(--s-2)}
+  .verb{flex:1;text-align:center;padding:10px 0;border:1px solid var(--line);border-radius:var(--r-sm);
+    font-size:var(--t-xs);letter-spacing:.1em;color:var(--dim);cursor:pointer;transition:all .2s var(--ease-soft);background:var(--surface)}
+  .verb:hover{color:var(--ink)}
+  .verb.on{color:var(--ink);border-color:var(--ink)}
+  .law .note{margin-top:var(--s-3);font-size:var(--t-xxs);color:var(--faint);line-height:1.7}
+
+  /* --- the rendered channel (right) --- */
+  .channel{margin-left:auto}
+  @media(min-width:900px){.channel{width:calc(100% - 340px)}}
+  .hero-band{min-height:46vh;display:flex;align-items:center;text-align:center;justify-content:center;flex-direction:column}
+  .hero-band .eyebrow{font-size:var(--t-xxs);letter-spacing:.35em;text-transform:uppercase;color:var(--dim);margin-bottom:var(--s-2)}
+  .hero-band h1{font-weight:300;font-size:var(--t-xl);letter-spacing:-.04em;line-height:1;margin-bottom:var(--s-2)}
+
+  .vessels{display:flex;flex-direction:column;gap:var(--s-3);margin-top:var(--s-4)}
+  @media(min-width:820px){.vessels{gap:var(--s-5)}}
+  .vessel{align-self:stretch;width:100%}
+  @media(min-width:820px){.vessel.L{align-self:flex-start;width:72%}.vessel.R{align-self:flex-end;width:72%;text-align:right}}
+  .vessel .box{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:var(--s-4) var(--s-3);position:relative;overflow:hidden;transition:border-color .4s var(--ease-soft),background .4s var(--ease-soft)}
+  .vessel .box::before{content:"";position:absolute;inset-block:0;width:2px;background:var(--ink);transform:scaleY(0);transform-origin:top}
+  .vessel.L .box::before{left:0}
+  .vessel.R .box::before{right:0}
+  .vessel.on .box{border-color:var(--faint)}
+  .vessel.on .box::before{align-self:stretch;animation:scaleY 1.2s var(--ease-shutter) forwards}
+  @keyframes scaleY{to{transform:scaleY(1)}}
+  .vessel.on .box::before{transform:scaleY(1)}
+  .vessel .rail{font-size:var(--t-xxs);letter-spacing:.3em;text-transform:uppercase;color:var(--dim);display:flex;gap:var(--s-2);align-items:center;margin-bottom:var(--s-3)}
+  .vessel .rail::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+  .vessel.R .rail{flex-direction:row-reverse}
+  .vessel h2{font-weight:300;font-size:var(--t-lg);letter-spacing:-.02em;line-height:1.08;margin-bottom:var(--s-2)}
+  .vessel p{color:var(--dim);font-size:var(--t-sm);max-width:40ch}
+  .vessel.R p{margin-left:auto}
+
+  /* --- readout trace --- */
+  .trace{margin-top:var(--s-5);border-top:1px solid var(--line-soft);padding-top:var(--s-3);
+    font-family:var(--mono);font-size:var(--t-xxs);color:var(--faint);line-height:2;letter-spacing:.02em}
+  .trace .state{color:var(--ink)}
+
+  footer{margin-top:var(--s-5);padding-top:var(--s-3);border-top:1px solid var(--line-soft);
+    color:var(--faint);font-size:var(--t-xxs);letter-spacing:.08em;display:flex;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap}
+  footer .dot{color:var(--ink)}
+}
+
+/* ═══════ MOTION — compositor-only ═══════ */
+@layer motion{
+  nav a,.verb,.presets button{transition:all .2s var(--ease-soft)}
+  .law textarea{transition:border-color .3s var(--ease-soft)}
+}
+
+/* ═══════ PLATFORM ═══════ */
+@layer platform{
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important;transition:none!important}
+  }
+}
+</style>
+</head>
+<body>
+
+<div id="field" aria-hidden="true"><canvas id="fieldCv"></canvas><div class="axis"></div></div>
+
+<nav>
+  <div class="inner">
+    <div class="brand">THE <b>FRAME</b><span class="state">· the frame is the architecture</span></div>
+    <div class="hint">edit the law → live recompile</div>
+  </div>
+</nav>
+
+<div class="app">
+  <!-- THE LAW -->
+  <aside class="law">
+    <div class="kicker">I · The Law</div>
+    <div class="presets" id="presets"></div>
+    <textarea id="dsl" spellcheck="false"></textarea>
+    <div class="verbs" id="verbs">
+      <div class="verb on" data-verb="geo">GEODESIC</div>
+      <div class="verb" data-verb="phys">PHYSICS</div>
+    </div>
+    <div class="note">The frame is data. Every number below is readable by the field &amp; the channel — change one and the whole page recompiles. <span class="dot" style="color:var(--ink)">⌁</span></div>
+  </aside>
+
+  <!-- THE RENDERED CHANNEL -->
+  <div class="channel">
+    <section class="hero-band">
+      <div class="eyebrow">II · Live Rendering</div>
+      <h1 id="headline">metamorph</h1>
+    </section>
+
+    <div class="vessels">
+      <div class="vessel L" id="vAs">
+        <div class="box">
+          <div class="rail">as · position</div>
+          <h2>What something counts as.</h2>
+          <p>Pure arrangement. It carries no value — it decides which law applies at which pole of the seam.</p>
+        </div>
+      </div>
+      <div class="vessel R" id="vNa">
+        <div class="box">
+          <div class="rail">not_as · computation</div>
+          <h2>What it absolutely is not.</h2>
+          <p>A pure function. One input, one output, no hidden state — it only answers when the frame asks.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="trace" id="trace">compiling…</div>
+  </div>
+
+  <footer>
+    <span>THE FRAME — a live recompiler · offline · secret</span>
+    <span>one content · <span class="dot">every frame</span></span>
+  </footer>
+</div>
+
+<script>
+/* ═══════ THE LAW — presets & DSL ═══════ */
+const PRESETS={
+  drift:  {n:'DRIFT',    src:'# the law — edit and the frame recompiles\nphase  0.14   # shape that dominates (0 lon · .5 lattice · 1 radial)\nreach  30     # connection reach across the field\npulse  6      # energy of the nodes\nparity +      # + / − / 0 — vessel polarity', phase:.14, reach:30, pulse:6, parity:'+'},
+  lattice:{n:'LATTICE', src:'# the law — edit and the frame recompiles\nphase  0.50   # shape that dominates (0 lon · .5 lattice · 1 radial)\nreach  44     # connection reach across the field\npulse  5      # energy of the nodes\nparity 0      # + / − / 0 — vessel polarity', phase:.5, reach:44, pulse:5, parity:'0'},
+  burst:  {n:'BURST',   src:'# the law — edit and the frame recompiles\nphase  0.88   # shape that dominates (0 lon · .5 lattice · 1 radial)\nreach  18     # connection reach across the field\npulse  13     # energy of the nodes\nparity -      # + / − / 0 — vessel polarity', phase:.88, reach:18, pulse:13, parity:'-'},
+  quiet:  {n:'QUIET',   src:'# the law — edit and the frame recompiles\nphase  0.30   # shape that dominates (0 lon · .5 lattice · 1 radial)\nreach  60     # connection reach across the field\npulse  3      # energy of the nodes\nparity 0      # + / − / 0 — vessel polarity', phase:.3, reach:60, pulse:3, parity:'0'},
+};
+const presetsEl=document.getElementById('presets');
+const dslEl=document.getElementById('dsl');
+let law={phase:.5,reach:34,pulse:7,parity:'+'};
+let verb='geo';
+
+function renderPresets(){
+  presetsEl.innerHTML='';
+  for(const [k,p] of Object.entries(PRESETS)){
+    const b=document.createElement('button');
+    b.textContent=p.n; b.dataset.k=k;
+    b.addEventListener('click',()=>{ markPreset(k); dslEl.value=p.src; compile(); });
+    presetsEl.appendChild(b);
+  }
+  markPreset('drift');
+}
+function markPreset(k){presetsEl.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.k===k));}
+
+function parse(src){
+  const out={phase:.5,reach:34,pulse:7,parity:'+'};
+  for(const line of src.split('\n')){
+    const body=(line.split('#')[0]||'').trim(); if(!body)continue;
+    const m=body.match(/^(\w+)\s+(\S+)/); if(!m)continue;
+    const [,k,v]=m;
+    if(k==='phase')out.phase=Math.min(1,Math.max(0,parseFloat(v)||0));
+    else if(k==='reach')out.reach=Math.max(6,parseFloat(v)||30);
+    else if(k==='pulse')out.pulse=Math.max(0,Math.min(20,parseFloat(v)||7));
+    else if(k==='parity')out.parity= (v==='-'||v==='−')?'-':(v==='0')?'0':'+';
+  }
+  return out;
+}
+
+/* ═══════ compile — the law becomes the rendering ═══════ */
+const headline=document.getElementById('headline');
+const vAs=document.getElementById('vAs'),vNa=document.getElementById('vNa');
+const traceEl=document.getElementById('trace');
+const HNAMES={0:'longitudinal',.5:'lattice',1:'radial'};
+const t2s=v=>{const t=v<.33?0:v<.66?.5:1;return HNAMES[t];};
+function compile(){
+  law=parse(dslEl.value);
+  // vessels — parity decides which pole is lit
+  vAs.classList.toggle('on',law.parity==='+');
+  vNa.classList.toggle('on',law.parity==='-');
+  // headline morphs with phase
+  headline.textContent=t2s(law.phase);
+  // trace
+  traceEl.innerHTML=`frame → <span class="state">recompiled</span><br>`+
+    `phase   <span class="state">${law.phase.toFixed(2)}</span> · ${t2s(law.phase)}<br>`+
+    `reach   <span class="state">${law.reach}</span>px<br>`+
+    `pulse   <span class="state">${law.pulse}</span><br>`+
+    `parity  <span class="state">${law.parity==='+'?'+ / as':law.parity==='-'?'− / not_as':'0 / neutral'}</span><br>`+
+    `mode    <span class="state">${verb==='geo'?'GEODESIC':'PHYSICS'}</span>`;
+}
+dslEl.addEventListener('input',()=>{ markPreset(''); compile(); });
+
+/* verb modes */
+const verbEls=document.querySelectorAll('.verb');
+verbEls.forEach(v=>v.addEventListener('click',()=>{
+  verb=v.dataset.verb;
+  verbEls.forEach(x=>x.classList.toggle('on',x===v));
+  compile();
+}));
+
+renderPresets();
+dslEl.value=PRESETS.drift.src;
+compile();
+
+/* ═══════ THE FIELD — one node set, recompiled by the law ═══════ */
+const cv=document.getElementById('fieldCv'),ctx=cv.getContext('2d');
+const DPR=Math.min(devicePixelRatio||1,2);
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let W=0,H=0,COLS,ROWS,nodes=[],cxp=.5,sp=.5;
+
+function build(){
+  COLS=38;ROWS=Math.max(14,Math.round(H/42));
+  const padX=W*.1,padY=H*.08;
+  const gw=(W-padX*2)/(COLS-1),gh=(H-padY*2)/(ROWS-1);
+  const fresh=nodes.length===0,next=[];
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const tx=padX+c*gw,ty=padY+r*gh;
+    next.push(fresh?{x:tx,y:ty,bx:tx,by:ty,vx:0,vy:0,bob:Math.random()*6.28}:{...nodes[r*COLS+c],bx:tx,by:ty});
+  }
+  nodes=next;
+}
+function wts(ph){const b=.42;
+  const a=Math.exp(-Math.pow(ph/b,2)),f=Math.exp(-Math.pow((ph-.5)/b,2)),n=Math.exp(-Math.pow((ph-1)/b,2));
+  const s=(a+f+n)||1;return[a/s,f/s,n/s];}
+const ix=(c,r)=>r*COLS+c;
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+
+function draw(){
+  if(!reduce)requestAnimationFrame(draw);
+  if(W===0)return;
+  const t=performance.now()*.001;
+  sp+=(cxp*.9+.1-sp)*.04;
+  const phase=Math.min(1,Math.max(0,sp*.6+law.phase*.4));
+  const [wA,wF,wN]=wts(phase);
+  const reach=law.reach / 60;      // relative connection reach
+  const pulse=law.pulse;
+
+  ctx.clearRect(0,0,W,H);ctx.globalAlpha=1;ctx.fillStyle='#060607';ctx.fillRect(0,0,W,H);
+
+  if(verb==='geo'){
+    // nodes glide toward targets + bob with pulse
+    for(const n of nodes){
+      n.x+=(n.bx-n.x)*.06;n.y+=(n.by-n.y)*.06;
+      n.x+=Math.sin(t*.6+n.bob)*pulse;
+      n.y+=Math.cos(t*.5+n.bob)*pulse;
+    }
+    const ink='rgba(245,245,247,';
+    ctx.lineWidth=.7;ctx.strokeStyle=ink+'.4)';ctx.globalAlpha=wA*.6;
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS-1;c++){ctx.beginPath();ctx.moveTo(nodes[ix(c,r)].x,nodes[ix(c,r)].y);ctx.lineTo(nodes[ix(c+1,r)].x,nodes[ix(c+1,r)].y);ctx.stroke();}
+    ctx.globalAlpha=wF*.45;
+    for(let r=0;r<ROWS-1;r++)for(let c=0;c<COLS-1;c++){ctx.beginPath();ctx.moveTo(nodes[ix(c,r)].x,nodes[ix(c,r)].y);ctx.lineTo(nodes[ix(c+1,r+1)].x,nodes[ix(c+1,r+1)].y);ctx.stroke();ctx.beginPath();ctx.moveTo(nodes[ix(c+1,r)].x,nodes[ix(c+1,r)].y);ctx.lineTo(nodes[ix(c,r+1)].x,nodes[ix(c,r+1)].y);ctx.stroke();}
+    const cx=W/2,cy=H/2;ctx.globalAlpha=wN*.38;
+    for(const n of nodes){if(dist(n,{x:cx,y:cy})>reach*W*.5){ctx.beginPath();ctx.moveTo(n.x,n.y);ctx.lineTo(cx,cy);ctx.stroke();}}
+    ctx.globalAlpha=1;ctx.fillStyle=ink+'.9)';
+    for(const n of nodes){const r=1.3+wA*.9;ctx.beginPath();ctx.arc(n.x,n.y,r,0,6.2832);ctx.fill();}
+  }else{
+    // PHYSICS — the same nodes as repelling bodies (functional_modules physics)
+    const mx=cxp*W, my=H*.5;
+    for(const n of nodes){
+      // relax to target
+      n.x+=(n.bx-n.x)*.02;n.y+=(n.by-n.y)*.02;
+      // mutual repulsion
+      let fx=0,fy=0;
+      for(const o of nodes){ if(o===n)continue; const d=dist(n,o); if(d<1||d>70)continue; const f=(70-d)/70; fx-=(o.x-n.x)/d*f*.8; fy-=(o.y-n.y)/d*f*.8; }
+      // mouse repel
+      const dm=dist(n,{x:mx,y:my}); if(dm<180&&dm>1){const f=(180-dm)/180; fx+=(n.x-mx)/dm*f*2.2; fy+=(n.y-my)/dm*f*2.2;}
+      n.vx=n.vx*.9+fx;n.vy=n.vy*.9+fy;
+      n.x+=n.vx*.5;n.y+=n.vy*.5;
+    }
+    ctx.globalAlpha=1;ctx.strokeStyle='rgba(245,245,247,.16)';ctx.lineWidth=.6;
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS-1;c++){
+      const a=nodes[ix(c,r)],b=nodes[ix(c+1,r)]; if(dist(a,b)<reach*1.2){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
+    }
+    ctx.fillStyle='rgba(245,245,247,.9)';
+    for(const n of nodes){ctx.beginPath();ctx.arc(n.x,n.y,1.4+ (dist(n,{x:mx,y:my})<180?1:0),0,6.2832);ctx.fill();}
+  }
+}
+function resize(){W=innerWidth;H=innerHeight;cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);build();}
+addEventListener('resize',resize);
+addEventListener('mousemove',e=>cxp=e.clientX/innerWidth,{passive:true});
+addEventListener('touchmove',e=>cxp=e.touches[0].clientX/innerWidth,{passive:true});
+resize();draw();
+</script>
+</body>
+</html>

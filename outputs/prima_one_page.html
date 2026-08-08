@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The frame is the architecture</title>
+<style>
+  /* ═══════════════════════════════════════════════════════════════
+     PRIMA — one page. The differentiator is the TRANSITION.
+     Monochrome · offline · system type · golden-ratio rhythm.
+     Flagship: in-site links slam the view shut to a single seam,
+     then snap open on the target — "the only honest line is the seam".
+     ═══════════════════════════════════════════════════════════════ */
+  :root{
+    --bg:#000;--surface:#0d0d0f;--ink:#f5f5f7;--dim:#9a9aa2;
+    --faint:rgba(255,255,255,0.32);--line:rgba(255,255,255,0.07);--line-soft:rgba(255,255,255,0.045);
+    --nav-glass:rgba(0,0,0,0.65);--radius:20px;--unit:8px;--g:1.618;
+  }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:auto;-webkit-text-size-adjust:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",sans-serif;
+    background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    font-weight:400;line-height:1.618;overflow-x:hidden}
+  ::selection{background:rgba(255,255,255,0.18)}
+
+  .col{max-width:980px;margin:0 auto;padding:0 48px}
+  @media(max-width:1080px){.col{padding:0 24px}}
+
+  /* ── The SHUTTER (flagship transition) ── */
+  #shutter{position:fixed;inset:0;z-index:300;pointer-events:none;visibility:hidden}
+  #shutter .st{position:absolute;left:0;right:0;height:50.6%;background:#000;
+    transition:transform .26s cubic-bezier(.9,0,.1,1)}
+  #shutter .st.t{top:0;transform:translateY(-101%)}
+  #shutter .st.b{bottom:0;transform:translateY(101%)}
+  #shutter.on{visibility:visible}
+  #shutter.on .st.t{transform:translateY(0)}
+  #shutter.on .st.b{transform:translateY(0)}
+  #shutter .seam{position:absolute;left:0;right:0;top:50%;height:1px;margin-top:-.5px;background:var(--ink);
+    transform:scaleX(0);transition:transform .16s cubic-bezier(.9,0,.1,1) .02s}
+  #shutter.on .seam{transform:scaleX(1)}
+
+  /* ── scroll spine (progress traced through the three states) ── */
+  #spine{position:fixed;left:24px;top:50%;transform:translateY(-50%);z-index:40;height:240px;width:1px;background:var(--line-soft);mix-blend-mode:screen}
+  #spine .fill{position:absolute;left:0;top:0;width:1px;height:0;background:var(--dim);opacity:.8}
+  #spine .tick{position:absolute;left:8px;font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:var(--faint);white-space:nowrap;transition:color .3s}
+  #spine .tick.act{color:var(--ink)}
+  @media(max-width:760px){#spine{display:none}}
+
+  /* nav */
+  nav{position:fixed;top:0;left:0;right:0;z-index:60;height:44px;display:flex;align-items:center;
+    backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);
+    background:var(--nav-glass);border-bottom:1px solid var(--line-soft)}
+  nav .inner{max-width:980px;margin:0 auto;width:100%;display:flex;align-items:center;gap:32px;padding:0 48px}
+  @media(max-width:760px){nav .inner{padding:0 24px}}
+  .mark{width:9px;height:9px;border-radius:50%;background:var(--ink);opacity:.9;position:relative}
+  .mark::after{content:"";position:absolute;inset:-3px;border:1px solid var(--line);border-radius:50%}
+  nav .links{margin-left:auto;display:flex;gap:32px}
+  nav .links a{color:var(--faint);text-decoration:none;font-size:12px;letter-spacing:-0.01em;transition:color .2s;position:relative;padding-bottom:2px}
+  nav .links a::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--ink);transform:scaleX(0);transform-origin:left;transition:transform .3s}
+  nav .links a:hover{color:var(--ink)}
+  nav .links a:hover::after{transform:scaleX(1)}
+
+  /* hero */
+  .hero{position:relative;z-index:1;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:112px 24px 64px}
+  .eyebrow{font-size:11px;font-weight:500;letter-spacing:0.35em;text-transform:uppercase;color:var(--dim);margin-bottom:24px}
+  .hero h1{font-weight:300;font-size:clamp(2.7rem,8vw,5.4rem);letter-spacing:-0.045em;line-height:0.96;margin-bottom:22px}
+  .hero h1 .gl{display:inline-block;opacity:0;transform:translateY(0.5em)}
+  .hero h1 .gl.in{opacity:1;transform:translateY(0);transition:opacity .5s,transform .5s cubic-bezier(.2,.8,.2,1)}
+  .hero .lede{font-size:clamp(1rem,2.6vw,1.22rem);font-weight:300;color:var(--dim);max-width:30rem;margin:0 auto 40px;letter-spacing:0}
+  .cta-link{display:inline-flex;align-items:center;gap:8px;font-size:15px;color:var(--ink);text-decoration:none;position:relative;font-weight:400}
+  .cta-link::after{content:"";position:absolute;left:0;bottom:-2px;height:1px;width:100%;background:var(--ink);transform:scaleX(0);transform-origin:right;transition:transform .3s}
+  .cta-link:hover::after{transform:scaleX(1);transform-origin:left}
+  .cta-link .arr{transition:transform .25s}
+  .cta-link:hover .arr{transform:translateX(4px)}
+
+  /* core grid */
+  .core{position:relative;z-index:1;padding:56px 0 112px}
+  .core .col{display:flex;flex-direction:column;align-items:center;text-align:center}
+  .core h2{font-weight:300;font-size:clamp(1.7rem,4.5vw,2.6rem);letter-spacing:-0.03em;line-height:1.1;margin-bottom:16px}
+  .core p{color:var(--dim);max-width:30rem;font-size:15px}
+  .frame-panel{margin-top:44px;position:relative;width:min(620px,88vw);aspect-ratio:1.4/1;border-radius:var(--radius);
+    border:1px solid var(--line);background:#020203;overflow:hidden;
+    box-shadow:0 40px 80px -40px rgba(0,0,0,0.85),inset 0 1px 0 rgba(255,255,255,0.05)}
+  .frame-panel canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .frame-panel .rings{position:absolute;inset:0;pointer-events:none;z-index:2}
+  .frame-panel .rings::before{content:"";position:absolute;inset:8%;border:1px solid rgba(255,255,255,0.035);border-radius:50%}
+  .frame-panel .rings::after{content:"";position:absolute;inset:30%;border:1px solid rgba(255,255,255,0.025);border-radius:50%}
+  .frame-panel .badge{position:absolute;top:16px;left:20px;z-index:3;font-size:11px;letter-spacing:0.25em;text-transform:uppercase;color:var(--dim)}
+  .frame-panel .stage{position:absolute;top:14px;right:18px;z-index:3;display:flex;gap:4px}
+  .frame-panel .stage i{width:5px;height:5px;border-radius:50%;background:var(--ink);opacity:.15;transition:opacity .3s}
+  .frame-panel .stage i.on{opacity:1}
+  .frame-panel .readout{position:absolute;bottom:16px;left:0;right:0;z-index:3;display:flex;align-items:center;justify-content:center;gap:30px;flex-wrap:wrap;padding:0 16px}
+  .frame-panel .readout .r{font-size:11.5px;color:var(--dim);display:flex;align-items:center;gap:9px}
+  .frame-panel .readout .r b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+  .core .hint{margin-top:16px;font-size:12px;color:var(--faint);letter-spacing:0.02em}
+
+  /* statement — tap to morph */
+  .statement{position:relative;z-index:1;padding:120px 0;text-align:center;border-top:1px solid var(--line-soft);cursor:pointer}
+  .statement .big{font-weight:300;font-size:clamp(1.7rem,4.4vw,3rem);letter-spacing:-0.03em;line-height:1.22;color:var(--ink);max-width:44rem;margin:0 auto;position:relative;min-height:1.22em}
+  .statement .stack{display:block;transition:transform .34s cubic-bezier(.9,0,.1,1),opacity .3s}
+  #stackB{position:absolute;inset:0;visibility:hidden;transform:translateY(-100%);opacity:0}
+  .statement.swap #stackA{transform:translateY(100%);opacity:0}
+  .statement.swap #stackB{visibility:visible;transform:translateY(0);opacity:1;transition:transform .34s cubic-bezier(.2,.8,.2,1),opacity .3s}
+  .statement .seam-x{display:inline-block;width:1.1em;height:1px;vertical-align:middle;background:var(--ink);margin:0 0.06em}
+  .statement .hintm{font-size:11px;color:var(--faint);letter-spacing:0.25em;text-transform:uppercase;margin-top:28px;display:inline-flex;align-items:center;gap:8px}
+
+  /* principles */
+  .principles{position:relative;z-index:1;padding:0 0 112px;border-top:1px solid var(--line-soft)}
+  .principles .kicker{font-size:11px;font-weight:500;letter-spacing:0.3em;text-transform:uppercase;color:var(--dim);margin:96px 0 40px}
+  .prims{display:grid;grid-template-columns:repeat(3,1fr);gap:0 1px;background:var(--line-soft);border:1px solid var(--line-soft);border-radius:var(--radius);overflow:hidden}
+  @media(max-width:760px){.prims{grid-template-columns:1fr}}
+  .prim{background:var(--surface);padding:40px 28px;position:relative;overflow:hidden;cursor:default}
+  .prim::after{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--ink);transform:scaleY(0);transform-origin:top;transition:transform .4s cubic-bezier(.9,0,.1,1)}
+  .prim:hover::after{transform:scaleY(1)}
+  .prim .num{font-size:12px;color:var(--faint);letter-spacing:0.2em;margin-bottom:20px;transition:color .3s,transform .3s}
+  .prim:hover .num{color:var(--ink);transform:translateX(6px)}
+  .prim .name{font-size:15px;font-weight:500;margin-bottom:10px}
+  .prim .desc{font-size:13px;line-height:1.7;color:var(--dim)}
+
+  footer{position:relative;z-index:1;padding:64px 0 48px;color:var(--faint);font-size:12px;text-align:center;border-top:1px solid var(--line-soft)}
+  footer .big{font-weight:300;color:var(--ink);font-size:clamp(1.2rem,3vw,1.7rem);letter-spacing:-0.02em;margin-bottom:8px}
+  footer .small{margin-top:14px}
+
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- flagship shutter -->
+<div id="shutter"><div class="st t"></div><div class="st b"></div><div class="seam"></div></div>
+
+<!-- progress spine -->
+<div id="spine">
+  <div class="fill"></div>
+  <div class="tick" style="top:0"     data-s="0">Longitudinal</div>
+  <div class="tick" style="top:50%"   data-s="1">Lattice</div>
+  <div class="tick" style="top:100%"  data-s="2">Radial</div>
+</div>
+
+<nav>
+  <div class="inner">
+    <div class="mark"></div>
+    <div class="links">
+      <a href="#core">The core</a>
+      <a href="#statement">Direction</a>
+      <a href="#principles">Principles</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <div>
+    <div class="eyebrow">Design · Engineering · Applied mathematics</div>
+    <h1>The frame<br>is the architecture.</h1>
+    <p class="lede">A working system, reduced to its truest parts. What something counts as — and what it absolutely does not.</p>
+    <a class="cta-link" href="#core">Enter the core <span class="arr">→</span></a>
+  </div>
+</section>
+
+<!-- CORE GRID -->
+<section class="core" id="core">
+  <div class="col">
+    <h2>One system. Three states.</h2>
+    <p>Move through the field — or let the scroll carry you. The strands never break; they transform.</p>
+    <div class="frame-panel">
+      <div class="rings"></div>
+      <div class="badge">constraint · metamorphosis</div>
+      <div class="stage"><i></i><i></i><i></i></div>
+      <canvas id="morph"></canvas>
+      <div class="readout">
+        <div class="r">longitudinal <b id="mA">—</b></div>
+        <div class="r">lattice <b id="mF">—</b></div>
+        <div class="r">radial <b id="mN">—</b></div>
+      </div>
+    </div>
+    <div class="hint">Cursor x and scroll both conduct the ratio between the three states — always summing to unity.</div>
+  </div>
+</section>
+
+<!-- STATEMENT -- tap to morph -->
+<section class="statement" id="statement">
+  <div class="col">
+    <div class="big" id="morphBig">
+      <span class="stack" id="stackA">Same parts, different frame — <span class="seam-x"></span> the only honest line is the one between them.</span>
+      <span class="stack" id="stackB">What a thing counts as, and what it absolutely does not — the seam is the entire law.</span>
+    </div>
+    <div class="hintm"><span class="seam-x"></span> tap to transform</div>
+  </div>
+</section>
+
+<!-- PRINCIPLES -->
+<section class="principles" id="principles">
+  <div class="col">
+    <div class="kicker">Principles</div>
+    <div class="prims">
+      <div class="prim"><div class="num">01</div><div class="name">Precision</div><div class="desc">Everything is position or computation. No hidden state, no extra kinds. The system is exactly what it appears to be.</div></div>
+      <div class="prim"><div class="num">02</div><div class="name">Restraint</div><div class="desc">Change one joint, change the result. Nothing is injected; only arrangement and sign are modulated.</div></div>
+      <div class="prim"><div class="num">03</div><div class="name">Continuity</div><div class="desc">The line never breaks — it transforms. Structure endures while its function finds a new form.</div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="big">The frame is the architecture.</div>
+  <div class="small">Designed and built offline · the classy, self-contained template</div>
+</footer>
+
+<script>
+/* ══════════ FLAGSHIP: the abrupt shutter transition ══════════ */
+const shutter=document.getElementById('shutter');
+const busy=new Set();
+function abruptTo(target){
+  if(/^#\w/.test(target)&&!document.querySelector(target))return;
+  if(busy.has(target))return; busy.add(target);
+  const el=document.querySelector(target);
+  const fromY=window.scrollY;
+  // slam shut
+  shutter.classList.add('on');
+  setTimeout(()=>{ if(el){ /* hard jump while concealed */ document.getElementById('hero')&&true; el.scrollIntoView(); } },230);
+  setTimeout(()=>{ shutter.classList.remove('on'); },260);
+  setTimeout(()=>{ busy.delete(target); },520);
+}
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',e=>{
+    const href=a.getAttribute('href');
+    if(href==='#')return;
+    e.preventDefault();
+    abruptTo(href);
+  });
+});
+
+/* ══════════ hero — generative letter reveal ══════════ */
+(function(){
+  const h1=document.querySelector('.hero h1');
+  h1.innerHTML=h1.textContent.split('').map((ch,i)=>
+    ch==='\n'?'<br>':`<span class="gl" style="transition-delay:${i*0.02}s">${ch===' '?'&nbsp;':ch}</span>`).join('');
+  requestAnimationFrame(()=>document.querySelectorAll('.hero .gl').forEach(g=>g.classList.add('in')));
+})();
+
+/* ══════════ scroll spine + scroll-conducting phase ══════════ */
+const spineFill=document.querySelector('#spine .fill');
+const spineTicks=document.querySelectorAll('#spine .tick');
+let scrollPhase=0.5;
+function onScroll(){
+  const max=document.documentElement.scrollHeight-window.innerHeight;
+  const f=max>0?window.scrollY/max:0;
+  spineFill.style.height=(f*100)+'%';
+  scrollPhase=f;
+  const st=f<0.4?0:(f<0.75?1:2);
+  spineTicks.forEach(t=>t.classList.toggle('act',+t.dataset.s===st));
+}
+window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+
+/* ══════════ the metamorph grid — cursor x + scroll conduct the phase ══════════ */
+const CV=document.getElementById('morph');
+const ctx=CV.getContext('2d');
+const DPR=Math.min(window.devicePixelRatio||1,2);
+let W=0,H=0;
+const COLS=30,ROWS=16;
+let nodes=[];
+let cxp=0.5;   // cursor-conduct
+let p=0.5;     // current phase
+function buildNodes(){
+  const padX=W*0.07,padY=H*0.18;
+  const gw=(W-padX*2)/(COLS-1),gh=(H-padY*2)/(ROWS-1);
+  const fresh=nodes.length===0,next=[];
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const tx=padX+c*gw,ty=padY+r*gh;
+    next.push(fresh?{x:tx,y:ty,bx:tx,by:ty,bob:Math.random()*6.28}:{...nodes[r*COLS+c],bx:tx,by:ty});
+  }
+  nodes=next;
+}
+function weights(ph){const b=0.42;
+  const w0=Math.exp(-Math.pow(ph/b,2)),w1=Math.exp(-Math.pow((ph-0.5)/b,2)),w2=Math.exp(-Math.pow((ph-1)/b,2));
+  const s=(w0+w1+w2)||1;return[w0/s,w1/s,w2/s];}
+const ix=(c,r)=>r*COLS+c;
+function draw(){
+  requestAnimationFrame(draw);
+  if(W===0)return;
+  const t=performance.now()*0.001;
+  // conduct phase: blend cursor x and scroll progress
+  const target=0.5+ (cxp-0.5)*0.62 + (scrollPhase-0.5)*0.38;
+  p+=(target-p)*0.045;
+  for(const n of nodes){n.x+=(n.bx-n.x)*0.08;n.y+=(n.by-n.y)*0.08;n.x+=Math.sin(t*0.6+n.bob)*7;n.y+=Math.cos(t*0.5+n.bob)*7;}
+  const[wA,wF,wN]=weights(p);
+  ctx.clearRect(0,0,W,H);
+  const white='#f5f5f7';
+  ctx.lineWidth=0.8;ctx.strokeStyle=white;ctx.globalAlpha=wA*0.5;
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS-1;c++){ctx.beginPath();ctx.moveTo(nodes[ix(c,r)].x,nodes[ix(c,r)].y);ctx.lineTo(nodes[ix(c+1,r)].x,nodes[ix(c+1,r)].y);ctx.stroke();}
+  ctx.lineWidth=0.6;ctx.globalAlpha=wF*0.42;
+  for(let r=0;r<ROWS-1;r++)for(let c=0;c<COLS-1;c++){ctx.beginPath();ctx.moveTo(nodes[ix(c,r)].x,nodes[ix(c,r)].y);ctx.lineTo(nodes[ix(c+1,r+1)].x,nodes[ix(c+1,r+1)].y);ctx.stroke();ctx.beginPath();ctx.moveTo(nodes[ix(c+1,r)].x,nodes[ix(c+1,r)].y);ctx.lineTo(nodes[ix(c,r+1)].x,nodes[ix(c,r+1)].y);ctx.stroke();}
+  const cx=W/2,cy=H/2;ctx.lineWidth=0.7;ctx.globalAlpha=wN*0.4;
+  for(const n of nodes){ctx.beginPath();ctx.moveTo(n.x,n.y);ctx.lineTo(cx,cy);ctx.stroke();}
+  const domA=wA>=wF&&wA>=wN,domN=wN>=wF;ctx.globalAlpha=1;
+  for(const n of nodes){const glow=domA?0.9:(domN?0.6:0.75);ctx.fillStyle=`rgba(245,245,247,${glow})`;const r=1.5+(domA?0.9:(domN?0:0.4));ctx.beginPath();ctx.arc(n.x,n.y,r,0,6.2832);ctx.fill();}
+  ctx.globalAlpha=1;
+  const pct=v=>Math.round(v*100)+'%';
+  document.getElementById('mA').textContent=pct(wA);
+  document.getElementById('mN').textContent=pct(wN);
+  document.getElementById('mF').textContent=pct(wF);
+  // stage indicator
+  const doms=document.querySelectorAll('#core .stage i');
+  doms[0].classList.toggle('on',domA);doms[2].classList.toggle('on',domN);doms[1].classList.toggle('on',!domA&&!domN);
+}
+function resize(){const r=CV.parentElement.getBoundingClientRect();W=r.width;H=r.height;CV.width=Math.round(W*DPR);CV.height=Math.round(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);buildNodes();}
+new ResizeObserver(resize).observe(document.querySelector('.frame-panel'));
+const panel=document.querySelector('.frame-panel');
+document.addEventListener('mousemove',e=>{const r=panel.getBoundingClientRect();cxp=(e.clientX-r.left)/r.width;});
+document.addEventListener('touchmove',e=>{const r=panel.getBoundingClientRect();cxp=(e.touches[0].clientX-r.left)/r.width;},{passive:true});
+
+/* ══════════ statement — tap to transform ══════════ */
+const statement=document.querySelector('.statement');
+statement.addEventListener('click',()=>statement.classList.toggle('swap'));
+
+/* boot */
+resize();draw();
+</script>
+</body>
+</html>

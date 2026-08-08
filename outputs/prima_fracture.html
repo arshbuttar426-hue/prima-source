@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prima · Fracture</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:#08080c;color:#f5f5f7;-webkit-font-smoothing:antialiased;font-weight:300;overflow:hidden;height:100vh;width:100vw;cursor:crosshair}
+  #morph{position:fixed;inset:0;width:100%;height:100%}
+  #hint{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);z-index:10;font-size:0.7rem;font-weight:300;color:rgba(255,255,255,0.2);letter-spacing:0.06em;pointer-events:none;transition:opacity 0.5s}
+</style>
+</head>
+<body>
+
+<canvas id="morph"></canvas>
+<div id="hint">drag — cut a seam · right‑click — heal</div>
+
+<script>
+// ══ MORPH GRID — the proven engine ══
+const C = { bg:'#08080c', blue:'#5a7aff', orange:'#e06a3a', gold:'#f5c451', ink:'#f5f5f7' };
+const cv = document.getElementById('morph');
+const ctx = cv.getContext('2d');
+let DPR = Math.min(window.devicePixelRatio || 1, 2);
+let W, H;
+let COLS = 26, ROWS = 15;
+let nodes = [];
+let mx = -9, my = -9, smx = -9;
+let targetPhase = 0.5, phase = 0.5;
+
+function buildNodes() {
+  const padX = W * 0.06, padY = H * 0.22;
+  const gw = (W - padX * 2) / (COLS - 1);
+  const gh = (H - padY * 2) / (ROWS - 1);
+  const fresh = nodes.length === 0;
+  const next = [];
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const tx = padX + c * gw, ty = padY + r * gh;
+    if (fresh) next.push({ x: tx, y: ty, bx: tx, by: ty, c, r, bob: Math.random() * 6.28 });
+    else { const old = nodes[r * COLS + c]; next.push({ x: old.x, y: old.y, bx: tx, by: ty, c, r, bob: old.bob }); }
+  }
+  nodes = next;
+}
+
+function weights(ph) {
+  const b = 0.42;
+  const w0 = Math.exp(-Math.pow((ph - 0) / b, 2));
+  const w1 = Math.exp(-Math.pow((ph - 0.5) / b, 2));
+  const w2 = Math.exp(-Math.pow((ph - 1) / b, 2));
+  const s = w0 + w1 + w2 || 1;
+  return [w0 / s, w1 / s, w2 / s];
+}
+function idx(c, r) { return r * COLS + c; }
+
+// ══ FAULTS — seams you draw; the field tears open then heals ══
+let faults = [];
+let drawing = null;
+
+function segNorm(ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const L = Math.hypot(dx, dy) || 1;
+  return { ux: dx / L, uy: dy / L, nx: -dy / L, ny: dx / L, len: L };
+}
+
+function draw() {
+  requestAnimationFrame(draw);
+  if (!W) return;
+
+  const t = performance.now() * 0.001;
+  const tightness = Math.max(0.4, Math.min(1.4, 1280 / Math.max(W, 320)));
+  const phaseEase = 0.04 + (tightness - 0.4) * 0.05;
+
+  if (smx >= 0) targetPhase = smx / W;
+  else targetPhase += (0.5 - targetPhase) * 0.015;
+  // more open seam = more fragmented = bias toward burst
+  let stress = 0;
+  for (const f of faults) stress += f.life;
+  const bias = Math.min(1, stress / 2.2);
+  const effectivePhase = phase * (1 - bias) + 0.72 * bias;
+  phase += (targetPhase - phase) * phaseEase;
+
+  const [wA, wF, wN] = weights(effectivePhase);
+
+  // displace nodes: tear open along each fault (which becomes the seam)
+  for (const n of nodes) {
+    let nx = n.bx, ny = n.by;
+    let near = 0;
+    for (const f of faults) {
+      if (f.life <= 0) continue;
+      const g = segNorm(f.x1, f.y1, f.x2, f.y2);
+      const wx = nx - f.x1, wy = ny - f.y1;
+      const along = wx * g.ux + wy * g.uy;
+      if (along < -30 || along > g.len + 30) continue;     // finite scar
+      const perp = wx * g.nx + wy * g.ny;
+      const open = Math.exp(-Math.pow(perp / 26, 2));       // peak at the line
+      const amt = open * f.life * 22;
+      nx += g.nx * Math.sign(perp || 1) * amt;
+      ny += g.ny * Math.sign(perp || 1) * amt;
+      near = Math.max(near, open);
+    }
+    n.x = nx + Math.sin(t * 0.6 + n.bob) * 5;
+    n.y = ny + Math.cos(t * 0.5 + n.bob) * 5;
+    n.near = near;
+  }
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Mode A — wave (blue)
+  ctx.lineWidth = 1; ctx.strokeStyle = C.blue; ctx.globalAlpha = wA * 0.5;
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS - 1; c++) {
+    const a = nodes[idx(c, r)], b = nodes[idx(c + 1, r)];
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+
+  // Mode F — lattice (gold)
+  ctx.strokeStyle = C.gold; ctx.globalAlpha = wF * 0.4;
+  for (let r = 0; r < ROWS - 1; r++) for (let c = 0; c < COLS - 1; c++) {
+    const a = nodes[idx(c, r)], b = nodes[idx(c + 1, r + 1)];
+    const a2 = nodes[idx(c + 1, r)], b2 = nodes[idx(c, r + 1)];
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(a2.x, a2.y); ctx.lineTo(b2.x, b2.y); ctx.stroke();
+  }
+
+  // Mode N — burst (orange)
+  ctx.strokeStyle = C.orange; ctx.globalAlpha = wN * 0.35;
+  for (const n of nodes) { ctx.beginPath(); ctx.moveTo(n.x, n.y); ctx.lineTo(W / 2, H / 2); ctx.stroke(); }
+
+  // faults — the drawn seam, alive and healing
+  for (let i = faults.length - 1; i >= 0; i--) {
+    const f = faults[i];
+    f.life = Math.max(0, f.life - 0.0009);
+    if (f.life <= 0) { faults.splice(i, 1); continue; }
+    const pulse = Math.sin(t * 4 + f.x1) * 0.25 + 0.75;
+    ctx.strokeStyle = `rgba(245,245,247,${0.5 * f.life * pulse})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(f.x1, f.y1); ctx.lineTo(f.x2, f.y2); ctx.stroke();
+  }
+
+  // nodes — torn-open ones (near a seam) glow gold and grow
+  ctx.globalAlpha = 1;
+  for (const n of nodes) {
+    const torn = n.near > 0.35;
+    const dominated = wA >= wF && wA >= wN ? 0 : (wN >= wF ? 2 : 1);
+    const color = torn ? C.gold : (dominated === 0 ? C.blue : (dominated === 2 ? C.orange : C.gold));
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(n.x, n.y, torn ? 2.4 : 1.6, 0, 6.2832); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  const hint = document.getElementById('hint');
+  hint.style.opacity = faults.length > 0 ? '0' : '1';
+}
+
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); buildNodes();
+}
+
+// drag to cut
+cv.addEventListener('mousedown', e => {
+  const r = cv.getBoundingClientRect();
+  const x = (e.clientX - r.left) * W / r.width, y = (e.clientY - r.top) * H / r.height;
+  drawing = { x1: x, y1: y, x2: x, y2: y };
+});
+cv.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY; smx = mx;
+  if (drawing) {
+    const r = cv.getBoundingClientRect();
+    drawing.x2 = (e.clientX - r.left) * W / r.width;
+    drawing.y2 = (e.clientY - r.top) * H / r.height;
+  }
+});
+window.addEventListener('mouseup', () => {
+  if (drawing) { drawing.life = 1.0; faults.push(drawing); drawing = null; }
+});
+cv.addEventListener('contextmenu', e => { e.preventDefault(); faults = []; });
+document.addEventListener('mouseleave', () => { smx = -9; });
+document.addEventListener('touchmove', e => { smx = e.touches[0].clientX; });
+window.addEventListener('resize', resize);
+resize(); draw();
+</script>
+</body>
+</html>

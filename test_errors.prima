@@ -1,0 +1,7 @@
+-- test_errors.prima: positive constraint violation
+-- 42 is not a string
+pipe check_type(x) {
+    x as string;
+    output x;
+};
+check_type(42);

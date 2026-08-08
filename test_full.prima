@@ -1,0 +1,69 @@
+-- test_full.prima: comprehensive test of all three primitives
+
+-- frame definitions referencing builtins
+even_score as even not_as zero;
+
+-- spaces
+space string_ops {
+    fn[0] = upper,
+    fn[1] = lower,
+    fn[2] = reverse,
+    fn[3] = capitalize,
+    fn[4] = trim,
+};
+
+space combos {
+    fn[0] = concat,
+    fn[1] = repeat,
+};
+
+space math {
+    fn[0] = add,
+    fn[1] = pow,
+    fn[2] = min,
+    fn[3] = max,
+    fn[4] = double,
+};
+
+-- pipeline: validate then transform string
+pipe format(name, op) {
+    name as string;
+    name not_as empty;
+    -> fn[op] from string_ops(name);
+    result as string;
+    result not_as empty;
+    output result;
+};
+
+-- pipeline: even number processing
+pipe process_even(val) {
+    val as even_score;
+    -> fn[0] from math(val, 2);
+    result as number;
+    output result;
+};
+
+-- pipeline: combine strings
+pipe join(a, b, times) {
+    a as string;
+    b as string;
+    a not_as empty;
+    b not_as empty;
+    -> fn[0] from combos(a, b);
+    -> fn[1] from combos(result, times);
+    output result;
+};
+
+-- exec: string operations
+format("hello", 0);
+format("WORLD", 1);
+format("  spaced  ", 4);
+format("hello", 2);
+format("hello", 3);
+
+-- exec: even number processing
+process_even(4);
+process_even(10);
+
+-- exec: string combine
+join("abc", "def", 3);

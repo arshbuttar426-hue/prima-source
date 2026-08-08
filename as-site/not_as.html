@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>not_as</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="page-na">
+<div class="scene" id="scene">
+  <div class="layer l-as" id="layerAs"></div>
+  <div class="layer l-na" id="layerNa"></div>
+</div>
+
+<nav class="nav">
+  <a href="index.html">synthesis</a>
+  <a href="as.html">as</a>
+  <a href="not_as.html" class="active">not_as</a>
+</nav>
+
+<main class="content">
+  <h1><span class="hl-na">not_as</span></h1>
+  <p class="sub">The function. Pure computation. Returns a number.</p>
+  <p class="body">A <em>not_as</em> receives the input and returns a single number. Internally it can do anything — recursion, I/O, loops, network calls — but externally it is just a value contributed to the pipeline. It never calls another <em>not_as</em> directly. The connection is always through an <em>as</em>.</p>
+  <p class="body">This separation is the entire point. The <em>not_as</em> owns the complexity of computation. The <em>as</em> owns the simplicity of connection. Neither crosses into the other's domain.</p>
+  <div class="rule">not_as has no position. not_as <em>is</em> the value of computation.</div>
+</main>
+
+<script src="parallax.js"></script>
+</body>
+</html>

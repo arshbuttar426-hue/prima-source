@@ -1,0 +1,75 @@
+-- disclosive.prima
+-- A generative interference weave compiled by prima.
+-- Sub-pipelines chain one row at a time; each rotates the motif by its index.
+-- Run: ./prima disclosive.prima  -> writes outputs/disclosive_weave.html
+
+-- frames -----------------------------------------------------------------
+rowval  as number  not_as negative;
+
+-- spaces -----------------------------------------------------------------
+space txt { fn[0]=concat, fn[1]=split_list, fn[2]=join_list, fn[3]=substr };
+space mth { fn[0]=add, fn[1]=sub, fn[2]=mul, fn[3]=div, fn[4]=mod };
+space io  { fn[0]=read_file, fn[1]=write_file, fn[2]=file_exists };
+
+-- row 0 (no accumulator): the seed row
+pipe row0() {
+    -> fn[2] from mth(0, 6);
+    -> fn[4] from mth(result, 32);
+    -> fn[3] from txt("#@%&+=*=-:.;.#@%&+=*=-:.;.#@%&+=*=-:.;.#@%&+=*=-:.;.", result, 32);
+    output result;
+};
+
+-- row y: acc + (motif rotated by y*6 mod 32) + newline
+pipe row(y, acc) {
+    y as any; y as rowval; acc as any;
+    -> fn[2] from mth(y, 6);
+    -> fn[4] from mth(result, 32);
+    -> fn[3] from txt("#@%&+=*=-:.;.#@%&+=*=-:.;.#@%&+=*=-:.;.#@%&+=*=-:.;.", result, 32);
+    -> fn[0] from txt(acc, result);
+-> fn[0] from txt(result, "
+");
+    output result;
+};
+
+-- build: seed, chain every row, prepend wrap, write out.
+pipe build(out) {
+    out as string;
+    -> pipe row0();
+    -> pipe row(1, result);
+    -> pipe row(2, result);
+    -> pipe row(3, result);
+    -> pipe row(4, result);
+    -> pipe row(5, result);
+    -> pipe row(6, result);
+    -> pipe row(7, result);
+    -> pipe row(8, result);
+    -> pipe row(9, result);
+    -> pipe row(10, result);
+    -> pipe row(11, result);
+    -> pipe row(12, result);
+    -> pipe row(13, result);
+    -> pipe row(14, result);
+    -> pipe row(15, result);
+    -> pipe row(16, result);
+    -> pipe row(17, result);
+    -> pipe row(18, result);
+    -> pipe row(19, result);
+    -> pipe row(20, result);
+    -> pipe row(21, result);
+    -> pipe row(22, result);
+    -> pipe row(23, result);
+    -> pipe row(24, result);
+    -> pipe row(25, result);
+    -> pipe row(26, result);
+    -> pipe row(27, result);
+    -> pipe row(28, result);
+    -> pipe row(29, result);
+    -> pipe row(30, result);
+    -> pipe row(31, result);
+    -> fn[0] from txt("<pre style='color:#d7e6ff;background:#05060a;font:13px/1.14 ui-monospace,monospace;padding:18px;'>", result);
+    -> fn[0] from txt(result, "</pre>");
+    -> fn[1] from io(out, result);
+    output result;
+};
+
+build("outputs/disclosive_weave.html");
