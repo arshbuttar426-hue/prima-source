@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>as / not_as</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@300;400&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #f4f2ed; color: #1a1a1a; line-height: 1.6; }
+  .wrap { max-width: 780px; margin: 0 auto; padding: 0 24px; }
+
+  /* hero */
+  .hero { padding: 120px 0 80px; text-align: center; position: relative; overflow: hidden; }
+  .hero::before {
+    content: ''; position: absolute; top: -40%; left: 50%; width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(90,122,255,0.06) 0%, transparent 70%);
+    transform: translateX(-50%); pointer-events: none;
+  }
+  .hero h1 { font-size: 5rem; font-weight: 300; letter-spacing: -3px; line-height: 1; }
+  .hero h1 .as { color: #4a6aff; font-weight: 400; }
+  .hero h1 .divider { color: #ccc; font-weight: 200; margin: 0 8px; }
+  .hero h1 .na { color: #e05a2a; font-weight: 400; }
+  .hero .tagline { font-size: 1.05rem; color: #888; margin-top: 20px; font-weight: 300; letter-spacing: 0.3px; }
+
+  /* viz */
+  .viz-wrap { margin: 60px 0; overflow-x: auto; }
+  .viz { display: flex; align-items: center; justify-content: center; gap: 0; min-width: 600px; }
+  .v-node { position: relative; display: flex; align-items: center; justify-content: center; }
+  .v-fn {
+    width: 96px; height: 64px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.5px; text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .v-fn.na { background: #fff; border: 1.5px solid #e05a2a; color: #e05a2a; box-shadow: 0 2px 12px rgba(224,90,42,0.08); }
+  .v-as {
+    width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem; font-weight: 600;
+    background: #fff; border: 1.5px solid #4a6aff; color: #4a6aff;
+    margin: 0 8px; position: relative; z-index: 1;
+  }
+  .v-as .lbl { position: absolute; bottom: -22px; font-size: 0.6rem; color: #999; font-weight: 400; text-transform: uppercase; letter-spacing: 1px; }
+  .v-as .lbl.top { bottom: auto; top: -22px; }
+  .v-line { color: #ddd; font-size: 1.2rem; margin: 0 2px; }
+  .v-result {
+    width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: #1a1a1a; color: #f4f2ed; font-size: 0.85rem; font-weight: 600; margin-left: 12px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* sections */
+  h2 { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: #999; margin-top: 80px; margin-bottom: 24px; }
+  h3 { font-size: 1.5rem; font-weight: 300; margin-bottom: 16px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 32px 0; }
+  .card {
+    background: #fff; border-radius: 10px; padding: 28px; border: 1px solid #eee;
+    transition: box-shadow 0.2s;
+  }
+  .card:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.04); }
+  .card .sym { font-size: 2rem; display: block; margin-bottom: 12px; }
+  .card .sym.as { color: #4a6aff; }
+  .card .sym.na { color: #e05a2a; }
+  .card h4 { font-size: 1.1rem; font-weight: 500; margin-bottom: 4px; }
+  .card .meta { font-size: 0.75rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+  .card p { font-size: 0.92rem; color: #555; line-height: 1.7; }
+
+  .rule-box { background: #fff; border-radius: 10px; padding: 28px; border: 1px solid #eee; margin: 32px 0; }
+  .rule-box strong { color: #1a1a1a; }
+  .rule-box code { background: #f4f2ed; padding: 2px 8px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+
+  /* playground */
+  .playground { background: #fff; border-radius: 12px; border: 1px solid #eee; padding: 32px; margin: 40px 0; }
+  .pg-hdr { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+  .pg-hdr label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #aaa; }
+  .pg-hdr input { font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 300; border: none; border-bottom: 1.5px solid #ddd; padding: 4px 0; width: 100px; background: transparent; color: #1a1a1a; }
+  .pg-hdr input:focus { outline: none; border-color: #4a6aff; }
+  .pg-modes { display: flex; gap: 8px; }
+  .pg-modes button {
+    font-family: 'Inter', sans-serif; font-size: 0.8rem; padding: 8px 18px; border-radius: 6px;
+    border: 1px solid #ddd; background: #fafaf8; color: #888; cursor: pointer; transition: all 0.15s;
+  }
+  .pg-modes button:hover { border-color: #bbb; color: #555; }
+  .pg-modes button.active { background: #1a1a1a; color: #f4f2ed; border-color: #1a1a1a; }
+  .pg-stats { display: flex; gap: 24px; font-size: 0.8rem; color: #888; margin-bottom: 20px; flex-wrap: wrap; }
+  .pg-stats span strong { color: #333; font-weight: 500; }
+  .pg-result { font-size: 3.5rem; font-weight: 200; letter-spacing: -2px; margin-top: 8px; }
+  .pg-result .note { font-size: 0.85rem; font-weight: 300; color: #aaa; margin-left: 12px; letter-spacing: 0; }
+
+  /* principles */
+  .principle { background: #fff; border-radius: 10px; padding: 24px 28px; border: 1px solid #eee; margin: 16px 0; }
+  .principle .num { font-size: 0.7rem; font-weight: 600; color: #4a6aff; text-transform: uppercase; letter-spacing: 1px; }
+  .principle h4 { font-size: 1.1rem; font-weight: 500; margin: 4px 0 8px; }
+  .principle p { font-size: 0.92rem; color: #555; line-height: 1.7; }
+
+  .outro { margin: 100px 0 60px; text-align: center; }
+  .outro p { font-size: 0.9rem; color: #aaa; font-style: italic; }
+
+  hr { border: none; border-top: 1px solid #eee; margin: 60px 0; }
+
+  @media (max-width: 640px) {
+    .hero h1 { font-size: 3rem; }
+    .grid-2 { grid-template-columns: 1fr; }
+    .pg-hdr { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="wrap">
+    <h1>
+      <span class="as">as</span>
+      <span class="divider">/</span>
+      <span class="na">not_as</span>
+    </h1>
+    <div class="tagline">Two primitives. One rule. The joint is the architecture.</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="viz-wrap">
+    <div class="viz">
+      <div class="v-node">
+        <div class="v-fn na">prime</div>
+      </div>
+      <div class="v-line">→</div>
+      <div class="v-node">
+        <div class="v-as">+<span class="lbl top">as</span></div>
+      </div>
+      <div class="v-line">→</div>
+      <div class="v-node">
+        <div class="v-fn na">pairs</div>
+      </div>
+      <div class="v-line">→</div>
+      <div class="v-node">
+        <div class="v-as">−<span class="lbl top">as</span></div>
+      </div>
+      <div class="v-line">→</div>
+      <div class="v-node">
+        <div class="v-fn na">signature</div>
+      </div>
+      <div class="v-line">=</div>
+      <div class="v-node">
+        <div class="v-result">R</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Two primitives</h2>
+  <div class="grid-2">
+    <div class="card">
+      <div class="sym as">as</div>
+      <div class="meta">position · connector · no value</div>
+      <h4>The joint</h4>
+      <p>Carries nothing. Pure topology. Tells the system whether a <em>not_as</em> adds or subtracts. The architecture is the arrangement of joints. Change the joint, change the question.</p>
+    </div>
+    <div class="card">
+      <div class="sym na">not_as</div>
+      <div class="meta">computation · function · returns a number</div>
+      <h4>The substance</h4>
+      <p>Does the work. Receives the input, returns a number. Never calls another <em>not_as</em> directly. Internals are free — externals are always just a value in an equation.</p>
+    </div>
+  </div>
+
+  <h2>One rule</h2>
+  <div class="rule-box">
+    <p>Every interconnection is <code>+</code> or <code>−</code>. No event bus, no dependency injection, no message queue. Every <em>not_as</em> receives the same input independently. The output is the arithmetic sum of all positioned values. Debugging is linear trace: expected sum vs actual sum, find the divergent term, fix it.</p>
+  </div>
+
+  <h2>The playground</h2>
+  <p style="color:#888;font-size:0.9rem;margin-bottom:24px;">Same four functions, different <em>as</em> arrangements. The architecture selects the question.</p>
+  <div class="playground" id="playground">
+    <div class="pg-hdr">
+      <div>
+        <label>enter a number</label>
+        <input type="number" id="pg-input" value="27" min="1">
+      </div>
+      <div class="pg-modes">
+        <button class="active" data-mode="explosion">explosion</button>
+        <button data-mode="energy">energy</button>
+        <button data-mode="parity">parity</button>
+      </div>
+    </div>
+    <div class="pg-stats" id="pg-stats">
+      <span>steps <strong id="sv">—</strong></span>
+      <span>peak <strong id="pv">—</strong></span>
+      <span>even ratio <strong id="ev">—</strong></span>
+      <span>power of two <strong id="wv">—</strong></span>
+    </div>
+    <div class="pg-result" id="pg-result">— <span class="note"></span></div>
+  </div>
+
+  <h2>Three axioms</h2>
+
+  <div class="principle">
+    <div class="num">I</div>
+    <h4>Synthesis with richness</h4>
+    <p>Every decision holds thesis and antithesis. The unbiased synthesis is their average — because addition is commutative. Thesis first or antithesis first, T + A = A + T. The gap between them (richness) signals when to investigate, not merge.</p>
+  </div>
+  <div class="principle">
+    <div class="num">II</div>
+    <h4>Cross-domain simplification</h4>
+    <p>True simplification widens, not narrows. A rendering bug is never just a rendering bug — simplify and the root cause lives in a different room. The last meal connects to the psychiatric symptom. The dot-connector is the path across domains.</p>
+  </div>
+  <div class="principle">
+    <div class="num">III</div>
+    <h4>Arithmetic architecture</h4>
+    <p>A system has two kinds of thing: the joint (<em>as</em>) and the computation (<em>not_as</em>). Joints carry no value — they are pure position. Computations carry no position — they are pure value. All connections are + or −. No hidden state. No third kind.</p>
+  </div>
+
+  <hr>
+
+  <div class="outro">
+    <p>Two primitives. You already have everything you need.</p>
+    <p style="font-size:0.8rem;color:#ddd;margin-top:16px;">as / not_as · 2026</p>
+  </div>
+</div>
+
+<script>
+function collatzSteps(n) { let s=0,x=n; while(x!==1){x=x%2===0?x/2:3*x+1;s++} return s; }
+function peakValue(n) { let x=n,p=n; while(x!==1){x=x%2===0?x/2:3*x+1;if(x>p)p=x} return p; }
+function evenRatioPct(n) { let x=n,e=0,t=0; while(x!==1){if(x%2===0)e++;x=x%2===0?x/2:3*x+1;t++} return t?Math.round(e/t*100):0; }
+function isPow2(n) { return (n>0&&(n&(n-1))===0)?n:0; }
+class As{constructor(k){this.kind=k}}
+const P=new As("+"),M=new As("-");
+function run(expr,v){let r=0,op="+";for(const n of expr){if(n instanceof As){if(n.kind!="nil")op=n.kind}else{const w=n(v);r=op==="+"?r+w:r-w}}return r}
+const A=[collatzSteps,P,peakValue,M,evenRatioPct];
+const B=[collatzSteps,M,isPow2,P,peakValue];
+const C=[evenRatioPct,P,isPow2,M,collatzSteps];
+const modes={explosion:A,energy:B,parity:C};
+const modeLabels={explosion:['steps + peak − even%','how high does it fly before falling?'],energy:['steps − pow2 + peak','total kinetic energy of the trajectory'],parity:['even% + pow2 − steps','the shape of the path, not the height']};
+
+let currentMode='explosion';
+
+function update(val){
+  if(val<1)return;
+  const s=collatzSteps(val),p=peakValue(val),e=evenRatioPct(val),w=isPow2(val);
+  document.getElementById('sv').textContent=s;
+  document.getElementById('pv').textContent=p;
+  document.getElementById('ev').textContent=e+'%';
+  document.getElementById('wv').textContent=w||'—';
+  const r=run(modes[currentMode],val);
+  const lbl=modeLabels[currentMode];
+  document.getElementById('pg-result').innerHTML=`${r} <span class="note">${lbl[1]}</span>`;
+}
+
+document.getElementById('pg-input').addEventListener('input',function(){
+  const v=parseInt(this.value);
+  if(v>0)update(v);
+});
+
+document.querySelectorAll('.pg-modes button').forEach(btn=>{
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.pg-modes button').forEach(b=>b.classList.remove('active'));
+    this.classList.add('active');
+    currentMode=this.dataset.mode;
+    const v=parseInt(document.getElementById('pg-input').value);
+    if(v>0)update(v);
+  });
+});
+
+update(27);
+</script>
+</body>
+</html>

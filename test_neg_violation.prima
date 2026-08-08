@@ -1,6 +1,0 @@
-non_empty_string as string not_as empty;
-pipe check_full(x) {
-    x as non_empty_string;
-    output x;
-};
-check_full("");

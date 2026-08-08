@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>as/not_as — reaction-diffusion</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#08080c; display:flex; align-items:center; justify-content:center; height:100vh; overflow:hidden; }
+  canvas { image-rendering:pixelated; image-rendering:crisp-edges; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+const W = 200, H = 120;
+c.width = W; c.height = H;
+c.style.width = 'min(100vw, 100vh * 200/120)';
+c.style.height = 'min(100vh, 100vw * 120/200)';
+
+const Du = 0.16, Dv = 0.08;
+const feed = 0.035, kill = 0.065;
+const dt = 0.5;
+
+const u = new Float32Array(W*H), v = new Float32Array(W*H);
+const nu = new Float32Array(W*H), nv = new Float32Array(W*H);
+
+// seed: random V in a square in the center
+for (let y=0; y<H; y++) {
+  for (let x=0; x<W; x++) {
+    if (x>W*0.3 && x<W*0.7 && y>H*0.3 && y<H*0.7) {
+      u[y*W+x] = 0.5 + 0.5 * Math.random();
+      v[y*W+x] = 0.25 + 0.25 * Math.random();
+    } else {
+      u[y*W+x] = 1.0;
+      v[y*W+x] = 0.0;
+    }
+  }
+}
+
+const lap = (g, x, y) => {
+  const i = y*W + x;
+  const l = (x>0?g[i-1]:g[i]), r = (x<W-1?g[i+1]:g[i]);
+  const up = (y>0?g[i-W]:g[i]), dn = (y<H-1?g[i+W]:g[i]);
+  const ul = (x>0&&y>0?g[i-W-1]:g[i]), ur = (x<W-1&&y>0?g[i-W+1]:g[i]);
+  const dl = (x>0&&y<H-1?g[i+W-1]:g[i]), dr = (x<W-1&&y<H-1?g[i+W+1]:g[i]);
+  return 0.05*ul + 0.2*up + 0.05*ur + 0.2*l - g[i] + 0.2*r + 0.05*dl + 0.2*dn + 0.05*dr;
+};
+
+let ms = [0,0];
+
+function step() {
+  for (let y=0; y<H; y++) {
+    for (let x=0; x<W; x++) {
+      const i = y*W + x;
+      const lu = lap(u,x,y), lv = lap(v,x,y);
+      const uvv = u[i] * v[i] * v[i];
+      nu[i] = u[i] + (Du*lu - uvv + feed*(1-u[i])) * dt;
+      nv[i] = v[i] + (Dv*lv + uvv - (feed+kill)*v[i]) * dt;
+    }
+  }
+
+  const img = ctx.createImageData(W, H);
+  const px = img.data;
+  for (let i=0; i<W*H; i++) {
+    const uv = Math.max(0, Math.min(1, nu[i]));
+    const vv = Math.max(0, Math.min(1, nv[i]));
+    px[i*4] = Math.floor(vv*255);
+    px[i*4+1] = Math.floor(vv*80 + (1-uv)*30);
+    px[i*4+2] = Math.floor(uv*200 + 20);
+    px[i*4+3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+
+  [u,nu] = [nu,u];
+  [v,nv] = [nv,v];
+
+  // mouse
+  if (ms[0]>=0 && ms[1]>=0) {
+    const cx = Math.floor(ms[0]), cy = Math.floor(ms[1]);
+    for (let y=cy-8; y<=cy+8; y++) {
+      for (let x=cx-8; x<=cx+8; x++) {
+        if (x<0||x>=W||y<0||y>=H) continue;
+        if (Math.hypot(x-cx,y-cy)<8) {
+          u[y*W+x] = 0.5;
+          v[y*W+x] = 0.25;
+        }
+      }
+    }
+  }
+
+  requestAnimationFrame(step);
+}
+
+function pos(e) {
+  const r=c.getBoundingClientRect();
+  return [(e.clientX-r.left)/r.width*W, (e.clientY-r.top)/r.height*H];
+}
+c.addEventListener('mousedown', e => { ms=pos(e); });
+c.addEventListener('mousemove', e => { if(ms[0]>=0)ms=pos(e); });
+c.addEventListener('mouseup', () => { ms=[-1,-1]; });
+c.addEventListener('mouseleave', () => { ms=[-1,-1]; });
+
+step();
+</script>
+</body>
+</html>

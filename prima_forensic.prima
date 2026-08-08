@@ -1,0 +1,9 @@
+-- prima_forensic.prima — reads CSV, outputs raw lines (one per transaction)
+space io { fn[0] = read_file, };
+
+pipe process(path) {
+    -> fn[0] from io(path);
+    output result;
+};
+
+process("data/tx_sample.csv");

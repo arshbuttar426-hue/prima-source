@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The frame is the architecture</title>
+<style>
+@layer tokens, base, layout, motion, platform;
+
+/* ═══════ TOKENS ═══════ */
+@layer tokens{
+  :root{
+    --u:8px;
+    --s-1:calc(var(--u)*1); --s-2:calc(var(--u)*2); --s-3:calc(var(--u)*3);
+    --s-4:calc(var(--u)*5); --s-5:calc(var(--u)*8); --s-6:calc(var(--u)*13); --s-7:calc(var(--u)*21);
+    --bg:#000; --surface:#0d0d0f; --panel:#0a0a0c;
+    --ink:#f5f5f7; --dim:#9a9aa2; --faint:rgba(255,255,255,0.34);
+    --line:rgba(255,255,255,0.07); --line-soft:rgba(255,255,255,0.045); --glow:rgba(255,255,255,0.035);
+    --t-xxs:clamp(0.70rem,0.62rem+0.28vw,0.82rem); --t-xs:clamp(0.80rem,0.70rem+0.34vw,0.92rem);
+    --t-sm:clamp(0.88rem,0.78rem+0.4vw,1rem); --t-md:clamp(1rem,0.86rem+0.6vw,1.12rem);
+    --t-lg:clamp(1.62rem,1.2rem+2.4vw,2.62rem); --t-xl:clamp(2.62rem,1.6rem+4.6vw,4.24rem);
+    --t-xxl:clamp(3.4rem,1.9rem+7vw,6.86rem);
+    --measure:65ch; --r-lg:24px; --r-md:18px; --r-sm:12px;
+    --ease-shutter:cubic-bezier(0.9,0,0.1,1); --ease-soft:cubic-bezier(0.22,0.61,0.36,1); --ease-spring:cubic-bezier(0.34,1.56,0.64,1);
+    --dur-fast:260ms; --dur-mid:600ms; --dur-slow:900ms;
+  }
+}
+
+/* ═══════ BASE ═══════ */
+@layer base{
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",sans-serif;
+    background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    font-size:var(--t-md);line-height:1.618;overflow-x:hidden;font-weight:400}
+  ::selection{background:rgba(255,255,255,0.18)}
+  :focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+}
+
+/* ═══════ LAYOUT ═══════ */
+@layer layout{
+  /* field */
+  #field{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(120% 90% at 50% 0%,var(--glow),transparent 60%)}
+  #field::after{content:"";position:absolute;inset:0;opacity:0.045;
+    background-image:linear-gradient(var(--line-soft) 1px,transparent 1px),
+                     linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);
+    background-size:96px 96px;
+    mask-image:radial-gradient(ellipse 70% 60% at 50% 40%,black,transparent 75%)}
+  #field .axis{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--line);transform:translateX(-0.5px)}
+  #field canvas{position:absolute;inset:0;width:100%;height:100%}
+
+  /* nav */
+  nav{position:fixed;top:0;inset-inline:0;z-index:50;height:44px;display:flex;align-items:center;
+    backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);
+    background:rgba(0,0,0,0.65);border-bottom:1px solid var(--line-soft)}
+  nav .inner{width:100%;max-width:1100px;margin-inline:auto;display:flex;align-items:center;gap:var(--s-4);padding-inline:var(--s-3)}
+  @media(min-width:600px){nav .inner{padding-inline:var(--s-4)}}
+  .mark{width:9px;height:9px;border-radius:50%;background:var(--ink);opacity:0.9;position:relative}
+  .mark::after{content:"";position:absolute;inset:-3px;border:1px solid var(--line);border-radius:50%}
+  nav .links{margin-left:auto;display:flex;gap:var(--s-3);align-items:center}
+  nav .links a{color:var(--faint);text-decoration:none;font-size:var(--t-xs);letter-spacing:-0.01em;transition:color var(--dur-fast) var(--ease-soft)}
+  nav .links a:hover{color:var(--ink)}
+  .brand{font-size:var(--t-xs);font-weight:600;letter-spacing:0.18em;text-transform:uppercase;display:flex;gap:0.5em;align-items:baseline}
+  .brand .state{color:var(--dim);font-weight:400}
+
+  /* hero */
+  .hero{position:relative;z-index:1;min-height:100svh;display:grid;place-items:center;text-align:center;padding:var(--s-7) var(--s-3) var(--s-5)}
+  .hero .inner{max-width:var(--measure)}
+  .eyebrow{font-size:var(--t-xxs);font-weight:500;letter-spacing:0.35em;text-transform:uppercase;color:var(--dim);margin-bottom:var(--s-3)}
+  .hero h1{font-weight:300;font-size:var(--t-xxl);letter-spacing:-0.045em;line-height:0.96;margin-bottom:var(--s-3)}
+  .hero .lede{font-size:var(--t-lg);font-weight:300;color:var(--dim);max-width:34rem;margin-inline:auto}
+
+  /* seam vessels — alternating polarity */
+  main{position:relative;z-index:1}
+  .vessel{position:relative;min-height:88vh;display:flex;align-items:center;padding:var(--s-6) var(--s-3)}
+  .vessel .box{width:min(430px,92%);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:var(--s-5) var(--s-4);position:relative}
+  .vessel .box::before{content:"";position:absolute;top:0;bottom:0;width:2px;background:var(--ink);transform:scaleY(0);transform-origin:top;transition:transform var(--dur-mid) var(--ease-shutter)}
+  .vessel .box:hover::before{transform:scaleY(1)}
+  .vessel .box .rail{font-size:var(--t-xxs);letter-spacing:0.3em;text-transform:uppercase;color:var(--dim);margin-bottom:var(--s-4);display:flex;align-items:center;gap:var(--s-2)}
+  .vessel .box .rail::after{content:"";height:1px;flex:1;background:var(--line-soft)}
+  .vessel .box h2{font-weight:300;font-size:var(--t-xl);letter-spacing:-0.03em;line-height:1.05;margin-bottom:var(--s-3)}
+  .vessel .box p{color:var(--dim);font-size:var(--t-sm);max-width:38ch}
+  .vessel .box .pole{font-size:var(--t-xxs);letter-spacing:0.25em;color:var(--faint);margin-top:var(--s-4)}
+  .vessel.L{justify-content:flex-start}
+  .vessel.L .box{margin-left:clamp(6vw,12vw,160px)}
+  .vessel.L .box::before{left:0}
+  .vessel.R{justify-content:flex-end}
+  .vessel.R .box{margin-right:clamp(6vw,12vw,160px)}
+  .vessel.R .box::before{right:0}
+  .vessel.R .box h2,.vessel.R .box p{text-align:right}
+  .vessel.R .box p{margin-left:auto}
+  .vessel.R .box .rail{flex-direction:row-reverse}
+
+  /* seam statements */
+  .seam-stmt{position:relative;z-index:1;min-height:80vh;display:grid;place-items:center;text-align:center;padding:var(--s-7) var(--s-3)}
+  .seam-stmt .big{font-weight:300;font-size:var(--t-xl);letter-spacing:-0.03em;line-height:1.2;color:var(--ink);max-width:40rem;margin-inline:auto;cursor:pointer;position:relative;min-height:1.2em}
+  .seam-stmt .stack{display:block}
+  .seam-x{display:inline-block;width:5.4rem;height:1px;vertical-align:middle;background:var(--ink);margin-inline:0.5em}
+
+  /* product grid — centered, sits below seam */
+  .products{position:relative;z-index:1;padding:var(--s-6) var(--s-3) var(--s-7);text-align:center}
+  .products h2{font-weight:300;font-size:var(--t-xl);letter-spacing:-0.03em;line-height:1.05;margin-bottom:var(--s-2)}
+  .products .sub{color:var(--dim);font-size:var(--t-sm);max-width:34rem;margin-inline:auto;margin-bottom:var(--s-5)}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--s-3);max-width:800px;margin-inline:auto}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:var(--s-5) var(--s-4);text-align:left;transition:background var(--dur-fast) var(--ease-soft)}
+  .card:hover{background:var(--panel)}
+  .card h3{font-weight:500;font-size:var(--t-sm);letter-spacing:-0.01em;margin-bottom:var(--s-2)}
+  .card p{color:var(--dim);font-size:var(--t-xs);line-height:1.7}
+
+  footer{position:relative;z-index:1;padding:var(--s-5) 0 var(--s-6);color:var(--faint);font-size:var(--t-xs);text-align:center;border-top:1px solid var(--line-soft)}
+  footer .big{font-weight:300;color:var(--ink);font-size:var(--t-lg);margin-bottom:var(--s-1)}
+
+  @media(max-width:760px){
+    .vessel{min-height:70vh}
+    .vessel .box{width:100%}
+    .vessel.L .box,.vessel.R .box{margin-inline:auto}
+    .vessel.R .box h2,.vessel.R .box p{text-align:left}
+    .vessel.R .box .rail{flex-direction:row}
+    .vessel.R .box p{margin-left:0}
+    #field .axis{display:none}
+  }
+}
+
+/* ═══════ MOTION ═══════ */
+@layer motion{
+  nav .links a{transition:color var(--dur-fast) var(--ease-soft)}
+}
+</style>
+</head>
+<body>
+
+<div id="field">
+  <div class="axis"></div>
+  <canvas id="cvs"></canvas>
+</div>
+
+<nav>
+  <div class="inner">
+    <div class="mark"></div>
+    <div class="brand">Prima<span class="state">The frame is the architecture</span></div>
+    <div class="links">
+      <a href="#design">Design</a>
+      <a href="#build">Build</a>
+      <a href="#work">Work</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="inner">
+    <div class="eyebrow">Build the right thing</div>
+    <h1>The frame is the<br>architecture.</h1>
+    <p class="lede">A design language that catches wrong decisions before they become code. Write once. Deploy everywhere. No framework lock-in.</p>
+  </div>
+</header>
+
+<main>
+  <div class="vessel L" id="design">
+    <div class="box">
+      <div class="rail">as — design</div>
+      <h2>Design is the single source of truth.</h2>
+      <p>Change a color and every screen updates. No handoff. No drift. Your design decisions are the architecture — not a Sketch file, not a Figma board, not a stale spec document.</p>
+      <div class="pole">+ position</div>
+    </div>
+  </div>
+
+  <div class="vessel R" id="build">
+    <div class="box">
+      <div class="rail">not_as — compile</div>
+      <h2>Any framework. One design language.</h2>
+      <p>Vanilla CSS, Tailwind, React, SwiftUI, Flutter — same source, different output. Change the target, not the design. Zero rewrites.</p>
+      <div class="pole">− computation</div>
+    </div>
+  </div>
+
+  <div class="seam-stmt">
+    <div class="big"><span class="stack">Offline. Private. <span class="seam-x"></span> Yours.</span></div>
+  </div>
+
+  <div class="vessel L">
+    <div class="box">
+      <div class="rail">as — validate</div>
+      <h2>Wrong states are caught before rendering.</h2>
+      <p>Define what a screen must be — and must not be. Every page, every component, every state is validated against the design law.</p>
+      <div class="pole">+ constraint</div>
+    </div>
+  </div>
+
+  <div class="vessel R">
+    <div class="box">
+      <div class="rail">not_as — run</div>
+      <h2>Runs entirely on your machine.</h2>
+      <p>No cloud. No API keys. No telemetry. Your design language stays yours. The compiler is 2000 lines of C. Auditable. Portable. Forever.</p>
+      <div class="pole">− execution</div>
+    </div>
+  </div>
+
+  <div class="seam-stmt">
+    <div class="big"><span class="stack">No framework will ever hold you hostage again.</span></div>
+  </div>
+</main>
+
+<section class="products" id="work">
+  <h2>Proven across platforms.</h2>
+  <p class="sub">Three files. One architecture. Any output.</p>
+  <div class="grid">
+    <div class="card">
+      <h3>Waveraft Studio</h3>
+      <p>Full agency site. Apple human interface design language. Froze nav, golden typography, radial field background.</p>
+    </div>
+    <div class="card">
+      <h3>Physics Launcher</h3>
+      <p>Six force modes: attract, repel, spring, drift, gravity, chaos. Three source files. Compiled to interactive web.</p>
+    </div>
+    <div class="card">
+      <h3>Aether</h3>
+      <p>Material Design dark theme. Drifting orbs. Glass navigation. Typewriter code panels. Floating stats. Spring animations.</p>
+    </div>
+    <div class="card">
+      <h3>Design extraction</h3>
+      <p>Reverse-engineered Apple.com, Hacker News, and more. Extracted design DNA. Recompiled to new products. Same constraints.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="big">Prima</div>
+  The design is the architecture. 2026.
+</footer>
+
+<script>
+/* subtle breathing dots on the seam axis */
+const cvs=document.getElementById('cvs'),ctx=cvs.getContext('2d');
+let W=0,H=0;
+function resize(){W=cvs.width=innerWidth;H=cvs.height=innerHeight}
+resize();addEventListener('resize',resize);
+const dots=[];for(let i=0;i<60;i++)dots.push({y:Math.random()*H,v:1+Math.random()*0.5,phase:Math.random()*Math.PI*2});
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const t=Date.now()*0.0008;
+  for(const d of dots){
+    const x=W/2+Math.sin(d.phase+t)*12;
+    const y=(d.y+d.v*t*30)%H;
+    const a=0.12+0.08*Math.sin(t*2+d.phase);
+    ctx.fillStyle=`rgba(245,245,247,${a})`;
+    ctx.beginPath();ctx.arc(x,y,0.6,0,6.2832);ctx.fill();
+  }
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>

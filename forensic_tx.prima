@@ -1,0 +1,56 @@
+-- forensic_tx.prima
+-- Forensic instrument: transaction anomaly detection
+-- Each record: amount, category, vendor, riskClass (computed)
+
+space io {
+    fn[0] = read_file,
+};
+
+space str {
+    fn[0] = split_list,
+    fn[1] = length,
+    fn[2] = trim,
+};
+
+space arith {
+    fn[0] = mul,
+    fn[1] = div,
+    fn[2] = add,
+};
+
+-- Frame: an anomaly is a high-value, high-frequency, or category-mismatch record
+anomaly as prime not_as zero;
+
+-- Pipeline: process one line of CSV
+pipe analyze_line(line) {
+    line as string;
+    line not_as empty;
+    -> fn[0] from str(line, ",");
+    for field in result {
+        -> fn[2] from str(field);
+        output result;
+    };
+};
+
+-- Pipeline: classify a transaction (amount, category, vendor_id)
+-- Output format: amount class
+pipe classify(tx, amount) {
+    tx as string;
+    output tx;
+};
+
+-- Entry point: read forensic data, split by line, classify each
+pipe forensic(path) {
+    -> fn[0] from io(path);
+    result as string;
+    -> fn[0] from str(result, "\n");
+    for line in result {
+        -> fn[0] from str(line, ",");
+        for field in result {
+            -> fn[2] from str(field);
+            output result;
+        };
+    };
+};
+
+forensic("data/tx_sample.csv");

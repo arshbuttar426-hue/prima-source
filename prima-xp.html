@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prima — as / not_as (Windows XP)</title>
+<style>
+  /* ——— Windows XP Luna Theme ——— */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap');
+  :root {
+    --blue:#5a7aff; --blue-chrome:#2f63c7; --orange:#e06a3a; --ink:#f5f5f7; --panel:#ece9d8; --panel-line:#d4d0c8;
+  }
+  :focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration:0.001ms !important; transition-duration:0.001ms !important; }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', 'Tahoma', 'Segoe UI', sans-serif;
+    background: #08080c;
+    color: #f5f5f7;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ——— XP Boot Screen ——— */
+  #boot-screen {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 100;
+    background: #08080c;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.8s ease;
+  }
+  #boot-screen.hidden { opacity: 0; pointer-events: none; }
+
+  #boot-screen .logo {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 200;
+    letter-spacing: -0.03em;
+    color: #f5f5f7;
+    margin-bottom: 40px;
+  }
+  #boot-screen .logo .as { color: #5a7aff; font-weight: 300; }
+  #boot-screen .logo .na { color: #e06a3a; font-weight: 300; }
+  #boot-screen .logo .s { color: rgba(255,255,255,0.15); font-weight: 200; margin: 0 4px; }
+
+  .boot-bar-wrap {
+    width: 280px;
+    height: 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 3px;
+    padding: 2px;
+    overflow: hidden;
+  }
+  .boot-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: #5a7aff;
+    border-radius: 2px;
+    transition: width 0.15s linear;
+  }
+  .boot-label {
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.3);
+    margin-top: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* ——— Desktop ——— */
+  #desktop {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 1;
+    background: #08080c;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ——— Desktop Icons ——— */
+  #desktop-icons {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-content: flex-start;
+  }
+  .desk-icon {
+    width: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+    user-select: none;
+  }
+  .desk-icon:hover { background: rgba(90,122,255,0.08); }
+  .desk-icon.selected { background: rgba(90,122,255,0.18); outline: 1px dotted rgba(255,255,255,0.4); outline-offset: -1px; }
+  .desk-icon .icon-box {
+    width: 40px; height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+  }
+  .desk-icon .icon-box.as { background: rgba(90,122,255,0.15); color: #5a7aff; }
+  .desk-icon .icon-box.na { background: rgba(224,106,58,0.15); color: #e06a3a; }
+  .desk-icon .icon-label {
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.6);
+    text-align: center;
+    line-height: 1.2;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  }
+  .desk-icon .icon-label .hl.as { color: #5a7aff; }
+  .desk-icon .icon-label .hl.na { color: #e06a3a; }
+
+  /* ——— XP Window ——— */
+  .xp-window {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.96);
+    width: min(700px, 90vw);
+    max-height: 80vh;
+    z-index: 20;
+    border-radius: 8px 8px 0 0;
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.5),
+      0 8px 40px rgba(0,0,0,0.5),
+      inset 0 0 0 1px rgba(255,255,255,0.06);
+    overflow: hidden;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.22,1,0.36,1);
+  }
+  .xp-window.open {
+    display: block;
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  .xp-window .title-bar {
+    background: #5a7aff;
+    padding: 6px 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+    cursor: default;
+  }
+  .xp-window .title-bar .tb-icon { font-size: 0.8rem; width: 20px; text-align: center; }
+  .xp-window .title-bar .tb-title {
+    flex: 1;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 0.02em;
+    text-shadow: 0 1px 0 rgba(0,0,0,0.3);
+  }
+  .xp-window .title-bar .tb-btn {
+    width: 18px; height: 18px;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.55rem;
+    color: #fff;
+    cursor: pointer;
+    background: rgba(255,255,255,0.05);
+    transition: background 0.1s;
+  }
+  .xp-window .title-bar .tb-btn:hover { background: rgba(255,255,255,0.15); }
+  .xp-window .title-bar .tb-close {
+    background: rgba(200,60,40,0.3);
+    border-color: rgba(200,60,40,0.4);
+  }
+  .xp-window .title-bar .tb-close:hover { background: rgba(220,80,60,0.7); }
+
+  .xp-window .window-body {
+    background: #ece9d8;
+    padding: 20px 24px;
+    color: #1a1a1a;
+    max-height: calc(80vh - 32px);
+    overflow-y: auto;
+  }
+
+  /* ——— Frame Display ——— */
+  .frame-display {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.7rem;
+    margin-bottom: 20px;
+    padding: 10px 14px;
+    background: #fff;
+    border: 1px solid #d4d0c8;
+    border-radius: 4px;
+    user-select: none;
+  }
+  .frame-display .atom {
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .frame-display .atom.na {
+    color: #e06a3a;
+    background: rgba(224,106,58,0.08);
+    border: 1px solid rgba(224,106,58,0.15);
+  }
+  .frame-display .atom.na.off {
+    color: rgba(224,106,58,0.2);
+    background: transparent;
+    border-color: rgba(224,106,58,0.06);
+  }
+  .frame-display .conn {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 22px;
+    text-align: center;
+  }
+  .frame-display .conn.as-plus { color: #3a7ad4; }
+  .frame-display .conn.as-minus { color: #c0392b; }
+  .frame-display .conn.off { color: rgba(0,0,0,0.1); }
+  .frame-display .eq { color: rgba(0,0,0,0.15); margin: 0 6px; }
+  .frame-display .result {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    padding: 4px 12px;
+    background: rgba(58,122,212,0.08);
+    border: 1px solid rgba(58,122,212,0.2);
+    border-radius: 4px;
+    min-width: 30px;
+    text-align: center;
+  }
+
+  /* ——— XP Tab Control ——— */
+  .xp-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #d4d0c8;
+  }
+  .xp-tab {
+    padding: 6px 16px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #555;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    margin-bottom: -1px;
+    transition: all 0.1s;
+    user-select: none;
+  }
+  .xp-tab:hover { color: #1a1a1a; }
+  .xp-tab.active {
+    background: #fff;
+    border-color: #d4d0c8;
+    color: #1a1a1a;
+    font-weight: 600;
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ——— XP Content Styles ——— */
+  .xp-body h2 {
+    font-size: 1.2rem;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #1a1a1a;
+  }
+  .xp-body h3 {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #888;
+    margin-bottom: 12px;
+  }
+  .xp-body p {
+    font-size: 0.82rem;
+    color: #444;
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+  .xp-body .hl.as { color: #4a6aff; font-weight: 500; }
+  .xp-body .hl.na { color: #e05a2a; font-weight: 500; }
+
+  .xp-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin: 16px 0;
+  }
+  .xp-card {
+    background: #fff;
+    border: 1px solid #d4d0c8;
+    border-radius: 4px;
+    padding: 14px;
+  }
+  .xp-card .icon { font-size: 1.4rem; margin-bottom: 6px; display: block; }
+  .xp-card h4 { font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; }
+  .xp-card p { font-size: 0.72rem; color: #666; margin-bottom: 0; }
+
+  .xp-box {
+    background: #fff;
+    border: 1px solid #d4d0c8;
+    border-radius: 4px;
+    padding: 16px;
+    margin: 16px 0;
+  }
+  .xp-box code {
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    color: #1a1a1a;
+    background: #f4f2ed;
+    padding: 1px 6px;
+    border-radius: 2px;
+  }
+  .xp-box strong { color: #1a1a1a; }
+
+  .xp-stat {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #fff;
+    border: 1px solid #d4d0c8;
+    border-radius: 2px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    color: #1a1a1a;
+    min-width: 30px;
+    text-align: center;
+  }
+
+  /* ——— Frame Chooser ——— */
+  .frame-chooser {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .frame-btn {
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 6px 14px;
+    border: 1px solid #d4d0c8;
+    background: #fff;
+    color: #555;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.1s;
+    font-family: 'Inter', sans-serif;
+    user-select: none;
+  }
+  .frame-btn:hover { border-color: #3a7ad4; color: #3a7ad4; }
+  .frame-btn.active {
+    background: #3a7ad4;
+    border-color: #2a5aad;
+    color: #fff;
+  }
+
+  .frame-desc {
+    font-size: 0.75rem;
+    color: #888;
+    font-style: italic;
+    margin-bottom: 12px;
+    padding: 6px 10px;
+    background: rgba(58,122,212,0.05);
+    border-left: 2px solid #3a7ad4;
+  }
+
+  /* ——— Value display ——— */
+  .values-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin: 12px 0;
+    align-items: center;
+  }
+  .value-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .value-item .v-label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #999;
+  }
+  .value-item .v-num {
+    font-size: 1.8rem;
+    font-weight: 200;
+    letter-spacing: -0.03em;
+  }
+  .value-item .v-num.as-col { color: #4a6aff; }
+  .value-item .v-num.na-col { color: #e05a2a; }
+
+  /* ——— XP Calculator ——— */
+  .calc-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    max-width: 240px;
+    margin: 12px 0;
+  }
+  .calc-btn {
+    padding: 10px;
+    text-align: center;
+    background: #fff;
+    border: 1px solid #d4d0c8;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: background 0.1s;
+    user-select: none;
+  }
+  .calc-btn:hover { background: #e8e4d8; }
+  .calc-btn:active { background: #d4d0c8; }
+  .calc-btn.op { background: #e8e4d8; font-weight: 600; color: #3a7ad4; }
+  .calc-btn.na { background: rgba(224,106,58,0.08); color: #e06a3a; font-weight: 600; }
+  .calc-btn.eq { background: #3a7ad4; color: #fff; border-color: #2a5aad; }
+  .calc-btn.eq:hover { background: #2a5aad; }
+  .calc-screen {
+    grid-column: 1 / -1;
+    padding: 10px 12px;
+    background: #fff;
+    border: 1px solid #d4d0c8;
+    border-radius: 3px;
+    text-align: right;
+    font-family: 'Courier New', monospace;
+    font-size: 1.4rem;
+    color: #1a1a1a;
+    min-height: 46px;
+    overflow: hidden;
+  }
+  .calc-screen .sub {
+    font-size: 0.65rem;
+    color: #999;
+    display: block;
+    text-align: left;
+    margin-bottom: 2px;
+  }
+
+  /* ——— Taskbar ——— */
+  #taskbar {
+    position: fixed;
+    bottom: 0; left: 0;
+    width: 100%;
+    height: 36px;
+    z-index: 50;
+    background: rgba(90,122,255,0.92);
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    gap: 4px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 -1px 2px rgba(0,0,0,0.3);
+  }
+  .start-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 12px 2px 6px;
+    border-radius: 0 4px 4px 0;
+    border: none;
+    background: #5a7aff;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    height: 28px;
+    text-shadow: 0 1px 0 rgba(0,0,0,0.3);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15);
+    transition: filter 0.1s;
+    user-select: none;
+  }
+  .start-btn:hover { filter: brightness(1.15); }
+  .start-btn:active { filter: brightness(0.9); }
+  .start-btn .start-logo {
+    font-size: 0.9rem;
+    transform: skewX(-10deg);
+  }
+
+  .taskbar-divider {
+    width: 1px;
+    height: 24px;
+    background: rgba(0,0,0,0.3);
+    margin: 0 4px;
+    box-shadow: 1px 0 0 rgba(255,255,255,0.1);
+  }
+
+  .taskbar-items {
+    display: flex;
+    gap: 2px;
+    flex: 1;
+    overflow: hidden;
+  }
+  .taskbar-item {
+    padding: 3px 12px;
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 2px;
+    cursor: pointer;
+    max-width: 160px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background 0.1s;
+  }
+  .taskbar-item:hover { background: rgba(255,255,255,0.1); }
+  .taskbar-item.active { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.15); }
+
+  .taskbar-tray {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 6px;
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.6);
+  }
+  .tray-clock { font-size: 0.7rem; font-weight: 500; color: #fff; letter-spacing: 0.02em; min-width: 50px; text-align: center; }
+
+  /* ——— Start Menu ——— */
+  #start-menu {
+    position: fixed;
+    bottom: 38px;
+    left: 0;
+    z-index: 60;
+    width: 320px;
+    background: #fff;
+    border: 1px solid #2a5aad;
+    border-radius: 6px 6px 0 0;
+    box-shadow: 4px -4px 20px rgba(0,0,0,0.4);
+    display: none;
+    overflow: hidden;
+    transform: translateY(8px);
+    opacity: 0;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+  }
+  #start-menu.open { display: block; transform: translateY(0); opacity: 1; }
+
+  .start-header {
+    background: #5a7aff;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .start-header .sh-icon {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: #5a7aff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: #fff;
+  }
+  .start-header .sh-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff;
+    text-shadow: 0 1px 0 rgba(0,0,0,0.2);
+  }
+
+  .start-body {
+    padding: 6px 0;
+    display: flex;
+  }
+  .start-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .start-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    font-size: 0.75rem;
+    color: #1a1a1a;
+    cursor: pointer;
+    transition: background 0.1s;
+    border: none;
+    background: transparent;
+    font-family: 'Inter', sans-serif;
+    text-align: left;
+    width: 100%;
+  }
+  .start-item:hover { background: rgba(58,122,212,0.08); }
+  .start-item .si-icon {
+    width: 24px;
+    text-align: center;
+    font-size: 0.9rem;
+  }
+
+  .start-sep { height: 1px; background: #e0ddd6; margin: 4px 12px; }
+
+  .start-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 6px 14px;
+    background: #ece9d8;
+    border-top: 1px solid #d4d0c8;
+    gap: 8px;
+  }
+  .start-footer button {
+    font-size: 0.7rem;
+    background: #fff;
+    border: 1px solid #d4d0c8;
+    border-radius: 3px;
+    padding: 4px 12px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    color: #1a1a1a;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .start-footer button:hover { background: #e8e4d8; }
+
+  /* ——— Closing animation ——— */
+  .shutdown-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 200;
+    background: #08080c;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.8s ease;
+  }
+  .shutdown-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .shutdown-overlay .sd-text {
+    font-size: 1.4rem;
+    font-weight: 200;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.02em;
+  }
+  .shutdown-overlay .sd-load {
+    display: flex;
+    gap: 4px;
+    margin-top: 16px;
+  }
+  .shutdown-overlay .sd-load span {
+    width: 6px; height: 6px;
+    background: #5a7aff;
+    border-radius: 50%;
+    animation: sdPulse 1s ease-in-out infinite;
+  }
+  .shutdown-overlay .sd-load span:nth-child(2) { animation-delay: 0.2s; }
+  .shutdown-overlay .sd-load span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes sdPulse {
+    0%, 100% { opacity: 0.2; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.5); }
+  }
+
+  /* ——— Creator Enrollment ——— */
+  .creator-form { display:flex; flex-direction:column; gap:14px; margin-top:8px; }
+  .creator-form .field { display:flex; flex-direction:column; gap:4px; }
+  .creator-form label { font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#888; }
+  .creator-form input, .creator-form select {
+    font-family:'Inter',sans-serif; font-size:0.85rem; color:#1a1a1a;
+    background:#fff; border:1px solid #d4d0c8; border-radius:3px; padding:8px 10px; outline:none;
+  }
+  .creator-form input:focus, .creator-form select:focus { border-color:#3a7ad4; box-shadow:0 0 0 2px rgba(58,122,212,0.15); }
+  .creator-form .enroll-btn {
+    align-self:flex-start; font-family:'Inter',sans-serif; font-size:0.8rem; font-weight:600;
+    background:#3a7ad4; color:#fff; border:1px solid #2a5aad; border-radius:3px; padding:9px 20px; cursor:pointer;
+    transition:background 0.1s;
+  }
+  .creator-form .enroll-btn:hover { background:#2a5aad; }
+  .creator-success { display:none; text-align:center; padding:18px 0; }
+  .creator-success.show { display:block; }
+  .creator-success .cs-icon { font-size:2rem; color:#3a7ad4; }
+  .creator-success .cs-title { font-size:1rem; font-weight:600; margin:8px 0 4px; }
+  .creator-success .cs-sub { font-size:0.78rem; color:#666; }
+
+  .xp-window.maximized {
+    top:0; left:0; width:100vw; height:100vh; max-height:none;
+    transform: translate(0,0) scale(1); border-radius:0;
+  }
+
+  /* ——— Responsive ——— */
+  @media (max-width: 640px) {
+    .xp-window { width: 95vw; top: 40%; max-height: 70vh; }
+    #start-menu { width: 280px; }
+    .xp-window .window-body { padding: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Boot Screen -->
+<div id="boot-screen">
+  <div class="logo">
+    <span class="as">as</span><span class="s"> / </span><span class="na">not_as</span>
+  </div>
+  <div class="boot-bar-wrap">
+    <div class="boot-bar-fill" id="bootFill"></div>
+  </div>
+  <div class="boot-label" id="bootLabel">framing the architecture</div>
+</div>
+
+<!-- Shutdown overlay -->
+<div class="shutdown-overlay" id="shutdownOverlay">
+  <div class="sd-text">re‑framing</div>
+  <div class="sd-load"><span></span><span></span><span></span></div>
+</div>
+
+<!-- Start Menu -->
+<div id="start-menu">
+  <div class="start-header">
+    <div class="sh-icon">as</div>
+    <div class="sh-name">Prima</div>
+  </div>
+  <div class="start-body">
+    <div class="start-col">
+      <button class="start-item" data-frame="explosion">
+        <span class="si-icon">◆</span> Explosion Frame
+      </button>
+      <button class="start-item" data-frame="energy">
+        <span class="si-icon">▲</span> Energy Frame
+      </button>
+      <button class="start-item" data-frame="parity">
+        <span class="si-icon">◉</span> Parity Frame
+      </button>
+      <button class="start-item" data-frame="identity">
+        <span class="si-icon">◎</span> Identity Frame
+      </button>
+      <div class="start-sep"></div>
+      <button class="start-item" data-frame="calculator">
+        <span class="si-icon">▣</span> Calculator
+      </button>
+      <button class="start-item" id="startCreator">
+        <span class="si-icon">❖</span> Become a Creator
+      </button>
+    </div>
+    <div class="start-col">
+      <button class="start-item" id="startAbout">
+        <span class="si-icon">ⓘ</span> About Prima
+      </button>
+      <button class="start-item" id="startConcepts">
+        <span class="si-icon">◉</span> Concepts
+      </button>
+      <div class="start-sep"></div>
+      <button class="start-item" id="startReboot">
+        <span class="si-icon">↻</span> Re‑frame
+      </button>
+    </div>
+  </div>
+  <div class="start-footer">
+    <button id="startLogOff">⟲ Log Off</button>
+    <button id="startShutDown">⏻ Shut Down</button>
+  </div>
+</div>
+
+<!-- Taskbar -->
+<div id="taskbar">
+  <button class="start-btn" id="startBtn">
+    <span class="start-logo">⊞</span> start
+  </button>
+  <div class="taskbar-divider"></div>
+  <div class="taskbar-items">
+    <div class="taskbar-item active" id="tbPrima">Prima — as / not_as</div>
+  </div>
+  <div class="taskbar-tray">
+    <span>⊡</span>
+    <span class="tray-clock" id="trayClock">12:00 PM</span>
+  </div>
+</div>
+
+<!-- Desktop -->
+<div id="desktop">
+  <div id="desktop-icons">
+    <div class="desk-icon" data-frame="explosion">
+      <div class="icon-box as">◆</div>
+      <div class="icon-label"><span class="hl as">as</span> explosion</div>
+    </div>
+    <div class="desk-icon" data-frame="energy">
+      <div class="icon-box as">▲</div>
+      <div class="icon-label"><span class="hl as">as</span> energy</div>
+    </div>
+    <div class="desk-icon" data-frame="parity">
+      <div class="icon-box as">◉</div>
+      <div class="icon-label"><span class="hl as">as</span> parity</div>
+    </div>
+    <div class="desk-icon" data-frame="identity">
+      <div class="icon-box as">◎</div>
+      <div class="icon-label"><span class="hl as">as</span> identity</div>
+    </div>
+    <div class="desk-icon" data-frame="calculator">
+      <div class="icon-box na">▣</div>
+      <div class="icon-label"><span class="hl na">not_as</span> calculator</div>
+    </div>
+    <div class="desk-icon" id="iconConcepts">
+      <div class="icon-box as">◉</div>
+      <div class="icon-label"><span class="hl as">as</span> concepts</div>
+    </div>
+      <div class="desk-icon" id="iconAbout">
+        <div class="icon-box na">ⓘ</div>
+        <div class="icon-label"><span class="hl na">not_as</span> about</div>
+      </div>
+      <div class="desk-icon" id="iconCreator">
+        <div class="icon-box as">❖</div>
+        <div class="icon-label"><span class="hl as">as</span> creator</div>
+      </div>
+  </div>
+
+  <!-- Main Window -->
+  <div class="xp-window open" id="mainWindow">
+    <div class="title-bar">
+      <span class="tb-icon">◉</span>
+      <span class="tb-title" id="winTitle">Prima — as / not_as</span>
+      <span class="tb-btn" id="winMin">─</span>
+      <span class="tb-btn" id="winMax">□</span>
+      <span class="tb-btn tb-close" id="winClose">✕</span>
+    </div>
+    <div class="window-body" id="windowBody">
+      <!-- Tabs -->
+      <div class="xp-tabs">
+        <div class="xp-tab active" data-tab="playground">Playground</div>
+        <div class="xp-tab" data-tab="principles">Principles</div>
+        <div class="xp-tab" data-tab="about">About</div>
+      </div>
+
+      <!-- Tab: Playground -->
+      <div class="tab-content active" id="tab-playground">
+        <div class="xp-body">
+          <h3>Frame chooser</h3>
+          <p>Same <span class="hl na">not_as</span> functions. Different <span class="hl as">as</span> arrangement. The frame selects the question.</p>
+
+          <div class="frame-chooser" id="frameChooser">
+            <button class="frame-btn active" data-frame="explosion">explosion</button>
+            <button class="frame-btn" data-frame="energy">energy</button>
+            <button class="frame-btn" data-frame="parity">parity</button>
+            <button class="frame-btn" data-frame="identity">identity</button>
+          </div>
+
+          <div class="frame-display" id="frameDisplay">
+            <span class="atom na" data-idx="0">steps</span>
+            <span class="conn as-plus" data-idx="0">+</span>
+            <span class="atom na" data-idx="1">peak</span>
+            <span class="conn as-minus" data-idx="1">−</span>
+            <span class="atom na" data-idx="2">even%</span>
+            <span class="eq">=</span>
+            <span class="result" id="frameResult">0</span>
+          </div>
+
+          <div class="frame-desc" id="frameDesc">steps + peak − even% — how high does it fly before falling?</div>
+
+          <h3>Input</h3>
+          <div class="values-row">
+            <div class="value-item">
+              <span class="v-label">value</span>
+              <input type="number" id="inputVal" value="27" min="1" style="font-family:'Inter',sans-serif;font-size:1.4rem;font-weight:200;width:80px;border:none;border-bottom:1.5px solid #3a7ad4;padding:2px 4px;background:transparent;color:#1a1a1a;">
+            </div>
+            <div class="value-item">
+              <span class="v-label">steps</span>
+              <span class="v-num na-col" id="vSteps">—</span>
+            </div>
+            <div class="value-item">
+              <span class="v-label">peak</span>
+              <span class="v-num as-col" id="vPeak">—</span>
+            </div>
+            <div class="value-item">
+              <span class="v-label">even%</span>
+              <span class="v-num na-col" id="vEven">—</span>
+            </div>
+            <div class="value-item">
+              <span class="v-label">pow2</span>
+              <span class="v-num as-col" id="vPow2">—</span>
+            </div>
+          </div>
+
+          <p style="margin-top:16px;font-size:0.72rem;color:#999;">
+            Click atoms in the frame display to toggle them. Click <span class="hl as" style="cursor:pointer;font-weight:500;" id="toggleAllAs">as</span> connectors to flip polarity.
+          </p>
+        </div>
+      </div>
+
+      <!-- Tab: Principles -->
+      <div class="tab-content" id="tab-principles">
+        <div class="xp-body">
+          <p>Two primitives. One rule. The joint is the architecture.</p>
+
+          <div class="xp-cards">
+            <div class="xp-card">
+              <span class="icon" style="color:#4a6aff;">◉</span>
+              <h4>as</h4>
+              <p>The joint. Pure position. Carries no value. Selects which atoms are visible and how they connect.</p>
+            </div>
+            <div class="xp-card">
+              <span class="icon" style="color:#e05a2a;">◼</span>
+              <h4>not_as</h4>
+              <p>The atom. One function, one task. Never calls another directly. Externally just a value in an equation.</p>
+            </div>
+            <div class="xp-card">
+              <span class="icon" style="color:#3a7ad4;">⌬</span>
+              <h4>+ / −</h4>
+              <p>All interconnections are + or −. Arithmetic coupling. No event bus, no DI, no hidden state.</p>
+            </div>
+          </div>
+
+          <div class="xp-box">
+            <p><strong>Axiom I: Synthesis with richness</strong> — Every decision holds thesis and antithesis. T + A = A + T. The gap (richness) signals when to investigate, not merge.</p>
+          </div>
+          <div class="xp-box">
+            <p><strong>Axiom II: Cross-domain simplification</strong> — True simplification widens. A rendering bug is never just a rendering bug. The root cause lives in a different room.</p>
+          </div>
+          <div class="xp-box">
+            <p><strong>Axiom III: Arithmetic architecture</strong> — Two kinds of thing: joint (<span class="hl as">as</span>) and computation (<span class="hl na">not_as</span>). Joints carry no value. Computations carry no position. All connections are <code>+</code> or <code>−</code>.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: About -->
+      <div class="tab-content" id="tab-about">
+        <div class="xp-body">
+          <h2>Prima</h2>
+          <p>Version 1.0 — Built on <span class="hl as">as</span> / <span class="hl na">not_as</span></p>
+          <p>The frame is the architecture. Everything else is a consequence. Before any computation, before any decision, someone decides what the input <em>counts as</em>. That choice is invisible — until you learn to see frames.</p>
+
+          <div class="xp-box">
+            <p><strong>What does this count as?</strong></p>
+            <p style="font-size:0.78rem;color:#666;margin-bottom:0;">A text. A number. A gesture. A silence. You frame it as a threat, it becomes one. You frame it as a gift, it becomes one. The input never changes. Only the frame does.</p>
+          </div>
+
+          <p style="color:#888;font-size:0.72rem;">Prima · 2026 · arshbuttar</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Creator Enrollment Window -->
+<div class="xp-window" id="creatorWindow">
+  <div class="title-bar">
+    <span class="tb-icon">❖</span>
+    <span class="tb-title" id="creatorTitle">Prima — Become a Creator</span>
+    <span class="tb-btn" id="creatorMin">─</span>
+    <span class="tb-btn" id="creatorMax">□</span>
+    <span class="tb-btn tb-close" id="creatorClose">✕</span>
+  </div>
+  <div class="window-body" id="creatorBody">
+    <div class="xp-body">
+      <h3>Creator Frame</h3>
+      <p>Enroll as a creator. Frame your product under <span class="hl as">as</span> and ship it through the architecture.</p>
+      <form class="creator-form" id="creatorForm">
+        <div class="field">
+          <label for="cName">Creator name</label>
+          <input id="cName" type="text" placeholder="e.g. arsh" required>
+        </div>
+        <div class="field">
+          <label for="cProduct">Product</label>
+          <select id="cProduct">
+            <option value="vina">vina</option>
+            <option value="kimono">kimono</option>
+            <option value="brainhall">brainhall</option>
+            <option value="other">other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="cEmail">Email</label>
+          <input id="cEmail" type="email" placeholder="you@studio.com" required>
+        </div>
+        <button type="submit" class="enroll-btn">Enroll as Creator</button>
+      </form>
+      <div class="creator-success" id="creatorSuccess">
+        <div class="cs-icon">◉</div>
+        <div class="cs-title">Creator frame acquired</div>
+        <div class="cs-sub" id="creatorSuccessSub">Welcome. Your product now counts as shipped.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== BOOT SEQUENCE =====
+const bootMessages = [
+  'framing the architecture',
+  'loading as primitives',
+  'assembling not_atoms',
+  'connecting arithmetic joints',
+  'Prima ready'
+];
+
+(function boot() {
+  const fill = document.getElementById('bootFill');
+  const label = document.getElementById('bootLabel');
+  let pct = 0;
+  const interval = setInterval(() => {
+    pct += 1 + Math.random() * 3;
+    if (pct > 100) pct = 100;
+    fill.style.width = pct + '%';
+    const msgIdx = Math.min(Math.floor(pct / 25), bootMessages.length - 1);
+    label.textContent = bootMessages[msgIdx];
+    if (pct >= 100) {
+      clearInterval(interval);
+      setTimeout(() => {
+        document.getElementById('boot-screen').classList.add('hidden');
+      }, 400);
+    }
+  }, 50);
+})();
+
+
+// ===== COLLATZ NOT_AS FUNCTIONS =====
+function collatzSteps(n) { let s = 0; while (n !== 1) { n = n % 2 === 0 ? n / 2 : 3 * n + 1; s++; } return s; }
+function peakValue(n) { let x = n, p = n; while (x !== 1) { x = x % 2 === 0 ? x / 2 : 3 * x + 1; if (x > p) p = x; } return p; }
+function evenRatioPct(n) { let x = n, e = 0, t = 0; while (x !== 1) { if (x % 2 === 0) e++; x = x % 2 === 0 ? x / 2 : 3 * x + 1; t++; } return t ? Math.round(e / t * 100) : 0; }
+function isPow2(n) { return (n > 0 && (n & (n - 1)) === 0) ? n : 0; }
+
+const ATOM_NAMES = ['steps', 'peak', 'even%', 'pow2'];
+const ATOM_FNS = [collatzSteps, peakValue, evenRatioPct, isPow2];
+
+// ===== FRAME DEFINITIONS =====
+// Each frame: array of {fnIdx, polarity}
+const FRAMES = {
+  explosion: {
+    atoms: [{idx:0,pol:'+'},{idx:1,pol:'-'},{idx:2,pol:'+'}],
+    label: 'steps + peak − even%',
+    desc: 'how high does it fly before falling?'
+  },
+  energy: {
+    atoms: [{idx:0,pol:'-'},{idx:3,pol:'+'},{idx:1,pol:'+'}],
+    label: 'steps − pow2 + peak',
+    desc: 'total kinetic energy of the trajectory'
+  },
+  parity: {
+    atoms: [{idx:2,pol:'+'},{idx:3,pol:'+'},{idx:0,pol:'-'}],
+    label: 'even% + pow2 − steps',
+    desc: 'the shape of the path, not the height'
+  },
+  identity: {
+    atoms: [{idx:3,pol:'+'},{idx:0,pol:'+'},{idx:1,pol:'+'},{idx:2,pol:'+'}],
+    label: 'pow2 + steps + peak + even%',
+    desc: 'all atoms, pure sum — the unframed input'
+  }
+};
+
+let currentFrame = 'explosion';
+// Atom toggle states: {fnIdx: true/false} — true = active
+let atomStates = {0: true, 1: true, 2: true, 3: true};
+// Connector polarity overrides: {connIdx: '+' or '-'}
+let connOverrides = {};
+// Frame-level polarity overrides keyed by fnIdx
+let framePolarities = {};
+
+function applyFramePolarities(frameName) {
+  const frame = FRAMES[frameName];
+  framePolarities = {};
+  frame.atoms.forEach((a, i) => {
+    framePolarities[a.idx] = a.pol;
+  });
+}
+
+applyFramePolarities('explosion');
+
+function getConnPolarity(fnIdx) {
+  return framePolarities[fnIdx] || '+';
+}
+
+// ===== CORE EVAL =====
+function evaluate(inputVal) {
+  let result = 0;
+  const frame = FRAMES[currentFrame];
+  const parts = [];
+
+  frame.atoms.forEach((a, i) => {
+    const fnIdx = a.idx;
+    if (atomStates[fnIdx] === false) {
+      parts.push({name: ATOM_NAMES[fnIdx], val: 0, active: false, pol: getConnPolarity(fnIdx)});
+      return;
+    }
+    const val = ATOM_FNS[fnIdx](inputVal);
+    const pol = getConnPolarity(fnIdx);
+    if (pol === '+') result += val;
+    else result -= val;
+    parts.push({name: ATOM_NAMES[fnIdx], val, active: true, pol});
+  });
+
+  return { result, parts };
+}
+
+// ===== UPDATE UI =====
+function updateDisplay() {
+  const input = parseInt(document.getElementById('inputVal').value) || 1;
+  if (input < 1) return;
+
+  // Update stats
+  document.getElementById('vSteps').textContent = collatzSteps(input);
+  document.getElementById('vPeak').textContent = peakValue(input);
+  document.getElementById('vEven').textContent = evenRatioPct(input) + '%';
+  document.getElementById('vPow2').textContent = isPow2(input) || '—';
+
+  // Update frame display
+  const { result, parts } = evaluate(input);
+  const frame = FRAMES[currentFrame];
+  const display = document.getElementById('frameDisplay');
+
+  let html = '';
+  parts.forEach((p, i) => {
+    const active = atomStates[p.name === 'steps' ? 0 : p.name === 'peak' ? 1 : p.name === 'even%' ? 2 : 3];
+    const naClass = active !== false ? 'na' : 'na off';
+    html += `<span class="atom ${naClass}" data-idx="${p.name === 'steps' ? 0 : p.name === 'peak' ? 1 : p.name === 'even%' ? 2 : 3}">${p.name}</span>`;
+    if (i < parts.length - 1) {
+      const pol = p.pol;
+      const connClass = pol === '+' ? 'as-plus' : 'as-minus';
+      const connOff = atomStates[p.name === 'steps' ? 0 : p.name === 'peak' ? 1 : p.name === 'even%' ? 2 : 3] === false ? ' off' : '';
+      html += `<span class="conn ${connClass}${connOff}" data-fnidx="${p.name === 'steps' ? 0 : p.name === 'peak' ? 1 : p.name === 'even%' ? 2 : 3}">${pol}</span>`;
+    }
+  });
+  html += `<span class="eq">=</span><span class="result" id="frameResult">${result}</span>`;
+  display.innerHTML = html;
+
+  document.getElementById('frameResult').textContent = result;
+  document.getElementById('frameDesc').textContent = frame.label + ' — ' + frame.desc;
+
+  // Update title
+  document.getElementById('winTitle').textContent = `Prima — as ${currentFrame}`;
+}
+
+// ===== INPUT HANDLING =====
+document.getElementById('inputVal').addEventListener('input', function() {
+  const v = parseInt(this.value);
+  if (v > 0) updateDisplay();
+});
+
+// ===== FRAME CHOOSER =====
+function setFrame(frameName) {
+  currentFrame = frameName;
+  applyFramePolarities(frameName);
+
+  document.querySelectorAll('.frame-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.frame === frameName);
+  });
+
+  updateDisplay();
+}
+
+document.querySelectorAll('.frame-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    setFrame(this.dataset.frame);
+  });
+});
+
+// ===== CLICK ATOMS / CONNECTORS IN FRAME DISPLAY =====
+document.addEventListener('click', function(e) {
+  // Toggle atom
+  if (e.target.classList.contains('atom')) {
+    const idx = parseInt(e.target.dataset.idx);
+    atomStates[idx] = atomStates[idx] === false ? true : false;
+    updateDisplay();
+    return;
+  }
+
+  // Toggle connector polarity
+  if (e.target.classList.contains('conn')) {
+    const fnIdx = parseInt(e.target.dataset.fnidx);
+    const current = getConnPolarity(fnIdx);
+    framePolarities[fnIdx] = current === '+' ? '-' : '+';
+    updateDisplay();
+    return;
+  }
+});
+
+// ===== TOGGLE ALL AS =====
+document.getElementById('toggleAllAs').addEventListener('click', function() {
+  const frame = FRAMES[currentFrame];
+  frame.atoms.forEach(a => {
+    const current = getConnPolarity(a.idx);
+    framePolarities[a.idx] = current === '+' ? '-' : '+';
+  });
+  updateDisplay();
+});
+
+// ===== TASK BAR =====
+document.getElementById('startBtn').addEventListener('click', function(e) {
+  e.stopPropagation();
+  document.getElementById('start-menu').classList.toggle('open');
+});
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#start-menu') && !e.target.closest('#startBtn')) {
+    document.getElementById('start-menu').classList.remove('open');
+  }
+});
+
+// ===== TABS =====
+document.querySelectorAll('.xp-tab').forEach(tab => {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.xp-tab').forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+    document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+  });
+});
+
+// ===== WINDOW CONTROLS =====
+document.getElementById('winClose').addEventListener('click', function() {
+  document.getElementById('mainWindow').classList.remove('open');
+  document.querySelector('.taskbar-items').innerHTML = '<div class="taskbar-item" id="tbRestore">Prima (minimized)</div>';
+  setTimeout(() => {
+    document.querySelector('.taskbar-items').innerHTML += '<div class="taskbar-item" id="tbRestore2" style="display:none;"></div>';
+  }, 100);
+});
+
+document.getElementById('winMin').addEventListener('click', function() {
+  document.getElementById('mainWindow').classList.remove('open');
+  document.querySelector('.taskbar-items').innerHTML = '<div class="taskbar-item" id="tbRestore">Prima (minimized)</div>';
+});
+
+// Restore from taskbar
+document.addEventListener('click', function(e) {
+  if (e.target.id === 'tbRestore') {
+    document.getElementById('mainWindow').classList.add('open');
+    document.querySelector('.taskbar-items').innerHTML = '<div class="taskbar-item active">Prima — as / not_as</div>';
+  }
+});
+
+// ===== DESKTOP ICONS =====
+document.querySelectorAll('.desk-icon').forEach(icon => {
+  icon.addEventListener('click', function() {
+    document.querySelectorAll('.desk-icon').forEach(i => i.classList.remove('selected'));
+    this.classList.add('selected');
+
+    const frame = this.dataset.frame;
+    if (frame) {
+      setFrame(frame);
+      document.getElementById('mainWindow').classList.add('open');
+    }
+  });
+
+  icon.addEventListener('dblclick', function() {
+    const frame = this.dataset.frame;
+    if (frame) {
+      setFrame(frame);
+      document.getElementById('mainWindow').classList.add('open');
+      // Switch to playground tab
+      document.querySelectorAll('.xp-tab').forEach(t => t.classList.remove('active'));
+      document.querySelector('[data-tab="playground"]').classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+      document.getElementById('tab-playground').classList.add('active');
+    }
+  });
+});
+
+// Icon specific handlers
+document.getElementById('iconConcepts').addEventListener('dblclick', function() {
+  document.getElementById('mainWindow').classList.add('open');
+  document.querySelectorAll('.xp-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('[data-tab="principles"]').classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+  document.getElementById('tab-principles').classList.add('active');
+});
+
+document.getElementById('iconAbout').addEventListener('dblclick', function() {
+  document.getElementById('mainWindow').classList.add('open');
+  document.querySelectorAll('.xp-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('[data-tab="about"]').classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+  document.getElementById('tab-about').classList.add('active');
+});
+
+// ===== START MENU ITEMS =====
+document.querySelectorAll('.start-item[data-frame]').forEach(item => {
+  item.addEventListener('click', function() {
+    setFrame(this.dataset.frame);
+    document.getElementById('mainWindow').classList.add('open');
+    document.getElementById('start-menu').classList.remove('open');
+  });
+});
+
+document.getElementById('startAbout').addEventListener('click', function() {
+  document.getElementById('mainWindow').classList.add('open');
+  document.querySelectorAll('.xp-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('[data-tab="about"]').classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+  document.getElementById('tab-about').classList.add('active');
+  document.getElementById('start-menu').classList.remove('open');
+});
+
+document.getElementById('startConcepts').addEventListener('click', function() {
+  document.getElementById('mainWindow').classList.add('open');
+  document.querySelectorAll('.xp-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('[data-tab="principles"]').classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+  document.getElementById('tab-principles').classList.add('active');
+  document.getElementById('start-menu').classList.remove('open');
+});
+
+// ===== START MENU SHUTDOWN / REBOOT =====
+document.getElementById('startReboot').addEventListener('click', function() {
+  document.getElementById('start-menu').classList.remove('open');
+  const overlay = document.getElementById('shutdownOverlay');
+  overlay.querySelector('.sd-text').textContent = 're‑framing';
+  overlay.classList.add('visible');
+  setTimeout(() => {
+    overlay.classList.remove('visible');
+    setFrame('explosion');
+    document.getElementById('mainWindow').classList.add('open');
+    atomStates = {0: true, 1: true, 2: true, 3: true};
+    framePolarities = {};
+    applyFramePolarities(currentFrame);
+    updateDisplay();
+  }, 1500);
+});
+
+document.getElementById('startShutDown').addEventListener('click', function() {
+  document.getElementById('start-menu').classList.remove('open');
+  const overlay = document.getElementById('shutdownOverlay');
+  overlay.querySelector('.sd-text').textContent = 'frame dissolved';
+  overlay.classList.add('visible');
+  setTimeout(() => {
+    document.getElementById('mainWindow').classList.remove('open');
+    overlay.classList.remove('visible');
+  }, 2000);
+});
+
+document.getElementById('startLogOff').addEventListener('click', function() {
+  document.getElementById('start-menu').classList.remove('open');
+  document.getElementById('mainWindow').classList.remove('open');
+});
+
+// ===== CREATOR ENROLLMENT =====
+function openCreator() {
+  document.getElementById('creatorWindow').classList.add('open');
+  document.getElementById('start-menu').classList.remove('open');
+}
+document.getElementById('startCreator').addEventListener('click', openCreator);
+document.getElementById('iconCreator').addEventListener('click', function() {
+  document.querySelectorAll('.desk-icon').forEach(i => i.classList.remove('selected'));
+  this.classList.add('selected');
+  openCreator();
+});
+document.getElementById('creatorClose').addEventListener('click', function() {
+  document.getElementById('creatorWindow').classList.remove('open');
+});
+document.getElementById('creatorMin').addEventListener('click', function() {
+  document.getElementById('creatorWindow').classList.remove('open');
+});
+document.getElementById('creatorForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const name = document.getElementById('cName').value.trim() || 'creator';
+  const product = document.getElementById('cProduct').value;
+  this.style.display = 'none';
+  document.getElementById('creatorSuccess').classList.add('show');
+  document.getElementById('creatorSuccessSub').textContent = `Welcome, ${name}. ${product} now counts as shipped.`;
+  document.getElementById('creatorTitle').textContent = `Prima — ${name} (creator)`;
+});
+
+// ===== MAXIMIZE (wire the previously-dead control) =====
+function toggleMax(win){ if (win) win.classList.toggle('maximized'); }
+document.getElementById('winMax').addEventListener('click', function(){ toggleMax(document.getElementById('mainWindow')); });
+document.getElementById('creatorMax').addEventListener('click', function(){ toggleMax(document.getElementById('creatorWindow')); });
+
+// ===== CLOCK =====
+function updateClock() {
+  const now = new Date();
+  let h = now.getHours();
+  const m = String(now.getMinutes()).padStart(2, '0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  document.getElementById('trayClock').textContent = h + ':' + m + ' ' + ampm;
+}
+updateClock();
+setInterval(updateClock, 10000);
+
+// ===== INIT =====
+setTimeout(() => {
+  updateDisplay();
+}, 600);
+</script>
+</body>
+</html>

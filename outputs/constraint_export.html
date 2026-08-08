@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang=en>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>constraint → css</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:#f5f5f7;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;overflow:hidden}
+canvas{position:fixed;top:0;left:0;z-index:0;pointer-events:none}
+#left{width:380px;background:rgba(8,8,15,0.9);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border-right:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;z-index:1;flex-shrink:0}
+#left h2{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,0.2);padding:20px 20px 8px}
+#left .hint{font-size:11px;color:rgba(255,255,255,0.35);padding:0 20px;margin-bottom:12px}
+#constraints{flex:1;padding:0 20px 20px;font:12px/1.9 'SF Mono',Menlo,monospace;color:#a0b0ff;border:none;background:transparent;resize:none;outline:none}
+#constraints::selection{background:rgba(160,176,255,0.2)}
+#right{flex:1;display:flex;align-items:center;justify-content:center;padding:60px;position:relative;z-index:1}
+#preview{width:100%;max-width:520px;display:flex;flex-direction:column;gap:14px}
+.card{transition:all 0.5s ease;display:flex;flex-direction:column;gap:10px}
+.card .dot{width:8px;height:8px;border-radius:50%}
+.card .title{font-size:0.85rem}
+.card .body{font-size:0.78rem;line-height:1.5}
+.btns{display:flex;gap:8px;padding:16px 20px;border-top:1px solid rgba(255,255,255,0.05)}
+.btns button{flex:1;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);font:11px 'Inter',sans-serif;font-weight:500;cursor:pointer;transition:all 0.2s}
+.btns .export{background:#5a7aff;color:#fff;border-color:#5a7aff}
+.btns .export:hover{background:#6b88ff}
+.btns .reset{background:transparent;color:rgba(255,255,255,0.5)}
+.btns .reset:hover{background:rgba(255,255,255,0.06)}
+#csspreview{flex:1;padding:0 20px 16px;font:11px/1.7 'SF Mono',Menlo,monospace;color:rgba(255,255,255,0.25);overflow-y:auto;max-height:200px;white-space:pre-wrap}
+#csspreview .k{color:#5a7aff}#csspreview .v{color:#e06a3a}#csspreview .c{color:rgba(255,255,255,0.12)}
+</style>
+<div id=left>
+<h2>design constraints</h2>
+<div class=hint>declare how it must feel — then export</div>
+<textarea id=constraints spellcheck=false>surface must_be glass, not_opaque
+edge must_be hairline, not_absent
+corner must_be soft, not_sharp
+content must_breathe, not_cramped
+text must_be weightless, not_heavy
+text must_be subtle, not_white
+spacing must_be generous, not_tight
+hover must_be felt, not_seen</textarea>
+<div id=csspreview></div>
+<div class=btns>
+<button class=reset onclick=reset()>reset defaults</button>
+<button class=export onclick=exportCSS()>export .css</button>
+</div>
+</div>
+<div id=right>
+<canvas id=c></canvas>
+<div id=preview>
+<div class=card id=c1><div class=dot style=background:#5a7aff></div><div class=title>memory</div><div class=body>Every interaction retained. Nothing forgotten unless asked.</div></div>
+<div class=card id=c2><div class=dot style=background:#e06a3a></div><div class=title>constraint</div><div class=body>What it is and what it is not. The engine resolves.</div></div>
+<div class=card id=c3><div class=dot style=background:#7c5cbf></div><div class=title>export</div><div class=body>Your constraints compile to production CSS. Download and deploy.</div></div>
+</div>
+</div>
+<script>
+const C=document.getElementById('c'),g=C.getContext('2d');
+let W,H,COLS,ROWS,cs,rs,cur,prev,mx=0,my=0,pmx=0,pmy=0,tick=0;
+function resize(){W=C.width=right.clientWidth;H=C.height=right.clientHeight;COLS=Math.floor(W/16);ROWS=Math.floor(H/16);cs=W/COLS;rs=H/ROWS;cur=Array(ROWS).fill().map(()=>new Float32Array(COLS));prev=Array(ROWS).fill().map(()=>new Float32Array(COLS))}
+const right=document.getElementById('right');resize();addEventListener('resize',resize);
+right.addEventListener('mousemove',e=>{pmx=mx;pmy=my;mx=e.clientX-right.getBoundingClientRect().left;my=e.clientY-right.getBoundingClientRect().top});
+function wave(){tick+=0.016;const rad=6,mcol=Math.floor(mx/cs),mrow=Math.floor(my/rs),spd=Math.min(Math.hypot(mx-pmx,my-pmy)/7,1);
+for(let r=mrow-rad;r<=mrow+rad;r++)for(let cc=mcol-rad;cc<=mcol+rad;cc++){if(r<0||r>=ROWS||cc<0||cc>=COLS)continue;const dx=(cc*cs+cs/2-mx)/(rad*cs),dy=(r*rs+rs/2-my)/(rad*rs),d=Math.sqrt(dx*dx+dy*dy);if(d<1)cur[r][cc]+=spd*0.5*(1-d)*(1-d)}
+for(let r=0;r<ROWS;r++)for(let cc=0;cc<COLS;cc++){cur[r][cc]+=0.0006*Math.sin(cc*0.5+tick*1.1)*Math.cos(r*0.5+tick*0.7);const up=r>0?prev[r-1][cc]:0,dn=r<ROWS-1?prev[r+1][cc]:0,lt=cc>0?prev[r][cc-1]:0,rt=cc<COLS-1?prev[r][cc+1]:0;let v=(up+dn+lt+rt)*0.5-cur[r][cc];v*=0.965;cur[r][cc]=v}
+g.clearRect(0,0,W,H);
+for(let r=0;r<ROWS;r++)for(let cc=0;cc<COLS;cc++){const v=cur[r][cc],av=Math.abs(v);if(av<0.002)continue;const x=cc*cs+cs*.5,y=r*rs+rs*.5,sz=1+av*4;g.beginPath();g.arc(x,y,sz+1.2,0,Math.PI*2);g.fillStyle=`hsla(210,40%,70%,${0.03+av*0.55})`;g.fill();g.beginPath();g.arc(x,y,sz,0,Math.PI*2);g.fillStyle=`hsla(210,30%,85%,${0.04+av*0.55})`;g.fill()}
+const tmp=prev;prev=cur;cur=tmp;requestAnimationFrame(wave)}requestAnimationFrame(wave);
+
+const defaults=`surface must_be glass, not_opaque
+edge must_be hairline, not_absent
+corner must_be soft, not_sharp
+content must_breathe, not_cramped
+text must_be weightless, not_heavy
+text must_be subtle, not_white
+spacing must_be generous, not_tight
+hover must_be felt, not_seen`;
+
+function reset(){document.getElementById('constraints').value=defaults;resolve()}
+
+function resolve(){
+  const rules=document.getElementById('constraints').value.toLowerCase();
+  const cards=document.querySelectorAll('.card');
+  const cssRules=[];
+  const comments=[];
+
+  cards.forEach(c=>{
+    c.style.cssText='';c.style.display='flex';c.style.flexDirection='column';c.style.gap='10px';
+  });
+
+  // glass surface
+  if(rules.includes('surface must_be glass')||rules.includes('must_be glass')){
+    cards.forEach(c=>{c.style.background='rgba(255,255,255,0.03)';c.style.backdropFilter='blur(40px)';c.style.webkitBackdropFilter='blur(40px)'});
+    cssRules.push('.card { background: rgba(255,255,255,0.03); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); }');
+  }
+  // edge
+  if(rules.includes('edge must_be hairline')||rules.includes('edge must_be present')){
+    cards.forEach(c=>c.style.border='1px solid rgba(255,255,255,0.06)');
+    cssRules.push('.card { border: 1px solid rgba(255,255,255,0.06); }');
+  }else if(rules.includes('edge must_be absent')){
+    cards.forEach(c=>c.style.border='none');
+  }
+  // corner
+  if(rules.includes('corner must_be soft')){
+    cards.forEach(c=>c.style.borderRadius='20px');
+    cssRules.push('.card { border-radius: 20px; }');
+  }else if(rules.includes('corner must_be sharp')){
+    cards.forEach(c=>c.style.borderRadius='0');
+  }
+  if(rules.includes('corner must_be round')){
+    cards.forEach(c=>c.style.borderRadius='50px');
+    cssRules.push('.card { border-radius: 50px; }');
+  }
+  // content breathing
+  if(rules.includes('content must_breathe')||rules.includes('must_breathe')){
+    cards.forEach(c=>c.style.padding='28px');
+    cssRules.push('.card { padding: 28px; }');
+  }else if(rules.includes('content must_be compact')){
+    cards.forEach(c=>c.style.padding='10px');
+  }
+  // text weight
+  if(rules.includes('text must_be weightless')||rules.includes('not_heavy')){
+    document.querySelectorAll('.card .title').forEach(t=>{t.style.fontWeight='400';t.style.letterSpacing='-0.01em'});
+    document.querySelectorAll('.card .body').forEach(t=>{t.style.fontWeight='300';t.style.color='rgba(255,255,255,0.4)'});
+    cssRules.push('.card-title { font-weight: 400; letter-spacing: -0.01em; }');
+    cssRules.push('.card-body { font-weight: 300; color: rgba(255,255,255,0.4); }');
+  }else if(rules.includes('text must_be bold')||rules.includes('text must_be heavy')){
+    document.querySelectorAll('.card .title').forEach(t=>t.style.fontWeight='600');
+    document.querySelectorAll('.card .body').forEach(t=>{t.style.fontWeight='500';t.style.color='#fff'});
+  }
+  // spacing
+  if(rules.includes('spacing must_be generous')){
+    document.getElementById('preview').style.gap='32px';
+    cssRules.push('.card-grid { gap: 32px; }');
+  }else if(rules.includes('spacing must_be tight')){
+    document.getElementById('preview').style.gap='6px';
+  }
+  // hover
+  if(rules.includes('hover must_be felt')){
+    cards.forEach(c=>{c.style.transition='all 0.3s ease'});
+    cards.forEach(c=>{c.onmouseenter=()=>{if(rules.includes('hover must_be felt'))c.style.background='rgba(255,255,255,0.05)'};c.onmouseleave=()=>c.style.background='rgba(255,255,255,0.03)'});
+    cssRules.push('.card { transition: all 0.3s ease; }');
+    cssRules.push('.card:hover { background: rgba(255,255,255,0.05); }');
+  }
+  // shadow
+  if(rules.includes('shadow must_be deep')){
+    cards.forEach(c=>c.style.boxShadow='0 20px 60px rgba(0,0,0,0.5)');
+    cssRules.push('.card { box-shadow: 0 20px 60px rgba(0,0,0,0.5); }');
+  }
+  // dark mode specific
+  if(rules.includes('background must_be dark')||rules.includes('body must_be dark')){
+    cssRules.unshift('body { background: #000; color: #f5f5f7; font-family: "Inter", sans-serif; -webkit-font-smoothing: antialiased; }');
+    comments.push('/* Dark mode — constraints resolved */');
+  }
+
+  // show compiled CSS preview
+  const output=comments.length?comments.join('\n')+'\n\n':'';
+  const display=output+cssRules.join('\n');
+  document.getElementById('csspreview').innerHTML=display
+    .replace(/\.([\w-]+)\s*\{/g,'.<span class=k>$1</span> {')
+    .replace(/: ([^;]+);/g,': <span class=v>$1</span>;');
+}
+
+function exportCSS(){
+  const rules=document.getElementById('constraints').value.toLowerCase();
+  const blocks={};
+
+  blocks['body']=['background: #000','color: #f5f5f7','font-family: "Inter", sans-serif','-webkit-font-smoothing: antialiased'];
+  blocks['.card']=[];
+  blocks['.card-title']=[];
+  blocks['.card-body']=[];
+  blocks['.card-grid']=[];
+  blocks['.card:hover']=[];
+
+  if(rules.includes('surface must_be glass')){blocks['.card'].push('background: rgba(255,255,255,0.03)','backdrop-filter: blur(40px)','-webkit-backdrop-filter: blur(40px)')}
+  if(rules.includes('edge must_be hairline')){blocks['.card'].push('border: 1px solid rgba(255,255,255,0.06)')}
+  if(rules.includes('corner must_be soft')){blocks['.card'].push('border-radius: 20px')}
+  else if(rules.includes('corner must_be round')){blocks['.card'].push('border-radius: 50px')}
+  else if(rules.includes('corner must_be sharp')){blocks['.card'].push('border-radius: 0')}
+  if(rules.includes('content must_breathe')){blocks['.card'].push('padding: 28px')}
+  else if(rules.includes('content must_be compact')){blocks['.card'].push('padding: 10px')}
+  if(rules.includes('text must_be weightless')||rules.includes('not_heavy')){blocks['.card-title'].push('font-weight: 400','letter-spacing: -0.01em')}
+  if(rules.includes('text must_be subtle')||rules.includes('not_white')){blocks['.card-body'].push('color: rgba(255,255,255,0.4)','font-weight: 300')}
+  if(rules.includes('spacing must_be generous')){blocks['.card-grid'].push('gap: 32px')}
+  else if(rules.includes('spacing must_be tight')){blocks['.card-grid'].push('gap: 6px')}
+  if(rules.includes('hover must_be felt')){blocks['.card'].push('transition: all 0.3s ease');blocks['.card:hover'].push('background: rgba(255,255,255,0.05)')}
+  if(rules.includes('shadow must_be deep')){blocks['.card'].push('box-shadow: 0 20px 60px rgba(0,0,0,0.5)')}
+  if(rules.includes('shadow must_be subtle')){blocks['.card'].push('box-shadow: 0 4px 12px rgba(0,0,0,0.3)')}
+
+  let out='@import url("https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap");\n';
+  for(const[sel,decs]of Object.entries(blocks)){
+    if(!decs.length)continue;
+    out+=`\n${sel} {\n  ${decs.join(';\n  ')};\n}\n`;
+  }
+
+  const blob=new Blob([out],{type:'text/css'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='design.css';a.click();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('constraints').addEventListener('input',resolve);
+resolve();
+</script>
+</html>

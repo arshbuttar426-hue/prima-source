@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lightpad — Reverse-Engineered from Apple Design DNA</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;color:#1d1d1f;background:#fff;line-height:1;overflow-x:hidden}
+
+nav{position:sticky;top:0;z-index:100;height:44px;display:flex;align-items:center;justify-content:center;gap:24px;padding:0 24px;background:rgba(255,255,255,0.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);font-size:12px;font-weight:400;letter-spacing:-0.01em;border-bottom:1px solid rgba(0,0,0,0.08)}
+nav a{color:#1d1d1f;text-decoration:none;opacity:0.8;transition:opacity 0.2s}
+nav a:hover{opacity:1}
+
+.hero{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 24px 0;min-height:85vh}
+.hero h1{font-size:clamp(2.5rem,6vw,3.5rem);font-weight:700;letter-spacing:-0.025em;line-height:1.05;max-width:700px}
+.hero .sub{font-size:clamp(1.1rem,2vw,1.35rem);font-weight:400;color:#86868b;margin-top:8px;line-height:1.3;max-width:500px}
+.hero .ctas{display:flex;gap:24px;margin-top:24px}
+.cta-link{font-size:17px;color:#0066cc;text-decoration:none;position:relative;font-weight:400}
+.cta-link::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:1px;background:#0066cc;transform:scaleX(0);transition:transform 0.2s}
+.cta-link:hover::after{transform:scaleX(1)}
+.hero-device{margin-top:40px;width:100%;max-width:800px;height:340px;background:linear-gradient(160deg,#f5f5f7 0%,#e8e8ed 50%,#f5f5f7 100%);border-radius:24px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;font-size:1.5rem;color:#86868b}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:1400px;margin:0 auto;padding:12px}
+.card{background:#f5f5f7;padding:48px;display:flex;flex-direction:column;align-items:center;text-align:center;border-radius:0;transition:transform 0.3s}
+.card:hover{transform:scale(1.01)}
+.card h2{font-size:clamp(1.8rem,3vw,2.5rem);font-weight:600;letter-spacing:-0.02em;line-height:1.1}
+.card .tag{font-size:1.1rem;color:#86868b;margin-top:8px;line-height:1.3}
+.card .ctas{display:flex;gap:24px;margin-top:24px}
+.card-icon{width:80px;height:80px;margin-bottom:24px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;background:white;box-shadow:0 2px 12px rgba(0,0,0,0.04)}
+
+.strip{display:flex;overflow-x:auto;gap:24px;padding:40px 24px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;max-width:1400px;margin:0 auto}
+.strip::-webkit-scrollbar{display:none}
+.strip-item{flex:0 0 200px;scroll-snap-align:start;text-align:center;padding:20px;border-radius:16px;background:#f5f5f7;cursor:pointer;transition:transform 0.3s}
+.strip-item:hover{transform:scale(1.03)}
+.strip-item .thumb{width:60px;height:60px;border-radius:14px;background:white;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:1.8rem}
+.strip-item .title{font-size:13px;font-weight:500}
+.strip-item .cta{font-size:12px;color:#0066cc;margin-top:6px}
+
+footer{background:#f5f5f7;padding:40px 24px;margin-top:60px}
+.footer-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:24px;max-width:980px;margin:0 auto}
+.footer-col h4{font-size:12px;font-weight:600;color:#1d1d1f;margin-bottom:12px}
+.footer-col a{display:block;font-size:12px;color:rgba(0,0,0,0.56);text-decoration:none;padding:4px 0;transition:color 0.2s}
+.footer-col a:hover{color:#1d1d1f}
+.footer-bottom{max-width:980px;margin:24px auto 0;padding-top:24px;border-top:1px solid rgba(0,0,0,0.08);text-align:center;font-size:12px;color:rgba(0,0,0,0.56)}
+.footer-bottom a{color:rgba(0,0,0,0.56);text-decoration:none;padding:0 8px}
+.footer-bottom a:hover{text-decoration:underline}
+
+.fade-up{opacity:0;transform:translateY(20px);transition:opacity 0.6s ease,transform 0.6s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+
+@media(max-width:768px){.grid-2{grid-template-columns:1fr;padding:8px}.hero{padding:60px 16px 0}.hero h1{font-size:2rem}.footer-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="#" style="font-size:16px;opacity:1">●</a>
+  <a href="#">Store</a><a href="#">Mac</a><a href="#">iPad</a><a href="#">iPhone</a>
+  <a href="#">Watch</a><a href="#">AirPods</a><a href="#">TV & Home</a>
+  <a href="#">Entertainment</a><a href="#">Support</a>
+</nav>
+
+<section class="hero fade-up">
+  <h1>Lightpad. Your ideas, illuminated.</h1>
+  <p class="sub">The lightest, brightest creative canvas ever made. Powered by M5. Weighs less than a notebook.</p>
+  <div class="ctas">
+    <a href="#" class="cta-link">Learn more →</a>
+    <a href="#" class="cta-link">Buy →</a>
+  </div>
+  <div class="hero-device">
+    <div style="font-size:4rem">✧</div>
+    <div style="font-size:0.9rem;margin-top:4px">Available in Space Black and Starlight</div>
+  </div>
+</section>
+
+<div class="grid-2" style="margin-top:12px">
+  <div class="card fade-up">
+    <div class="card-icon">📱</div>
+    <h2>iPhone 18 Pro</h2>
+    <p class="tag">The most Pro iPhone ever. A18 chip. Titanium design.</p>
+    <div class="ctas"><a href="#" class="cta-link">Learn more →</a><a href="#" class="cta-link">Buy →</a></div>
+  </div>
+  <div class="card fade-up" style="transition-delay:0.1s">
+    <div class="card-icon" style="background:linear-gradient(135deg,#1d1d1f,#333)">💻</div>
+    <h2 style="color:inherit">MacBook Pro</h2>
+    <p class="tag">M5, M5 Pro, and M5 Max. The most advanced chips for a pro laptop.</p>
+    <div class="ctas"><a href="#" class="cta-link">Learn more →</a><a href="#" class="cta-link">Buy →</a></div>
+  </div>
+</div>
+
+<div class="strip" style="margin-top:12px">
+  <div class="strip-item"><div class="thumb">🎬</div><div class="title">Streaming Now</div><div class="cta">Watch →</div></div>
+  <div class="strip-item"><div class="thumb">🎵</div><div class="title">New Music Daily</div><div class="cta">Listen →</div></div>
+  <div class="strip-item"><div class="thumb">🎮</div><div class="title">Arcade</div><div class="cta">Play →</div></div>
+  <div class="strip-item"><div class="thumb">💪</div><div class="title">Fitness+</div><div class="cta">Move →</div></div>
+  <div class="strip-item"><div class="thumb">📰</div><div class="title">News+</div><div class="cta">Read →</div></div>
+  <div class="strip-item"><div class="thumb">📚</div><div class="title">Books</div><div class="cta">Explore →</div></div>
+  <div class="strip-item"><div class="thumb">🎙️</div><div class="title">Podcasts</div><div class="cta">Listen →</div></div>
+</div>
+
+<footer>
+  <div class="footer-grid">
+    <div class="footer-col"><h4>Shop and Learn</h4><a href="#">Store</a><a href="#">Mac</a><a href="#">iPad</a><a href="#">iPhone</a><a href="#">Watch</a><a href="#">AirPods</a><a href="#">Accessories</a></div>
+    <div class="footer-col"><h4>Account</h4><a href="#">Manage Your Account</a><a href="#">Apple Store Account</a><a href="#">iCloud.com</a></div>
+    <div class="footer-col"><h4>Entertainment</h4><a href="#">Apple One</a><a href="#">Apple TV+</a><a href="#">Apple Music</a><a href="#">Apple Arcade</a><a href="#">Apple Fitness+</a></div>
+    <div class="footer-col"><h4>Apple Store</h4><a href="#">Find a Store</a><a href="#">Genius Bar</a><a href="#">Today at Apple</a><a href="#">Apple Camp</a><a href="#">Order Status</a></div>
+    <div class="footer-col"><h4>About Apple</h4><a href="#">Newsroom</a><a href="#">Leadership</a><a href="#">Careers</a><a href="#">Investors</a><a href="#">Contact</a></div>
+  </div>
+  <div class="footer-bottom">
+    Copyright &copy; 2026 Apple Inc. All rights reserved.
+    <a href="#">Privacy Policy</a>|<a href="#">Terms of Use</a>|<a href="#">Sales and Refunds</a>|<a href="#">Legal</a>|<a href="#">Site Map</a>
+    <br><span style="margin-top:8px;display:inline-block">United States</span>
+  </div>
+</footer>
+
+<script>
+const observer=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')})},{threshold:0.1});
+document.querySelectorAll('.fade-up').forEach(el=>observer.observe(el));
+</script>
+</body>
+</html>

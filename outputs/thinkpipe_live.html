@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ThinkPipe — Live Thought Canvas</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:#050508;color:#f5f5f7;-webkit-font-smoothing:antialiased;overflow:hidden;height:100vh;display:flex}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 32px;display:flex;align-items:center;justify-content:space-between}
+.brand{font-size:14px;font-weight:700;letter-spacing:-0.02em;display:flex;align-items:center;gap:8px}
+.brand-dot{width:6px;height:6px;border-radius:50%;background:#5a7aff;animation:dotPulse 2s infinite}
+@keyframes dotPulse{0%,100%{opacity:1}50%{opacity:0.3}}
+nav .status{font-size:11px;color:rgba(255,255,255,0.25);display:flex;align-items:center;gap:8px}
+nav .live-dot{width:5px;height:5px;border-radius:50%;background:#34C759;animation:dotPulse 1.5s infinite}
+nav .live-dot.processing{background:#f5c451}
+
+.split{display:flex;width:100%;height:100vh;padding-top:56px}
+.left{flex:1;display:flex;flex-direction:column;padding:24px 32px 32px;border-right:1px solid rgba(255,255,255,0.03)}
+.left textarea{flex:1;width:100%;background:transparent;border:none;color:rgba(255,255,255,0.85);font-family:'Inter';font-size:20px;line-height:1.7;resize:none;outline:none;padding:0}
+.left textarea::placeholder{color:rgba(255,255,255,0.12)}
+.left .hint{font-size:10px;color:rgba(255,255,255,0.1);margin-top:12px}
+
+.right{flex:1;padding:24px 32px 32px;overflow-y:auto;display:flex;flex-direction:column;gap:0}
+
+.pipe-viz{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:24px;height:80px;position:relative}
+.pipe-viz .node{padding:8px 18px;border-radius:10px;font-size:11px;font-weight:600;text-align:center;transition:all 0.4s}
+.pipe-viz .node.input{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)}
+.pipe-viz .node.gate{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:14px;padding:0}
+.pipe-viz .node.gate.active{border-color:rgba(90,122,255,0.4);background:rgba(90,122,255,0.08);box-shadow:0 0 20px rgba(90,122,255,0.1)}
+.pipe-viz .node.output{background:rgba(255,255,255,0.03);border:1px solid rgba(90,122,255,0.15)}
+.pipe-viz .line{width:32px;height:1px;background:rgba(255,255,255,0.06);position:relative}
+.pipe-viz .line.flowing{background:linear-gradient(90deg,rgba(90,122,255,0.3),rgba(0,206,201,0.3))}
+.pipe-viz .particle{position:absolute;width:3px;height:3px;border-radius:50%;background:#5a7aff;animation:particleFlow 0.8s linear infinite;top:-1px}
+@keyframes particleFlow{from{left:0;opacity:1}to{left:100%;opacity:0}}
+.pipe-viz .particle:nth-child(2){animation-delay:0.4s;background:#00cec9}
+.pipe-viz .ubend-indicator{position:absolute;bottom:-8px;font-size:9px;color:rgba(255,255,255,0.15);letter-spacing:0.08em;text-transform:uppercase}
+
+.section{margin-bottom:12px;opacity:0;transform:translateY(8px);transition:all 0.5s;background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.03);border-radius:10px;padding:14px 16px}
+.section.visible{opacity:1;transform:translateY(0)}
+.section-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:#5a7aff;margin-bottom:6px}
+.section-content{font-size:12px;line-height:1.7;color:rgba(255,255,255,0.45)}
+.section-content .claim{color:rgba(255,255,255,0.7);margin-bottom:3px}
+.section-content .assumption{margin-bottom:2px;padding-left:8px;border-left:1px solid rgba(255,255,255,0.06)}
+.section-content .assumption .trigger{color:#f5c451}
+.section-content .assumption .label{color:rgba(255,255,255,0.2);font-size:10px;margin-left:4px}
+.section-content .contradiction{color:rgba(255,107,157,0.5);margin-bottom:2px}
+.section-content .priority-line{font-size:13px;font-weight:600;margin-bottom:2px}
+.section-content .action-line{color:#34C759;margin-bottom:2px}
+.section-content .empty{color:rgba(255,255,255,0.1);font-style:italic}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="brand"><span class="brand-dot"></span>ThinkPipe</span>
+  <span class="status"><span class="live-dot" id="liveDot"></span><span id="statusText">listening</span></span>
+</nav>
+
+<div class="split">
+  <div class="left">
+    <textarea id="input" placeholder="Start typing a raw thought..." autofocus></textarea>
+    <div class="hint">live processing · 0 API calls · your thoughts, structured</div>
+  </div>
+  <div class="right" id="output">
+    <div class="pipe-viz">
+      <div class="node input">IN</div>
+      <div class="line" id="line1"><div class="particle"></div><div class="particle"></div></div>
+      <div class="node gate" id="gate1">⊕</div>
+      <div class="line" id="line2"><div class="particle"></div><div class="particle"></div></div>
+      <div class="node gate" id="gate2">⊗</div>
+      <div class="line" id="line3"><div class="particle"></div><div class="particle"></div></div>
+      <div class="node gate" id="gate3">⊘</div>
+      <div class="line" id="line4"><div class="particle"></div><div class="particle"></div></div>
+      <div class="node output">OUT</div>
+      <div class="ubend-indicator">U-BEND ACTIVE</div>
+    </div>
+    <div id="coreSection" class="section"><div class="section-label">CORE CLAIM</div><div class="section-content"><span class="empty">emerging as you type...</span></div></div>
+    <div id="assumptionsSection" class="section"><div class="section-label">ASSUMPTIONS</div><div class="section-content"><span class="empty">surface when thought forms...</span></div></div>
+    <div id="contradictionsSection" class="section"><div class="section-label">CONTRADICTIONS</div><div class="section-content"><span class="empty">scanning for internal tension...</span></div></div>
+    <div id="prioritySection" class="section"><div class="section-label">PRIORITY</div><div class="section-content"><span class="empty">calculating signal strength...</span></div></div>
+    <div id="actionSection" class="section"><div class="section-label">NEXT ACTION</div><div class="section-content"><span class="empty">waiting for complete thought...</span></div></div>
+  </div>
+</div>
+
+<script>
+const input=document.getElementById('input');
+const sections=['coreSection','assumptionsSection','contradictionsSection','prioritySection','actionSection'];
+const gates=['gate1','gate2','gate3'];
+
+function tokenize(text){return text.toLowerCase().split(/[^a-z]+/).filter(w=>w.length>2)}
+function extractClaims(text){const s=text.split(/[.!?]+/).map(x=>x.trim()).filter(x=>x.length>10);return s.length?s.slice(0,3):[]}
+function extractAssumptions(claims){
+  const patterns=[
+    [/\b(should|must|need|have to|always|never)\b/,'normative','obligation or rule assumed'],
+    [/\b(because|since|due to|therefore|thus)\b/,'causal','cause-effect relationship assumed'],
+    [/\b(will|going to|plan|expect|predict)\b/,'predictive','future outcome assumed'],
+    [/\b(they|people|everyone|nobody|users|everyone)\b/,'generalization','group behavior assumed'],
+    [/\b(if|when|once|after)\b/,'conditional','dependency assumed'],
+  ];
+  const r=[];for(const c of claims)for(const[p,t,l] of patterns){const m=c.match(p);if(m)r.push({trigger:m[0],type:t,label:l,ctx:c.slice(0,100)})}
+  return r.slice(0,6);
+}
+function findTensions(as){
+  const r=[];const pairs=[['should','cannot'],['always','never'],['fast','careful'],['free','protect'],['launch','wait'],['move','stay']];
+  for(let i=0;i<as.length;i++)for(let j=i+1;j<as.length;j++){const al=as[i].ctx.toLowerCase(),bl=as[j].ctx.toLowerCase();for(const[a,b]of pairs)if((al.includes(a)&&bl.includes(b))||(al.includes(b)&&bl.includes(a)))r.push(`"${as[i].trigger}" vs "${as[j].trigger}"`)}
+  return r.slice(0,3);
+}
+function calcPriority(text){
+  const l=text.toLowerCase();let s=0;
+  if(/urgent|asap|immediately|critical|emergency|deadline|today|tomorrow/.test(l))s+=3;
+  if(/all|everyone|entire|whole|company|team|product|launch|release/.test(l))s+=2;
+  if(/permanent|irreversible|final|delete|fire|quit|resign/.test(l))s+=3;
+  if(s>=7)return{level:'CRITICAL',color:'#FF5F57',action:'stop. verify. call someone.'};
+  if(s>=5)return{level:'HIGH',color:'#f5c451',action:'block 30 min. write plan. share it.'};
+  if(s>=3)return{level:'MODERATE',color:'#5a7aff',action:'add to this week. one data point first.'};
+  return{level:'LOW',color:null,action:'keep in backlog. revisit when urgency changes.'};
+}
+
+let timer=null;
+function getEl(id){return document.getElementById(id)}
+function setContent(id,html,cls){
+  const el=getEl(id);el.innerHTML=html;el.classList.add('visible');
+  const parent=el.closest('.section');if(parent)parent.classList.add('visible');
+}
+
+input.addEventListener('input',()=>{
+  clearTimeout(timer);
+  const text=input.value.trim();
+  const dot=document.getElementById('liveDot');
+  const status=document.getElementById('statusText');
+
+  if(!text||text.length<5){
+    sections.forEach(s=>{
+      const el=getEl(s);const empty=el.querySelector('.empty');
+      if(empty)empty.style.display='block';
+    });
+    dot.classList.remove('processing');status.textContent='listening';
+    gates.forEach(g=>document.getElementById(g).classList.remove('active'));
+    document.querySelectorAll('.line').forEach(l=>l.classList.remove('flowing'));
+    return;
+  }
+
+  dot.classList.add('processing');status.textContent='processing';
+  document.querySelectorAll('.line').forEach(l=>l.classList.add('flowing'));
+
+  timer=setTimeout(()=>{
+    const claims=extractClaims(text);
+    const assumptions=extractAssumptions(claims);
+    const tensions=findTensions(assumptions);
+    const priority=calcPriority(text);
+
+    // Gate 1: Core claim
+    setTimeout(()=>{
+      document.getElementById('gate1').classList.add('active');
+      if(claims.length){
+        setContent('coreSection',claims.map(c=>`<div class="claim">▸ ${c}</div>`).join(''));
+      }
+    },100);
+
+    // Gate 2: Assumptions
+    setTimeout(()=>{
+      document.getElementById('gate2').classList.add('active');
+      if(assumptions.length){
+        setContent('assumptionsSection',assumptions.map(a=>`<div class="assumption"><span class="trigger">${a.trigger}</span><span class="label">${a.type}</span></div>`).join(''));
+      }
+    },250);
+
+    // Gate 3: Contradictions
+    setTimeout(()=>{
+      document.getElementById('gate3').classList.add('active');
+      if(tensions.length){
+        setContent('contradictionsSection',tensions.map(t=>`<div class="contradiction">⚠ ${t}</div>`).join(''));
+      }else{
+        setContent('contradictionsSection','<span style="color:rgba(255,255,255,0.15)">✓ no internal contradictions</span>');
+      }
+    },400);
+
+    // Priority + Action
+    setTimeout(()=>{
+      setContent('prioritySection',`<div class="priority-line" style="color:${priority.color||'inherit'}">${priority.level}</div>`);
+      setContent('actionSection',`<div class="action-line">→ ${priority.action}</div>`);
+      dot.classList.remove('processing');status.textContent='idle';
+      setTimeout(()=>gates.forEach(g=>document.getElementById(g).classList.remove('active')),800);
+    },600);
+
+  },500);
+});
+
+input.focus();
+</script>
+</body>
+</html>

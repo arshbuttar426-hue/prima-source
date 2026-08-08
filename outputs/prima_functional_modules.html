@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prima — Functional Modules</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:#08080c;color:#f5f5f7;-webkit-font-smoothing:antialiased;overflow-x:hidden;transition:background 0.6s}
+
+#field{position:fixed;inset:0;z-index:0;pointer-events:none}
+#fc{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
+#cc{position:absolute;inset:0;width:100%;height:100%}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:100;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 48px;transition:all 0.4s;background:rgba(8,8,12,0.8);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border-bottom:1px solid rgba(255,255,255,0.04)}
+.brand{font-size:15px;font-weight:700;letter-spacing:-0.02em;display:flex;align-items:center;gap:8px}
+.brand-dot{width:7px;height:7px;border-radius:50%;background:#5a7aff}
+nav .mode-indicator{font-size:11px;color:rgba(255,255,255,0.35);display:flex;gap:6px}
+nav .mode-indicator span{padding:3px 10px;background:rgba(90,122,255,0.1);border-radius:100px;color:#5a7aff;font-weight:500}
+
+.hero{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 40px}
+.hero h1{font-size:clamp(2.5rem,6vw,4.5rem);font-weight:800;letter-spacing:-0.035em;line-height:1.05;max-width:800px}
+.hero h1 .gradient{background:linear-gradient(135deg,#5a7aff 0%,#a78bfa 25%,#e06a3a 50%,#f5c451 75%,#5a7aff 100%);background-size:200% 200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:gradShift 6s ease-in-out infinite}
+@keyframes gradShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.hero p{font-size:1.1rem;color:rgba(255,255,255,0.45);max-width:500px;margin:20px 0 32px;line-height:1.6}
+
+.cards{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:900px;margin:0 auto;padding:0 40px 80px}
+.card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);padding:28px 22px;transition:all 0.5s;cursor:default;position:relative;user-select:none}
+.card .tag{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#5a7aff;margin-bottom:8px}
+.card h3{font-size:1rem;font-weight:600;margin-bottom:4px}
+.card p{font-size:0.82rem;color:rgba(255,255,255,0.35);line-height:1.5}
+.card .action-hint{display:none;margin-top:12px;font-size:9px;color:#5a7aff;font-weight:600;text-transform:uppercase;letter-spacing:0.08em}
+
+/* ─── MODE: EXTRACT ─── */
+body.mode-extract .card{cursor:crosshair;border-color:rgba(90,122,255,0.2)}
+body.mode-extract .card:hover{background:rgba(90,122,255,0.06);border-color:#5a7aff}
+body.mode-extract .card .action-hint{display:block}
+body.mode-extract .card.extracted{background:rgba(245,196,81,0.08);border-color:rgba(245,196,81,0.3);animation:extractFlash 0.6s}
+@keyframes extractFlash{0%{box-shadow:0 0 0 0 rgba(245,196,81,0.4)}100%{box-shadow:0 0 0 20px rgba(245,196,81,0)}}
+body.mode-extract #field{opacity:0.3}
+
+/* ─── MODE: PHYSICS ─── */
+body.mode-physics .card{position:absolute;transition:none}
+body.mode-physics .cards{display:block;position:relative;min-height:400px;height:400px}
+
+/* ─── MODE: REVEAL ─── */
+body.mode-reveal .card{opacity:0.15;filter:blur(3px);transition:all 0.5s}
+body.mode-reveal .card.revealed{opacity:1;filter:blur(0)}
+body.mode-reveal .card:hover{box-shadow:0 0 30px rgba(90,122,255,0.2)}
+
+/* ─── MODE: AUDIT ─── */
+body.mode-audit .card{position:relative}
+body.mode-audit .card.flagged::after{content:'⚠';position:absolute;top:8px;right:10px;font-size:12px;animation:flagPulse 1.5s infinite}
+body.mode-audit .card.flagged{border-color:rgba(255,45,85,0.3);background:rgba(255,45,85,0.04)}
+body.mode-audit .card.clean{border-color:rgba(52,199,89,0.2)}
+@keyframes flagPulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* ─── MODE: COMPILE ─── */
+body.mode-compile .card{cursor:pointer}
+body.mode-compile .card.compiling{animation:compileShrink 0.5s forwards}
+body.mode-compile .card.compiled{background:#1d1d1f;border-color:rgba(52,199,89,0.3)}
+body.mode-compile .card.compiled .tag{color:#34C759}
+@keyframes compileShrink{0%{transform:scale(1);opacity:1}100%{transform:scale(0.95);opacity:0.7}}
+
+/* ─── MODE: RECORD ─── */
+body.mode-record .card{cursor:pointer;transition:all 0.15s}
+body.mode-record .card.changed{border-color:rgba(245,196,81,0.4)}
+body.mode-record .history-bar{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:200;display:flex;gap:6px;padding:8px 14px;background:rgba(29,29,31,0.94);backdrop-filter:blur(20px);border-radius:100px}
+body.mode-record .history-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.2);cursor:pointer;transition:all 0.2s}
+body.mode-record .history-dot.active{background:#5a7aff;box-shadow:0 0 8px rgba(90,122,255,0.5)}
+
+/* ─── MODE: INSPECT ─── */
+body.mode-inspect .card{cursor:help}
+body.mode-inspect .card::after{content:'';position:absolute;inset:0;border:1px dashed rgba(90,122,255,0);transition:all 0.3s;pointer-events:none}
+body.mode-inspect .card:hover::after{border-color:rgba(90,122,255,0.3)}
+body.mode-inspect .card .detail-panel{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#0f0f16;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:24px;z-index:300;width:320px;font-size:11px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.5);line-height:1.8}
+body.mode-inspect .card .detail-panel.show{display:block}
+body.mode-inspect .card .detail-panel .close-btn{position:absolute;top:8px;right:12px;background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-size:14px}
+
+/* ─── MODE: SHARE ─── */
+body.mode-share .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#34C759;color:#fff;padding:12px 24px;border-radius:10px;font-size:13px;font-weight:600;z-index:300;animation:toastIn 0.3s,toastOut 0.3s 2s forwards}
+@keyframes toastIn{from{transform:translateX(-50%) translateY(-20px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes toastOut{from{opacity:1}to{opacity:0}}
+
+/* ─── TOOLBAR ─── */
+.toolbar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:200;display:flex;gap:6px;padding:6px 8px;background:rgba(29,29,31,0.94);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border-radius:100px;box-shadow:0 8px 40px rgba(0,0,0,0.3)}
+.toolbar button{border:none;padding:8px 16px;border-radius:100px;font-size:10px;font-weight:600;font-family:'Inter';cursor:pointer;transition:all 0.2s;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.4);white-space:nowrap;display:flex;align-items:center;gap:5px}
+.toolbar button:hover{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7)}
+.toolbar button.active{background:#5a7aff;color:#fff}
+.toolbar .sep{width:1px;background:rgba(255,255,255,0.1);margin:4px 2px}
+
+body.mode-active .hero p::after{content:' [active mode: functional]';display:block;margin-top:8px;font-size:10px;color:rgba(90,122,255,0.5)}
+.detail-panel .close-btn{font-family:'Inter'}
+
+@media(max-width:768px){.cards{grid-template-columns:1fr}.hero h1{font-size:2.2rem}nav{padding:0 24px}.toolbar{flex-wrap:wrap;justify-content:center;gap:3px;padding:5px 6px}.toolbar button{padding:6px 10px;font-size:9px}}
+</style>
+</head>
+<body>
+
+<div id="field"><canvas id="fc"></canvas><canvas id="cc"></canvas></div>
+
+<nav>
+  <span class="brand"><span class="brand-dot"></span>Prima</span>
+  <span class="mode-indicator" id="modeLabel">idle</span>
+</nav>
+
+<section class="hero">
+  <h1>One language.<br><span class="gradient">Every function.</span></h1>
+  <p>Choose a mode below. Each module transforms what the cards do. Stack them and behavior compounds.</p>
+</section>
+
+<div class="cards" id="cardContainer">
+  <div class="card"><div class="tag">Extraction</div><h3>Reverse Design DNA</h3><p>Visit any website. Extract its visual language into a .prima file.</p><div class="action-hint">Click to extract</div></div>
+  <div class="card"><div class="tag">Modular</div><h3>Content, Style, Behavior</h3><p>Three files. Zero coupling. Swap one without touching the rest.</p><div class="action-hint">Click to extract</div></div>
+  <div class="card"><div class="tag">Visual</div><h3>Physics & Motion</h3><p>Marching squares, N-body, reaction-diffusion. Declarative.</p><div class="action-hint">Click to extract</div></div>
+  <div class="card"><div class="tag">Universal</div><h3>One Source, Everywhere</h3><p>Compile .prima to HTML, React, SwiftUI, Flutter, CLI.</p><div class="action-hint">Click to extract</div></div>
+  <div class="card"><div class="tag">Deterministic</div><h3>No LLM Required</h3><p>Verb-chain synthesis. 30 lines of SQL. Runs fully offline.</p><div class="action-hint">Click to extract</div></div>
+  <div class="card"><div class="tag">Agent Native</div><h3>Skills on Demand</h3><p>Recall. Learn. Delete. Health. Primafy. Independent agents.</p><div class="action-hint">Click to extract</div></div>
+</div>
+
+<div class="toolbar" id="toolbar">
+  <button data-mode="extract">🔍 Extract</button>
+  <button data-mode="physics">⚡ Physics</button>
+  <button data-mode="reveal">👁 Reveal</button>
+  <span class="sep"></span>
+  <button data-mode="audit">⚠ Audit</button>
+  <button data-mode="compile">⚙ Compile</button>
+  <span class="sep"></span>
+  <button data-mode="inspect">🔬 Inspect</button>
+  <button data-mode="record">⏺ Record</button>
+  <button data-mode="share">↗ Share</button>
+  <span class="sep"></span>
+  <button id="resetBtn">✕ Clear</button>
+</div>
+
+<script>
+const activeModes=new Set();
+const toolbar=document.getElementById('toolbar');
+const modeLabel=document.getElementById('modeLabel');
+const body=document.body;
+let history=[],historyIdx=-1;
+let physicsEngine=null;
+
+function updateModes(){
+  body.className='';activeModes.forEach(m=>body.classList.add(`mode-${m}`));
+  if(activeModes.size>0)body.classList.add('mode-active');
+  modeLabel.innerHTML=activeModes.size===0?'idle':[...activeModes].map(m=>`<span>${m}</span>`).join('');
+  toolbar.querySelectorAll('button[data-mode]').forEach(b=>b.classList.toggle('active',activeModes.has(b.dataset.mode)));
+}
+
+toolbar.querySelectorAll('button[data-mode]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const mode=btn.dataset.mode;
+    if(activeModes.has(mode)){activeModes.delete(mode);deactivateMode(mode)}
+    else{activeModes.add(mode);activateMode(mode)}
+    updateModes();
+  });
+});
+
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  activeModes.forEach(m=>deactivateMode(m));
+  activeModes.clear();
+  resetAllCards();
+  updateModes();
+});
+
+function resetAllCards(){
+  document.querySelectorAll('.card').forEach(c=>{
+    c.className='card';c.style.cssText='';
+    const hint=c.querySelector('.action-hint');
+    if(hint)hint.style.display='none';
+  });
+  const existingHistory=document.querySelector('.history-bar');
+  if(existingHistory)existingHistory.remove();
+  const existingDetail=document.querySelector('.detail-panel');
+  if(existingDetail)existingDetail.remove();
+  if(physicsEngine){cancelAnimationFrame(physicsEngine);physicsEngine=null}
+  const container=document.getElementById('cardContainer');
+  container.style.cssText='';container.className='cards';
+  history=[];historyIdx=-1;
+}
+
+// ─── EXTRACT ───
+function activateMode_extract(){
+  document.querySelectorAll('.card').forEach(c=>{
+    c.addEventListener('click',function handler(){this.classList.add('extracted')},{once:true});
+  });
+}
+function deactivateMode_extract(){
+  document.querySelectorAll('.card').forEach(c=>c.classList.remove('extracted'));
+}
+
+// ─── PHYSICS ───
+function activateMode_physics(){
+  const cards=Array.from(document.querySelectorAll('.card'));
+  const container=document.getElementById('cardContainer');
+  const rect=container.getBoundingClientRect();
+  const bodies=cards.map((c,i)=>{
+    const cr=c.getBoundingClientRect();
+    return{x:cr.left-rect.left+cr.width/2,y:cr.top-rect.top+cr.height/2,vx:(Math.random()-0.5)*3,vy:(Math.random()-0.5)*3,w:cr.width,h:cr.height,el:c}
+  });
+  cards.forEach((c,i)=>{c.style.position='absolute';c.style.left=bodies[i].x-bodies[i].w/2+'px';c.style.top=bodies[i].y-bodies[i].h/2+'px'});
+  container.style.position='relative';container.style.height='500px';
+  let mx=-999,my=-999;
+  function physLoop(){
+    physicsEngine=requestAnimationFrame(physLoop);
+    for(let i=0;i<bodies.length;i++){
+      const a=bodies[i];let fx=0,fy=0;
+      for(let j=0;j<bodies.length;j++){if(i===j)continue;const b=bodies[j];const dx=a.x-b.x,dy=a.y-b.y;const d=Math.sqrt(dx*dx+dy*dy)+1;if(d<300){fx+=dx/d*2/d;fy+=dy/d*2/d}}
+      if(mx>0){const dx=a.x-mx,dy=a.y-my;const d=Math.sqrt(dx*dx+dy*dy)+1;if(d<200){fx+=dx/d*10/d;fy+=dy/d*10/d}}
+      a.vx+=fx*0.02;a.vy+=fy*0.02;a.vx*=0.94;a.vy*=0.94;a.x+=a.vx;a.y+=a.vy;
+      if(a.x<10){a.x=10;a.vx*=-0.5}if(a.x>rect.width-10){a.x=rect.width-10;a.vx*=-0.5}
+      if(a.y<10){a.y=10;a.vy*=-0.5}if(a.y>500-10){a.y=500-10;a.vy*=-0.5}
+      a.el.style.left=a.x-a.w/2+'px';a.el.style.top=a.y-a.h/2+'px';
+    }
+  }
+  container.addEventListener('mousemove',e=>{const r=container.getBoundingClientRect();mx=e.clientX-r.left;my=e.clientY-r.top});
+  physLoop();
+}
+function deactivateMode_physics(){resetAllCards()}
+
+// ─── REVEAL ───
+function activateMode_reveal(){
+  document.querySelectorAll('.card').forEach(c=>{c.addEventListener('click',function handler(){this.classList.add('revealed')},{once:true})});
+}
+
+// ─── AUDIT ───
+function activateMode_audit(){
+  document.querySelectorAll('.card').forEach((c,i)=>{c.classList.add(i%3===0?'flagged':'clean')});
+}
+function deactivateMode_audit(){
+  document.querySelectorAll('.card').forEach(c=>{c.classList.remove('flagged','clean')});
+}
+
+// ─── COMPILE ───
+function activateMode_compile(){
+  document.querySelectorAll('.card').forEach(c=>{c.addEventListener('click',function handler(){this.classList.add('compiling');setTimeout(()=>this.classList.replace('compiling','compiled'),500)},{once:true})});
+}
+function deactivateMode_compile(){
+  document.querySelectorAll('.card').forEach(c=>c.classList.remove('compiling','compiled'));
+}
+
+// ─── INSPECT ───
+function activateMode_inspect(){
+  document.querySelectorAll('.card').forEach(c=>{
+    c.addEventListener('click',function handler(){
+      const existing=document.querySelector('.detail-panel');
+      if(existing)existing.remove();
+      const panel=document.createElement('div');panel.className='detail-panel show';
+      panel.innerHTML=`<button class="close-btn">✕</button><div style="color:#5a7aff;margin-bottom:8px">// extracted constraints</div>must_frost {<br>&nbsp;&nbsp;accent: #5a7aff<br>&nbsp;&nbsp;surface: rgba(255,255,255,0.02)<br>}<br>must_speak {<br>&nbsp;&nbsp;title: "Inter" weight(600)<br>&nbsp;&nbsp;body: weight(400) size(13px)<br>}<br><br>// compiled: html ✓ tailwind ✓<br>// compiled: react ✓ swiftui ✓`;
+      panel.querySelector('.close-btn').addEventListener('click',()=>panel.remove());
+      document.body.appendChild(panel);
+    },{once:true});
+  });
+}
+
+// ─── RECORD ───
+function activateMode_record(){
+  if(!document.querySelector('.history-bar')){const bar=document.createElement('div');bar.className='history-bar';document.body.appendChild(bar)}
+  document.querySelectorAll('.card').forEach(c=>{c.addEventListener('click',function recordClick(){history.push({el:this,was:this.className});this.classList.add('changed');const bar=document.querySelector('.history-bar');const dot=document.createElement('div');dot.className='history-dot';dot.addEventListener('click',()=>{// restore not implemented in demo
+  });bar.appendChild(dot)})});
+}
+function deactivateMode_record(){
+  document.querySelectorAll('.card').forEach(c=>c.classList.remove('changed'));
+  const bar=document.querySelector('.history-bar');if(bar)bar.innerHTML='';
+}
+
+// ─── SHARE ───
+function activateMode_share(){
+  const modes=[...activeModes].filter(m=>m!=='share').join(',');
+  const toast=document.createElement('div');toast.className='toast';
+  toast.textContent=`Link copied: prima.io/?modes=${modes || 'none'}`;
+  document.body.appendChild(toast);
+  setTimeout(()=>toast.remove(),2500);
+}
+function deactivateMode_share(){}
+
+const modeFns={extract:{on:activateMode_extract,off:deactivateMode_extract},physics:{on:activateMode_physics,off:deactivateMode_physics},reveal:{on:activateMode_reveal,off:()=>{}},audit:{on:activateMode_audit,off:deactivateMode_audit},compile:{on:activateMode_compile,off:deactivateMode_compile},inspect:{on:activateMode_inspect,off:()=>{}},record:{on:activateMode_record,off:deactivateMode_record},share:{on:activateMode_share,off:deactivateMode_share}};
+
+function activateMode(m){if(modeFns[m]?.on)modeFns[m].on()}
+function deactivateMode(m){if(modeFns[m]?.off)modeFns[m].off()}
+
+// ─── metaball field ───
+const GW=120,GH=80,THRESH=1.0,fld=new Float32Array(GW*GH),charges=[];
+const fc=document.getElementById('fc'),cc=document.getElementById('cc');
+const pctx=fc.getContext('2d'),cctx=cc.getContext('2d');
+fc.width=GW;fc.height=GH;const img=pctx.createImageData(GW,GH);
+let DP=Math.min(devicePixelRatio||1,2),mx=-9,my=-9,smx=-9,smy=-9,t=0;
+for(let i=0;i<4;i++)charges.push({bx:.2+Math.random()*.6,by:.2+Math.random()*.6,ax:.05+Math.random()*.08,ay:.05+Math.random()*.08,sx:.2+Math.random()*.8,sy:.2+Math.random()*.8,ph:Math.random()*6.28,r:.14+Math.random()*.06});
+function cp(c){return{x:c.bx+Math.sin(t*c.sx+c.ph)*c.ax,y:c.by+Math.cos(t*c.sy+c.ph)*c.ay}}
+function cf(){const xp=smx>=0?smx:-9,yp=smy>=0?smy:-9;for(let gy=0;gy<GH;gy++)for(let gx=0;gx<GW;gx++){let s=0;const x=gx/GW,y=gy/GH;for(const c of charges)s+=c.r*c.r/((x-cp(c).x)**2+(y-cp(c).y)**2+8e-4);if(xp>=0)s+=.15/((x-xp)**2+(y-yp)**2+8e-4);fld[gy*GW+gx]=s}}
+function pf(){for(let i=0;i<GW*GH;i++){const v=fld[i],o=i*4;if(v>=THRESH){img.data[o]=90;img.data[o+1]=122;img.data[o+2]=255;img.data[o+3]=22}else if(v>=THRESH*.82){img.data[o]=245;img.data[o+1]=196;img.data[o+2]=81;img.data[o+3]=12}else{img.data[o]=224;img.data[o+1]=106;img.data[o+2]=58;img.data[o+3]=5}pctx.putImageData(img,0,0)}}
+function dc(){cctx.clearRect(0,0,cc.width,cc.height);cctx.strokeStyle='rgba(245,196,81,0.25)';cctx.lineWidth=1*DP;const W=cc.width,H=cc.height,sx=W/(GW-1),sy=H/(GH-1);for(let gy=0;gy<GH-1;gy++)for(let gx=0;gx<GW-1;gx++){const tl=fld[gy*GW+gx]>=THRESH,tr=fld[gy*GW+gx+1]>=THRESH,br=fld[(gy+1)*GW+gx+1]>=THRESH,bl=fld[(gy+1)*GW+gx]>=THRESH;let idx=(tl?8:0)|(tr?4:0)|(br?2:0)|(bl?1:0);if(idx===0||idx===15)continue;const x0=gx*sx,x1=(gx+1)*sx,y0=gy*sy,y1=(gy+1)*sy;const top={x:lerp(x0,x1,iso(gx,gy,gx+1,gy)),y:y0},right={x:x1,y:lerp(y0,y1,iso(gx+1,gy,gx+1,gy+1))},bottom={x:lerp(x0,x1,iso(gx,gy+1,gx+1,gy+1)),y:y1},left={x:x0,y:lerp(y0,y1,iso(gx,gy,gx,gy+1))};cctx.beginPath();switch(idx){case 1:case 14:seg(left,bottom);break;case 2:case 13:seg(bottom,right);break;case 3:case 12:seg(left,right);break;case 4:case 11:seg(top,right);break;case 5:seg(left,top);seg(bottom,right);break;case 6:case 9:seg(top,bottom);break;case 7:case 8:seg(left,top);break;case 10:seg(top,right);seg(left,bottom);break}cctx.stroke()}}
+function lerp(a,b,t){return a+(b-a)*t}
+function iso(x1,y1,x2,y2){const a=fld[y1*GW+x1],b=fld[y2*GW+x2];if(Math.abs(a-b)<1e-6)return.5;return(a-THRESH)/(a-b)}
+function seg(p,q){cctx.moveTo(p.x,p.y);cctx.lineTo(q.x,q.y)}
+function resz(){cc.width=innerWidth*DP;cc.height=innerHeight*DP}
+function loop(){requestAnimationFrame(loop);t+=.008;smx+=(mx-smx)*.06;smy+=(my-smy)*.06;cf();pf();dc()}
+document.addEventListener('mousemove',e=>{mx=e.clientX/innerWidth;my=e.clientY/innerHeight});
+document.addEventListener('mouseleave',()=>{mx=-9;my=-9});addEventListener('resize',resz);resz();loop();
+</script>
+</body>
+</html>

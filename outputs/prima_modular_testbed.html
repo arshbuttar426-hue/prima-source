@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prima — Modular Testbed</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style id="style-module">
+/* ─── STYLE MODULE: apple_hig (default) ─── */
+:root{
+  --bg:#fff;--bg-alt:#f5f5f7;--bg-card:#f5f5f7;--bg-code:#1d1d1f;
+  --text:#1d1d1f;--text-alt:#86868b;--text-muted:#aeaeb2;
+  --accent:#007AFF;--accent-dim:rgba(0,122,255,0.08);--accent-border:rgba(0,122,255,0.12);
+  --nav-glass:rgba(255,255,255,0.72);--border:rgba(0,0,0,0.06);--border-strong:rgba(0,0,0,0.12);
+  --shadow-code:0 20px 60px rgba(0,0,0,0.12);--radius:14px;--radius-sm:10px;--radius-xs:8px;
+  --gap:16px;--gap-lg:20px;--section-pad:80px 48px;--nav-h:44px
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);transition:background 0.4s,color 0.4s;overflow-x:hidden}
+
+/* │ CONTROL PANEL ─────────────────────────── */
+.panel{position:fixed;top:12px;right:16px;z-index:200;display:flex;flex-direction:column;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:8px;box-shadow:0 4px 20px rgba(0,0,0,0.08);font-size:11px;min-width:180px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.panel-row{display:flex;align-items:center;gap:6px}
+.panel-label{color:var(--text-alt);font-weight:600;text-transform:uppercase;letter-spacing:0.08em;font-size:9px;min-width:44px}
+.panel select{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:10px;font-family:'Inter';color:var(--text);outline:none;cursor:pointer}
+.panel .sep{height:1px;background:var(--border);margin:4px 0}
+.panel .badge{font-size:9px;color:var(--accent);text-align:center;padding:4px 0;font-weight:600;letter-spacing:0.05em}
+
+/* │ NAV ─────────────────────────── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;height:var(--nav-h);display:flex;align-items:center;justify-content:space-between;padding:0 48px;background:transparent;transition:all 0.3s}
+nav.scrolled{background:var(--nav-glass);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--border)}
+nav .brand{font-size:15px;font-weight:700;letter-spacing:-0.02em}
+nav a{color:var(--text);text-decoration:none;font-size:12px;opacity:0.75;transition:opacity 0.2s}
+nav a:hover{opacity:1}
+
+/* │ HERO ─────────────────────────── */
+.hero{padding:120px 48px 60px;text-align:center;max-width:900px;margin:0 auto}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:5px 14px;background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:100px;font-size:12px;font-weight:500;color:var(--accent);margin-bottom:28px}
+.badge .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.hero h1{font-size:clamp(2.5rem,6vw,4rem);font-weight:700;letter-spacing:-0.03em;line-height:1.05;margin-bottom:8px}
+.hero h1 span{background:linear-gradient(135deg,var(--accent) 0%,#5856D6 40%,#FF2D55 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:1.1rem;color:var(--text-alt);line-height:1.6;max-width:560px;margin:16px auto 28px}
+.hero-actions{display:flex;gap:12px;justify-content:center}
+.btn-primary{background:var(--accent);color:#fff;border:none;padding:12px 26px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;cursor:pointer;font-family:'Inter';transition:all 0.25s}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,122,255,0.25)}
+.btn-ghost{background:transparent;color:var(--text);border:1.5px solid var(--border-strong);padding:12px 26px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;cursor:pointer;font-family:'Inter';transition:all 0.25s}
+.btn-ghost:hover{border-color:var(--text-alt)}
+
+.code-block{margin:36px auto 0;max-width:520px;background:var(--bg-code);border-radius:var(--radius);overflow:hidden;text-align:left;box-shadow:var(--shadow-code)}
+.code-bar{height:32px;background:rgba(0,0,0,0.2);display:flex;align-items:center;gap:6px;padding:0 12px}
+.code-bar .d{width:9px;height:9px;border-radius:50%}
+.code-bar .d.r{background:#FF5F57}.code-bar .d.y{background:#FEBE2E}.code-bar .d.g{background:#28C840}
+.code-body{padding:16px 18px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.75;color:#f5f5f7}
+.code-body .kw{color:#FF6B9D}.code-body .str{color:#5AC8FA}.code-body .prop{color:#A5D6FF}
+.code-cursor{display:inline-block;width:7px;height:13px;background:#007AFF;vertical-align:middle;margin-left:1px;animation:blink 0.6s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* │ SECTIONS ─────────────────────────── */
+.sec{padding:var(--section-pad);max-width:980px;margin:0 auto}
+.sec-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:var(--accent);margin-bottom:12px}
+.sec h2{font-size:1.8rem;font-weight:600;letter-spacing:-0.02em;line-height:1.15;margin-bottom:32px}
+
+/* │ STATS ─────────────────────────── */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap-lg);background:var(--bg-alt);border-radius:var(--radius);padding:40px}
+.stat{text-align:center}
+.stat .num{font-size:2.2rem;font-weight:700;letter-spacing:-0.03em;margin-bottom:4px;color:var(--accent)}
+.stat .lab{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-alt);margin-bottom:3px}
+.stat .dsc{font-size:11px;color:var(--text-muted)}
+
+/* │ CARDS ─────────────────────────── */
+.cards{display:grid;gap:var(--gap)}
+.cards.c3{grid-template-columns:repeat(3,1fr)}.cards.c2{grid-template-columns:repeat(2,1fr)}.cards.c1{grid-template-columns:1fr}
+.card{background:var(--bg-card);padding:32px 24px;transition:transform 0.3s,background 0.3s}
+.card:hover{transform:scale(1.01)}
+.card .ctag{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);margin-bottom:10px}
+.card h3{font-size:1.05rem;font-weight:600;letter-spacing:-0.01em;margin-bottom:6px}
+.card p{font-size:0.88rem;color:var(--text-alt);line-height:1.5}
+
+/* │ BENTO LAYOUT ─────────────────────────── */
+.bento{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;grid-template-rows:180px 180px;gap:12px}
+.bento-item{background:var(--bg-card);padding:24px;display:flex;flex-direction:column;justify-content:flex-end;transition:transform 0.3s}
+.bento-item:hover{transform:scale(0.98)}
+.bento-item.w2{grid-column:span 2}.bento-item.h2{grid-row:span 2}
+.bento-item .btag{font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent);margin-bottom:4px}
+.bento-item .btitle{font-size:1rem;font-weight:600}
+
+/* │ CASCADE LAYOUT ─────────────────────────── */
+.cascade{display:flex;flex-direction:column;gap:4px}
+.cascade-item{background:var(--bg-card);padding:24px 28px;display:flex;align-items:center;gap:16px;transition:transform 0.3s}
+.cascade-item:hover{transform:translateX(4px)}
+.cascade-item .cnum{font-size:2rem;font-weight:200;color:var(--accent);opacity:0.3;min-width:40px}
+.cascade-item h3{font-size:1rem;font-weight:600}
+
+/* │ SPLIT LAYOUT ─────────────────────────── */
+.split{display:flex;gap:var(--gap)}
+.split-main{flex:2;background:var(--bg-card);padding:40px;display:flex;flex-direction:column;justify-content:center}
+.split-side{flex:1;display:flex;flex-direction:column;gap:var(--gap)}
+.split-card{background:var(--bg-card);padding:24px;flex:1}
+
+/* │ CTA + FOOTER ─────────────────────────── */
+.cta-wrap{background:var(--bg-alt);border-radius:var(--radius);padding:64px 48px;text-align:center;max-width:980px;margin:0 auto}
+.cta-wrap h2{font-size:1.8rem;font-weight:600;letter-spacing:-0.02em;margin-bottom:8px}
+.cta-wrap p{color:var(--text-alt);font-size:1rem;margin-bottom:24px}
+.footer{padding:36px 48px;text-align:center;border-top:1px solid var(--border);margin-top:60px;font-size:11px;color:var(--text-muted)}
+
+/* │ MODULE: SPRING ─────────────────────────── */
+body[data-behavior="spring"] .card,body[data-behavior="spring"] .bento-item,body[data-behavior="spring"] .cascade-item,body[data-behavior="spring"] .btn-primary{transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1)}
+body[data-behavior="spring"] .card:hover{transform:scale(1.04)}
+body[data-behavior="spring"] .btn-primary:hover{transform:scale(1.05)}
+body[data-behavior="spring"] .stat .num{animation:springIn 0.6s cubic-bezier(0.34,1.56,0.64,1) both}
+@keyframes springIn{from{transform:scale(0.5);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* │ MODULE: STAGGER ─────────────────────────── */
+body[data-behavior="stagger"] .card,body[data-behavior="stagger"] .bento-item,body[data-behavior="stagger"] .cascade-item{opacity:0;transform:translateY(16px)}
+body[data-behavior="stagger"] .card.visible,body[data-behavior="stagger"] .bento-item.visible,body[data-behavior="stagger"] .cascade-item.visible{opacity:1;transform:translateY(0)}
+body[data-behavior="stagger"] .card{transition:opacity 0.4s,transform 0.4s}
+body[data-behavior="stagger"] .card:nth-child(1){transition-delay:0s}
+body[data-behavior="stagger"] .card:nth-child(2){transition-delay:0.1s}
+body[data-behavior="stagger"] .card:nth-child(3){transition-delay:0.2s}
+body[data-behavior="stagger"] .card:nth-child(4){transition-delay:0.3s}
+body[data-behavior="stagger"] .card:nth-child(5){transition-delay:0.4s}
+body[data-behavior="stagger"] .card:nth-child(6){transition-delay:0.5s}
+
+/* │ MODULE: PARALLAX ─────────────────────────── */
+body[data-behavior="parallax"] .hero{transform:translateY(calc(var(--scroll,0) * 0.4px))}
+body[data-behavior="parallax"] .code-block{transform:translateY(calc(var(--scroll,0) * -0.2px))}
+
+/* │ MODULE: FADE ─────────────────────────── */
+body[data-behavior="fade"] .sec,body[data-behavior="fade"] .cta-wrap{opacity:0;transform:translateY(20px);transition:opacity 0.7s,transform 0.7s}
+body[data-behavior="fade"] .sec.visible,body[data-behavior="fade"] .cta-wrap.visible{opacity:1;transform:translateY(0)}
+
+@media(max-width:768px){.stats{grid-template-columns:1fr 1fr}.cards.c3{grid-template-columns:1fr}.bento{grid-template-columns:1fr 1fr;grid-template-rows:auto}.split{flex-direction:column}nav{padding:0 24px}.hero{padding:100px 28px 40px}.panel{top:8px;right:8px;font-size:10px;min-width:160px}}
+</style>
+</head>
+<body>
+
+<!-- ─── CONTROL PANEL ─── -->
+<div class="panel">
+  <div class="badge">MODULAR TESTBED</div>
+  <div class="panel-row">
+    <span class="panel-label">Style</span>
+    <select id="styleSelect">
+      <option value="apple_hig">Apple HIG</option>
+      <option value="apple_dark">Apple Dark</option>
+      <option value="apple_glass">Apple Glass</option>
+      <option value="apple_minimal">Apple Minimal</option>
+    </select>
+  </div>
+  <div class="sep"></div>
+  <div class="panel-row">
+    <span class="panel-label">Layout</span>
+    <select id="layoutSelect">
+      <option value="c3">Grid 3×2</option>
+      <option value="c2">Grid 2×3</option>
+      <option value="c1">Stack</option>
+      <option value="bento">Bento</option>
+      <option value="cascade">Cascade</option>
+      <option value="split">Split</option>
+    </select>
+  </div>
+  <div class="sep"></div>
+  <div class="panel-row">
+    <span class="panel-label">Motion</span>
+    <select id="behaviorSelect">
+      <option value="none">None</option>
+      <option value="spring">Spring</option>
+      <option value="stagger">Stagger</option>
+      <option value="fade">Fade Up</option>
+      <option value="parallax">Parallax</option>
+    </select>
+  </div>
+  <div class="sep"></div>
+  <div class="panel-row">
+    <span class="panel-label">Combo</span>
+    <span style="font-size:10px;color:var(--text-alt)" id="comboLabel">apple_hig × c3 × none</span>
+  </div>
+</div>
+
+<!-- ─── CONTENT (FIXED) ─── -->
+<nav id="nav"><span class="brand">Prima</span><a href="#">Docs</a></nav>
+
+<section class="hero">
+  <div class="badge"><div class="dot"></div>v0.2.0 — I/O, regex, pipes, iteration</div>
+  <h1>One language.<br><span>Every framework.</span></h1>
+  <p>Define your interface as constraints. Prima compiles the same source to vanilla HTML, React components, SwiftUI views, or Flutter widgets. No lock-in. No rewrite debt.</p>
+  <div class="hero-actions"><button class="btn-primary">Get Started</button><button class="btn-ghost">View on GitHub</button></div>
+  <div class="code-block"><div class="code-bar"><div class="d r"></div><div class="d y"></div><div class="d g"></div></div><div class="code-body"><span class="kw">frame</span> LandingPage {<br>&nbsp;&nbsp;<span class="prop">must_frost</span>: <span class="str">apple_hig</span><br>&nbsp;&nbsp;<span class="prop">must_speak</span>: <span class="str">"Inter"</span><br>}<span class="code-cursor"></span></div></div>
+</section>
+
+<section class="sec"><div class="sec-label">Proven</div><h2>Zero dependencies. Single binary.</h2>
+<div class="stats">
+  <div class="stat"><div class="num">71</div><div class="lab">Tests</div><div class="dsc">24 frames, 40 functions</div></div>
+  <div class="stat"><div class="num">2000</div><div class="lab">LOC in C</div><div class="dsc">Zero dependencies</div></div>
+  <div class="stat"><div class="num">4</div><div class="lab">Pillars</div><div class="dsc">I/O, regex, pipes, iteration</div></div>
+  <div class="stat"><div class="num">21</div><div class="lab">Targets</div><div class="dsc">HTML, React, SwiftUI, Flutter…</div></div>
+</div></section>
+
+<section class="sec" id="caps" style="padding-top:0"><div class="sec-label">Capabilities</div><h2>What Prima can do.</h2>
+<div class="cards c3" id="cardContainer">
+  <div class="card"><div class="ctag">Extraction</div><h3>Reverse-Engineer Design DNA</h3><p>Extract design constraints from any website. Compile to any framework.</p></div>
+  <div class="card"><div class="ctag">Modular</div><h3>Content, Style, Behavior</h3><p>Three files, zero coupling. Swap one without touching others.</p></div>
+  <div class="card"><div class="ctag">Visual</div><h3>Physics & Motion</h3><p>N-body, spring physics, marching squares. Defined as constraints.</p></div>
+  <div class="card"><div class="ctag">Universal</div><h3>One Source, Every Platform</h3><p>Compile the same .prima to web, CLI, mobile, desktop.</p></div>
+  <div class="card"><div class="ctag">Agents</div><h3>Agent-Native Skills</h3><p>Recall, learn, delete, health, primafy. Loaded on-demand.</p></div>
+  <div class="card"><div class="ctag">Zero API</div><h3>Deterministic Scoring</h3><p>No LLM required. Verb-chain synthesis. 30 lines of SQL.</p></div>
+</div></section>
+
+<div class="sec" style="padding-top:0"><div class="cta-wrap"><h2>Start building with constraints.</h2><p>No framework lock-in. No rewrite debt. One language to rule every output.</p><button class="btn-primary">Install Prima</button></div></div>
+
+<footer class="footer"><p>&copy; 2026 Prima. Constraint engine. Compiles to anything. Modular testbed — style/layout/motion independent.</p></footer>
+
+<script>
+// ─── NAV SCROLL ─────────────────────
+const nav=document.getElementById('nav');
+window.addEventListener('scroll',()=>nav.classList.toggle('scrolled',window.scrollY>20));
+
+// ─── STYLE MODULES ─────────────────────
+const styleModules={
+  apple_hig:`:root{--bg:#fff;--bg-alt:#f5f5f7;--bg-card:#f5f5f7;--bg-code:#1d1d1f;--text:#1d1d1f;--text-alt:#86868b;--text-muted:#aeaeb2;--accent:#007AFF;--accent-dim:rgba(0,122,255,0.06);--accent-border:rgba(0,122,255,0.12);--nav-glass:rgba(255,255,255,0.72);--border:rgba(0,0,0,0.06);--border-strong:rgba(0,0,0,0.12);--shadow-code:0 20px 60px rgba(0,0,0,0.12)}`,
+  apple_dark:`:root{--bg:#000;--bg-alt:#1c1c1e;--bg-card:#1c1c1e;--bg-code:#000;--text:#f5f5f7;--text-alt:#98989d;--text-muted:#636366;--accent:#0A84FF;--accent-dim:rgba(10,132,255,0.12);--accent-border:rgba(10,132,255,0.2);--nav-glass:rgba(0,0,0,0.72);--border:rgba(255,255,255,0.08);--border-strong:rgba(255,255,255,0.14);--shadow-code:0 20px 60px rgba(0,0,0,0.4)}`,
+  apple_glass:`:root{--bg:rgba(255,255,255,0.88);--bg-alt:rgba(255,255,255,0.6);--bg-card:rgba(255,255,255,0.5);--bg-code:#1d1d1f;--text:#1d1d1f;--text-alt:#86868b;--text-muted:#aeaeb2;--accent:#FF2D55;--accent-dim:rgba(255,45,85,0.08);--accent-border:rgba(255,45,85,0.15);--nav-glass:rgba(255,255,255,0.4);--border:rgba(0,0,0,0.04);--border-strong:rgba(0,0,0,0.08);--shadow-code:0 20px 60px rgba(0,0,0,0.08)}body{backdrop-filter:blur(60px);-webkit-backdrop-filter:blur(60px)}.card{backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}`,
+  apple_minimal:`:root{--bg:#fff;--bg-alt:#fff;--bg-card:#fff;--bg-code:#fff;--text:#000;--text-alt:#666;--text-muted:#999;--accent:#000;--accent-dim:rgba(0,0,0,0.04);--accent-border:rgba(0,0,0,0.08);--nav-glass:rgba(255,255,255,0.95);--border:rgba(0,0,0,0.04);--border-strong:rgba(0,0,0,0.06);--shadow-code:none}.card{border:1px solid var(--border)}`
+};
+
+function applyStyle(module){
+  const s=document.getElementById('style-module');
+  s.textContent=`${styleModules[module]} ${s.textContent.split('}')[s.textContent.split('}').length-1]}`;
+}
+
+// ─── LAYOUT MODULES ─────────────────────
+function applyLayout(layout){
+  const container=document.getElementById('cardContainer');
+  container.className=`cards ${layout}`;
+  if(layout==='bento'){
+    const cards=container.querySelectorAll('.card');
+    cards.forEach((c,i)=>{
+      c.className='bento-item';
+      c.querySelector('.ctag')?.classList.replace('ctag','btag');
+      c.querySelector('h3')?.classList.replace('h3','btitle');
+      c.querySelector('p')?.remove();
+    });
+    if(cards[0])cards[0].classList.add('w2');
+  }else if(layout==='cascade'){
+    const cards=container.querySelectorAll('.card');
+    cards.forEach((c,i)=>{
+      c.className='cascade-item';
+      const num=document.createElement('div');num.className='cnum';num.textContent=`0${i+1}`;
+      c.prepend(num);
+    });
+    container.className='cascade';
+  }else if(layout==='split'){
+    container.innerHTML=`
+      <div class="split"><div class="split-main"><div class="card" style="height:100%"><div class="ctag">Extraction</div><h3>Reverse-Engineer Design DNA</h3><p>Extract design constraints from any website. No framework lock-in.</p></div></div>
+      <div class="split-side">
+        <div class="split-card"><div class="ctag">Modular</div><h3>Content, Style, Behavior</h3></div>
+        <div class="split-card"><div class="ctag">Universal</div><h3>One Source, Every Platform</h3></div>
+        <div class="split-card"><div class="ctag">Zero API</div><h3>Deterministic Scoring</h3></div>
+      </div></div>`;
+    container.className='';
+    return;
+  }else{
+    container.innerHTML=`
+      <div class="card"><div class="ctag">Extraction</div><h3>Reverse-Engineer Design DNA</h3><p>Extract design constraints from any website. Compile to any framework.</p></div>
+      <div class="card"><div class="ctag">Modular</div><h3>Content, Style, Behavior</h3><p>Three files, zero coupling. Swap one without touching others.</p></div>
+      <div class="card"><div class="ctag">Visual</div><h3>Physics & Motion</h3><p>N-body, spring physics, marching squares. Defined as constraints.</p></div>
+      <div class="card"><div class="ctag">Universal</div><h3>One Source, Every Platform</h3><p>Compile the same .prima to web, CLI, mobile, desktop.</p></div>
+      <div class="card"><div class="ctag">Agents</div><h3>Agent-Native Skills</h3><p>Recall, learn, delete, health, primafy. Loaded on-demand.</p></div>
+      <div class="card"><div class="ctag">Zero API</div><h3>Deterministic Scoring</h3><p>No LLM required. Verb-chain synthesis. 30 lines of SQL.</p></div>`;
+    container.className=`cards ${layout}`;
+  }
+}
+
+// ─── BEHAVIOR MODULES ─────────────────────
+function applyBehavior(behavior){
+  document.body.setAttribute('data-behavior',behavior);
+  if(behavior==='parallax'){
+    window.addEventListener('scroll',()=>document.body.style.setProperty('--scroll',window.scrollY));
+  }
+  if(behavior==='fade'||behavior==='stagger'){
+    const obs=new IntersectionObserver(e=>{e.forEach(en=>{if(en.isIntersecting)en.target.classList.add('visible')})},{threshold:0.1});
+    document.querySelectorAll('.card,.bento-item,.cascade-item,.sec,.cta-wrap').forEach(el=>obs.observe(el));
+  }
+}
+
+// ─── CONTROLS ─────────────────────
+function updateCombo(){
+  const style=document.getElementById('styleSelect').value;
+  const layout=document.getElementById('layoutSelect').value;
+  const behavior=document.getElementById('behaviorSelect').value;
+  document.getElementById('comboLabel').textContent=`${style} × ${layout} × ${behavior}`;
+}
+
+document.getElementById('styleSelect').addEventListener('change',e=>{applyStyle(e.target.value);updateCombo()});
+document.getElementById('layoutSelect').addEventListener('change',e=>{applyLayout(e.target.value);updateCombo()});
+document.getElementById('behaviorSelect').addEventListener('change',e=>{applyBehavior(e.target.value);updateCombo()});
+
+// Init
+applyBehavior('none');
+updateCombo();
+</script>
+</body>
+</html>

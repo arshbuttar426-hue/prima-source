@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prima · Ripple</title>
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;background:#000;color:#f5f5f7;-webkit-font-smoothing:antialiased;font-weight:300;overflow:hidden;height:100vh;width:100vw;cursor:crosshair}
+  canvas{position:fixed;inset:0;width:100%;height:100%}
+  #hint{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);z-index:10;font-size:0.7rem;color:rgba(255,255,255,0.2);letter-spacing:0.06em;pointer-events:none;transition:opacity 0.8s}
+  #count{position:fixed;top:20px;right:24px;z-index:10;font-size:0.62rem;color:rgba(255,255,255,0.18);font-family:'SF Mono','Menlo',monospace;pointer-events:none}
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+<div id="hint">click — ripple · right‑click — clear</div>
+<div id="count"></div>
+
+<script>
+const c = document.getElementById('c'), ctx = c.getContext('2d');
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+let W = 0, H = 0;
+
+const ripples = [];
+const MAX_RIPPLES = 40;
+const SPEED = 1.8;       // pixels per frame
+const DECAY = 0.997;     // amplitude decay per frame
+const RING_SPACING = 14;  // pixels between rings
+
+function dropRipple(x, y) {
+  if (ripples.length >= MAX_RIPPLES) ripples.shift();
+  ripples.push({ x, y, radius: 0, amplitude: 1.0, alive: true });
+}
+
+function resize() {
+  W = Math.max(window.innerWidth, 100); H = Math.max(window.innerHeight, 100);
+  c.width = Math.round(W * DPR); c.height = Math.round(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+
+function draw() {
+  requestAnimationFrame(draw);
+  if (!W) return;
+
+  // Update ripples
+  for (const r of ripples) {
+    r.radius += SPEED;
+    r.amplitude *= DECAY;
+    if (r.amplitude < 0.005 || r.radius > Math.max(W, H) * 1.5) r.alive = false;
+  }
+  // Clean dead
+  for (let i = ripples.length - 1; i >= 0; i--) if (!ripples[i].alive) ripples.splice(i, 1);
+
+  // Render on offscreen buffer for interference
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+
+  // Build a field of sampled points to simulate interference
+  // For each ring of each ripple, draw concentric circles
+  for (const r of ripples) {
+    const rings = Math.floor(r.radius / RING_SPACING);
+    for (let i = 0; i < rings; i++) {
+      const ringR = r.radius - i * RING_SPACING;
+      if (ringR < 0) continue;
+      const a = r.amplitude * Math.exp(-i * 0.15) * 0.35;
+      if (a < 0.002) continue;
+
+      // Interference: check proximity to other ripple centers
+      let interference = 1;
+      for (const o of ripples) {
+        if (o === r) continue;
+        const d = Math.hypot(r.x - o.x, r.y - o.y);
+        const phase = ((ringR - o.radius) / RING_SPACING) * Math.PI;
+        interference += (1 - Math.min(1, d / 300)) * 0.3 * Math.cos(phase);
+      }
+
+      ctx.strokeStyle = `rgba(255,255,255,${a})`;
+      ctx.lineWidth = 0.5 + interference * 0.3;
+      ctx.beginPath(); ctx.arc(r.x, r.y, ringR, 0, 6.2832); ctx.stroke();
+    }
+  }
+
+  document.getElementById('count').textContent = ripples.length > 0 ? ripples.length + ' ripples' : '';
+  document.getElementById('hint').style.opacity = ripples.length > 0 ? '0' : '1';
+}
+
+c.addEventListener('click', e => {
+  const r = c.getBoundingClientRect();
+  dropRipple((e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height);
+});
+c.addEventListener('contextmenu', e => { e.preventDefault(); ripples.length = 0; });
+
+window.addEventListener('resize', resize);
+resize();
+// Seed with ripples so the canvas is visible immediately
+for (let i = 0; i < 3; i++) dropRipple(W * (0.25 + 0.5 * i / 2), H * 0.5);
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>

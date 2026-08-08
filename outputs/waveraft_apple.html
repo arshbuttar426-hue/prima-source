@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Waveraft — Creative Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ─── Compiled from apple_hig.prima ─── */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;color:#1d1d1f;background:#fff;line-height:1;overflow-x:hidden}
+
+/* ─── Navigation · Apple HIG ─── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;height:44px;display:flex;align-items:center;justify-content:center;gap:28px;padding:0 48px;background:transparent;transition:background 0.3s,backdrop-filter 0.3s}
+nav.scrolled{background:rgba(255,255,255,0.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(0,0,0,0.08)}
+nav a{color:#1d1d1f;text-decoration:none;font-size:12px;font-weight:400;letter-spacing:-0.01em;opacity:0.8;transition:opacity 0.2s}
+nav a:hover{opacity:1}
+nav .brand{font-size:14px;font-weight:700;letter-spacing:-0.02em;opacity:1;margin-right:auto;position:absolute;left:48px}
+
+/* ─── Hero · Apple HIG ─── */
+.hero{padding:120px 48px 0;text-align:center;display:flex;flex-direction:column;align-items:center;min-height:90vh}
+.hero h1{font-size:clamp(2.5rem,6vw,3.5rem);font-weight:600;letter-spacing:-0.025em;line-height:1.05;max-width:650px}
+.hero .subhead{font-size:21px;font-weight:400;color:#86868b;line-height:1.3;margin-top:8px;max-width:500px}
+.hero .ctas{display:flex;gap:24px;margin-top:24px}
+.cta-link{font-size:17px;color:#0066cc;text-decoration:none;position:relative}
+.cta-link::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:1px;background:#0066cc;transform:scaleX(0);transition:transform 0.2s}
+.cta-link:hover::after{transform:scaleX(1)}
+.hero-visual{margin-top:48px;width:100%;max-width:800px;height:340px;background:#f5f5f7;border-radius:24px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.hero-visual .glow{position:absolute;width:200px;height:200px;border-radius:50%;filter:blur(60px);opacity:0.15}
+.hero-visual .glow.a{background:#007AFF;top:40px;left:80px;animation:glowDrift 8s ease-in-out infinite}
+.hero-visual .glow.b{background:#FF2D55;bottom:40px;right:120px;animation:glowDrift 10s ease-in-out infinite reverse}
+.hero-visual .glow.c{background:#34C759;top:50%;left:50%;transform:translate(-50%,-50%);animation:glowDrift 12s ease-in-out infinite}
+@keyframes glowDrift{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,-20px) scale(1.2)}}
+.hero-visual .center-text{position:relative;z-index:1;font-size:3rem;font-weight:200;color:rgba(0,0,0,0.15);letter-spacing:-0.03em}
+
+/* ─── Services Grid · Apple HIG ─── */
+.section{padding:80px 48px;max-width:980px;margin:0 auto}
+.section-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#007AFF;margin-bottom:12px}
+.section h2{font-size:40px;font-weight:600;letter-spacing:-0.02em;line-height:1.1;margin-bottom:40px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card{background:#f5f5f7;padding:48px;display:flex;flex-direction:column;transition:transform 0.3s;opacity:0;transform:translateY(20px)}
+.card.visible{opacity:1;transform:translateY(0)}
+.card:hover{transform:scale(1.01)}
+.card .icon{font-size:1.8rem;margin-bottom:16px}
+.card h3{font-size:21px;font-weight:600;letter-spacing:-0.01em;line-height:1.2;margin-bottom:8px}
+.card p{font-size:17px;font-weight:400;color:#86868b;line-height:1.5}
+
+/* ─── Portfolio · Apple HIG ─── */
+.portfolio-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:980px;margin:0 auto;padding:0 48px 80px}
+.portfolio-item{background:#f5f5f7;aspect-ratio:4/3;border-radius:0;display:flex;align-items:center;justify-content:center;font-size:3rem;position:relative;overflow:hidden;cursor:pointer;transition:transform 0.3s;opacity:0;transform:translateY(20px)}
+.portfolio-item.visible{opacity:1;transform:translateY(0)}
+.portfolio-item:hover{transform:scale(1.02)}
+.portfolio-item .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);opacity:0;transition:opacity 0.3s;color:#fff}
+.portfolio-item:hover .overlay{opacity:1}
+.portfolio-item .overlay .name{font-size:21px;font-weight:600;margin-bottom:4px}
+.portfolio-item .overlay .tag{font-size:14px;color:rgba(255,255,255,0.7)}
+
+/* ─── CTA · Apple HIG ─── */
+.cta-banner{text-align:center;padding:100px 48px;background:#f5f5f7}
+.cta-banner h2{font-size:40px;font-weight:600;letter-spacing:-0.02em;line-height:1.1;margin-bottom:8px}
+.cta-banner p{font-size:17px;color:#86868b;margin-bottom:24px}
+.btn-primary{background:#007AFF;color:#fff;border:none;padding:14px 32px;border-radius:28px;font-size:17px;font-weight:500;cursor:pointer;transition:all 0.2s}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,122,255,0.3)}
+
+/* ─── Footer · Apple HIG ─── */
+footer{background:#f5f5f7;padding:60px 48px 30px}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:24px;max-width:980px;margin:0 auto}
+footer .f-brand{font-size:14px;font-weight:700;letter-spacing:-0.02em;margin-bottom:8px}
+footer .f-tag{font-size:12px;color:rgba(0,0,0,0.56);line-height:1.5;max-width:240px}
+footer h4{font-size:12px;font-weight:600;margin-bottom:12px}
+footer a{display:block;font-size:12px;color:rgba(0,0,0,0.56);text-decoration:none;padding:4px 0;transition:color 0.2s}
+footer a:hover{color:#1d1d1f}
+.footer-bottom{max-width:980px;margin:24px auto 0;padding-top:24px;border-top:1px solid rgba(0,0,0,0.08);text-align:center;font-size:12px;color:rgba(0,0,0,0.56)}
+
+@media(max-width:768px){.grid-2{grid-template-columns:1fr}.portfolio-grid{grid-template-columns:1fr 1fr}.footer-grid{grid-template-columns:1fr 1fr}.hero h1{font-size:2rem}}
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <span class="brand">Waveraft</span>
+  <a href="#services">Services</a>
+  <a href="#work">Work</a>
+  <a href="#process">Process</a>
+  <a href="#contact">Contact</a>
+</nav>
+
+<section class="hero">
+  <h1>We build digital products that move people</h1>
+  <p class="subhead">A creative studio crafting brands, websites, and experiences for visionary companies since 2018.</p>
+  <div class="ctas">
+    <a href="#" class="cta-link">View Our Work →</a>
+    <a href="#" class="cta-link">Book a Call →</a>
+  </div>
+  <div class="hero-visual">
+    <div class="glow a"></div><div class="glow b"></div><div class="glow c"></div>
+    <div class="center-text">WAVERAFT</div>
+  </div>
+</section>
+
+<div class="section" id="services">
+  <div class="section-label">What We Do</div>
+  <h2>Everything you need to ship.</h2>
+  <div class="grid-2">
+    <div class="card"><div class="icon">⟡</div><h3>Brand Identity</h3><p>Strategy, naming, visual identity, voice and tone. We build brands that last.</p></div>
+    <div class="card"><div class="icon">◈</div><h3>Product Design</h3><p>UX research, interaction design, prototyping, and usability testing — end to end.</p></div>
+    <div class="card"><div class="icon">◆</div><h3>Engineering</h3><p>Full-stack development, from frontend to infrastructure. Ship faster with fewer bugs.</p></div>
+    <div class="card"><div class="icon">⬡</div><h3>Motion & Animation</h3><p>Fluid transitions, micro-interactions, and scroll-driven narratives that feel alive.</p></div>
+  </div>
+</div>
+
+<div class="section" id="work" style="padding-top:0">
+  <div class="section-label">Selected Work</div>
+  <h2>Recent projects we're proud of.</h2>
+</div>
+<div class="portfolio-grid">
+  <div class="portfolio-item" style="background:linear-gradient(135deg,#e8f0fe,#d2e3fc)">
+    <span style="font-size:3rem">◈</span>
+    <div class="overlay"><div class="name">Nova Finance</div><div class="tag">Brand + Web App</div></div>
+  </div>
+  <div class="portfolio-item" style="background:linear-gradient(135deg,#fce8e6,#fadbd8)">
+    <span style="font-size:3rem">◆</span>
+    <div class="overlay"><div class="name">Lumen Health</div><div class="tag">Mobile + Design System</div></div>
+  </div>
+  <div class="portfolio-item" style="background:linear-gradient(135deg,#e8f5e9,#c8e6c9)">
+    <span style="font-size:3rem">⬡</span>
+    <div class="overlay"><div class="name">Cipher Analytics</div><div class="tag">Dashboard + API</div></div>
+  </div>
+  <div class="portfolio-item" style="background:linear-gradient(135deg,#fff3e0,#ffe0b2)">
+    <span style="font-size:3rem">✧</span>
+    <div class="overlay"><div class="name">Mesa Climate</div><div class="tag">Platform + Brand</div></div>
+  </div>
+  <div class="portfolio-item" style="background:linear-gradient(135deg,#f3e5f5,#e1bee7)">
+    <span style="font-size:3rem">◎</span>
+    <div class="overlay"><div class="name">Atlas Engine</div><div class="tag">AI · Infrastructure</div></div>
+  </div>
+  <div class="portfolio-item" style="background:linear-gradient(135deg,#e0f2f1,#b2dfdb)">
+    <span style="font-size:3rem">◉</span>
+    <div class="overlay"><div class="name">Vault Protocol</div><div class="tag">Security · Web3</div></div>
+  </div>
+</div>
+
+<div class="section" id="products">
+  <div class="section-label">Prima Products</div>
+  <h2>Built with Waveraft &amp; Prima.</h2>
+</div>
+<div class="portfolio-grid" id="productGrid">
+  <a href="aether_material.html" class="portfolio-item" style="background:linear-gradient(135deg,#ede7f6,#d1c4e9);text-decoration:none;color:inherit">
+    <span style="font-size:2rem;font-weight:600">Aether</span>
+    <div class="overlay"><div class="name">Material 3 Dashboard</div><div class="tag">Dark Theme · Nav Rail · Tasks</div></div>
+  </a>
+  <a href="vantage_saas_prima.html" class="portfolio-item" style="background:linear-gradient(135deg,#e8f0fe,#d2e3fc);text-decoration:none;color:inherit">
+    <span style="font-size:2rem;font-weight:600">Vantage</span>
+    <div class="overlay"><div class="name">Apple DNA → SaaS</div><div class="tag">B2B · Pricing · Landing</div></div>
+  </a>
+  <a href="rotor_gallery.html" class="portfolio-item" style="background:linear-gradient(135deg,#fff8e1,#ffecb3);text-decoration:none;color:inherit">
+    <span style="font-size:2rem;font-weight:600">Rotor</span>
+    <div class="overlay"><div class="name">3D Cylindrical Gallery</div><div class="tag">Physics · Drag · Spring</div></div>
+  </a>
+  <a href="taskflow_material3.html" class="portfolio-item" style="background:linear-gradient(135deg,#e0f2f1,#b2dfdb);text-decoration:none;color:inherit">
+    <span style="font-size:2rem;font-weight:600">TaskFlow</span>
+    <div class="overlay"><div class="name">PM Dashboard</div><div class="tag">M3 Tokens · Progress</div></div>
+  </a>
+  <a href="prima-metamorph.html" class="portfolio-item" style="background:linear-gradient(135deg,#fce4ec,#f8bbd0);text-decoration:none;color:inherit">
+    <span style="font-size:2rem;font-weight:600">Metamorph</span>
+    <div class="overlay"><div class="name">Wave · Lattice · Burst</div><div class="tag">Canvas · Morph · Prima</div></div>
+  </a>
+  <a href="prima-shape.html" class="portfolio-item" style="background:linear-gradient(135deg,#fff3e0,#ffe0b2);text-decoration:none;color:inherit">
+    <span style="font-size:2rem;font-weight:600">Shape</span>
+    <div class="overlay"><div class="name">Metaball Isosurface</div><div class="tag">Marching Squares · Canvas</div></div>
+  </a>
+  <a href="waveraft_compiled.html" class="portfolio-item" style="background:linear-gradient(135deg,#e8eaf6,#c5cae9);text-decoration:none;color:inherit">
+    <span style="font-size:2rem;font-weight:600">Physics</span>
+    <div class="overlay"><div class="name">N-Body Card Engine</div><div class="tag">6 Force Modes · Canvas</div></div>
+  </a>
+  <a href="prima_launcher.html" class="portfolio-item" style="background:linear-gradient(135deg,#f3e5f5,#e1bee7);text-decoration:none;color:inherit">
+    <span style="font-size:2rem;font-weight:600">Launcher</span>
+    <div class="overlay"><div class="name">Android Home Screen</div><div class="tag">Widgets · Drawer · Dock</div></div>
+  </a>
+  <a href="apple_prima_reverse.html" class="portfolio-item" style="background:linear-gradient(135deg,#e8f5e9,#c8e6c9);text-decoration:none;color:inherit">
+    <span style="font-size:2rem;font-weight:600">Lightpad</span>
+    <div class="overlay"><div class="name">Apple Reverse-Engineered</div><div class="tag">Design DNA · Extraction</div></div>
+  </a>
+</div>
+
+<div class="cta-banner" id="contact">
+  <h2>Let's build something together.</h2>
+  <p>No pitch decks. No sales calls. Just a conversation about what you need.</p>
+  <button class="btn-primary">Get in Touch</button>
+</div>
+
+<footer>
+  <div class="footer-grid">
+    <div><div class="f-brand">Waveraft</div><p class="f-tag">A design and engineering studio. We ship products that move people.</p></div>
+    <div><h4>Work</h4><a href="#">Case Studies</a><a href="#">Portfolio</a></div>
+    <div><h4>Company</h4><a href="#">About</a><a href="#">Careers</a></div>
+    <div><h4>Services</h4><a href="#">Design</a><a href="#">Engineering</a><a href="#">Strategy</a></div>
+    <div><h4>Contact</h4><a href="#">hello@waveraft.com</a><a href="#">Schedule a call</a></div>
+  </div>
+  <div class="footer-bottom">Copyright &copy; 2026 Waveraft. All rights reserved. <a href="#">Privacy Policy</a> | <a href="#">Terms of Use</a></div>
+</footer>
+
+<script>
+const nav=document.getElementById('nav');
+window.addEventListener('scroll',()=>nav.classList.toggle('scrolled',window.scrollY>20));
+
+const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')})},{threshold:0.1});
+document.querySelectorAll('.card,.portfolio-item').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>

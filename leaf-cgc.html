@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>as/not_as — leaf CGC</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0c0b09; overflow: hidden; font-family: 'Share Tech Mono', monospace; }
+  canvas { display: block; }
+  .info { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10; font-size: 0.55rem; color: rgba(180,200,160,0.15); letter-spacing: 0.15em; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="info">as/not_as · leaf CGC</div>
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+let W, H, mx = 0, my = 0, t = 0, mx2 = 0, my2 = 0;
+
+function resize() { W = c.width = window.innerWidth; H = c.height = window.innerHeight; }
+window.addEventListener('resize', resize); resize();
+window.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; }, { passive: true });
+
+// ── as: the vein network (architecture) ──
+// veins are joints — they carry no value, only position and connection
+let veins = [];
+const LEAF_CX = 0.35; // stem at 35% of width
+const LEAF_CY = 0.5;
+
+function buildVein(x, y, angle, length, depth, thickness) {
+  if (depth > 6 || length < 4) return;
+
+  const ex = x + Math.cos(angle) * length;
+  const ey = y + Math.sin(angle) * length;
+
+  veins.push({ x1: x, y1: y, x2: ex, y2: ey, thickness });
+
+  // lateral veins branch off main
+  if (depth > 0 && depth < 4) {
+    const latAngle = angle + (Math.PI / 4 + (depth % 2) * Math.PI / 2);
+    buildVein(ex, ey, latAngle, length * 0.45, depth + 1, thickness * 0.5);
+    const latAngle2 = angle - (Math.PI / 4 + (depth % 2) * Math.PI / 2);
+    buildVein(ex, ey, latAngle2, length * 0.35, depth + 1, thickness * 0.4);
+  }
+
+  // sub-laterals from main lateral veins
+  if (depth >= 1 && depth < 3 && Math.random() > 0.3) {
+    const subAngle = angle + (Math.random() > 0.5 ? 1 : -1) * (0.4 + Math.random() * 0.6);
+    buildVein(ex, ey, subAngle, length * 0.3, depth + 2, thickness * 0.3);
+  }
+}
+
+function initLeaf() {
+  veins = [];
+  const stemX = W * LEAF_CX;
+  const stemY = H * LEAF_CY;
+  const mainLength = Math.min(W, H) * 0.55;
+
+  // central midrib — the primary as joint
+  buildVein(stemX, stemY, -Math.PI / 2, mainLength, 0, 4);
+
+  // secondary vein from stem going upward (petiole)
+  buildVein(stemX, stemY, Math.PI / 2, mainLength * 0.15, 0, 2.5);
+}
+initLeaf();
+window.addEventListener('resize', () => { resize(); initLeaf(); });
+
+// ── margin: the leaf boundary, defined by vein endpoints ──
+function leafMargin() {
+  const stemX = W * LEAF_CX;
+  const stemY = H * LEAF_CY;
+  const maxR = Math.min(W, H) * 0.52;
+  const points = [];
+  for (let a = -Math.PI * 0.9; a < Math.PI * 0.9; a += 0.04) {
+    const r = maxR * (0.5 + 0.5 * Math.cos(a * 0.8)) * (1 + 0.15 * Math.sin(a * 1.8 + 0.5));
+    points.push({
+      x: stemX + Math.sin(a) * r * 0.7,
+      y: stemY - Math.cos(a) * r,
+    });
+  }
+  return points;
+}
+
+// ── distance to nearest vein (not_as: each cell computes independently) ──
+function distToVeins(px, py) {
+  let minD = Infinity;
+  for (const v of veins) {
+    const dx = v.x2 - v.x1;
+    const dy = v.y2 - v.y1;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) continue;
+    let t2 = ((px - v.x1) * dx + (py - v.y1) * dy) / lenSq;
+    t2 = Math.max(0, Math.min(1, t2));
+    const cx = v.x1 + t2 * dx;
+    const cy = v.y1 + t2 * dy;
+    const d = Math.hypot(px - cx, py - cy);
+    if (d < minD) minD = d;
+  }
+  return minD;
+}
+
+// ── leaf cells (not_as: each cell is an independent computation) ──
+const CELLS = 3000;
+const cells = [];
+
+function initCells() {
+  cells.length = 0;
+  const margin = leafMargin();
+  const stemX = W * LEAF_CX;
+  const stemY = H * LEAF_CY;
+  const maxR = Math.min(W, H) * 0.52;
+
+  for (let i = 0; i < CELLS; i++) {
+    // biased random within leaf bounding box
+    const angle = (Math.random() - 0.5) * Math.PI * 1.6;
+    const r = Math.pow(Math.random(), 0.6) * maxR;
+    const px = stemX + Math.sin(angle) * r * 0.7;
+    const py = stemY - Math.cos(angle) * r;
+
+    // check if within margin (approximate)
+    const dToStem = Math.hypot(px - stemX, py - stemY);
+    const maxAtAngle = maxR * (0.5 + 0.5 * Math.cos(angle * 0.8 + Math.PI * 0.5)) * (1 + 0.15 * Math.sin(angle * 1.8 + 1.0));
+    if (dToStem > maxAtAngle * 0.9) continue;
+
+    const dv = distToVeins(px, py);
+    cells.push({ x: px, y: py, dv });
+  }
+}
+initCells();
+window.addEventListener('resize', () => { resize(); initLeaf(); initCells(); });
+
+// ── draw ──
+function draw() {
+  t += 0.016;
+
+  // trail
+  ctx.fillStyle = 'rgba(12, 11, 9, 0.06)';
+  ctx.fillRect(0, 0, W, H);
+
+  const stemX = W * LEAF_CX;
+  const stemY = H * LEAF_CY;
+
+  // ── not_as: each cell computes its own color ──
+  for (const cell of cells) {
+    const dv = distToVeins(cell.x, cell.y);
+
+    // light response: angle toward mouse
+    const ldx = mx - cell.x;
+    const ldy = my - cell.y;
+    const lDist = Math.hypot(ldx, ldy);
+    const light = lDist < 300 ? (1 - lDist / 300) * 0.6 : 0;
+
+    // position within leaf
+    const yOff = (cell.y - stemY) / (Math.min(W, H) * 0.4);
+    const xOff = (cell.x - stemX) / (Math.min(W, H) * 0.3);
+
+    // color computation: distance to vein + light + position
+    const veinProx = Math.min(dv / 40, 1);
+    const brightness = 0.4 + 0.5 * (1 - veinProx) + light * 0.3 + 0.08 * Math.sin(cell.y * 0.02 + t);
+    const green = 60 + 70 * (1 - veinProx) + light * 40;
+    const red = 20 + 15 * (1 - veinProx) + light * 8;
+    const blue = 10 + 12 * (1 - veinProx) + light * 5;
+    const alpha = 0.15 + brightness * 0.25;
+
+    // cell size based on vein proximity (smaller near veins)
+    const size = 1.2 + (1 - veinProx) * 1.5;
+
+    ctx.beginPath();
+    ctx.arc(cell.x, cell.y, size, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+    ctx.fill();
+  }
+
+  // ── as: the vein network drawn on top (architecture is visible) ──
+  for (const v of veins) {
+    ctx.beginPath();
+    ctx.moveTo(v.x1, v.y1);
+    ctx.lineTo(v.x2, v.y2);
+    ctx.strokeStyle = `rgba(160, 200, 140, ${0.08 + v.thickness * 0.03})`;
+    ctx.lineWidth = v.thickness;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  // stem
+  ctx.beginPath();
+  ctx.moveTo(stemX, stemY);
+  ctx.lineTo(stemX, stemY + Math.min(W, H) * 0.04);
+  ctx.strokeStyle = 'rgba(120, 150, 100, 0.15)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // mouse glow (sunlight)
+  if (mx > 0 && my > 0) {
+    const g = ctx.createRadialGradient(mx, my, 0, mx, my, 200);
+    g.addColorStop(0, 'rgba(200, 220, 100, 0.02)');
+    g.addColorStop(0.5, 'rgba(180, 200, 80, 0.008)');
+    g.addColorStop(1, 'rgba(180, 200, 80, 0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(mx - 200, my - 200, 400, 400);
+  }
+
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>

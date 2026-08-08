@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prima · Content Engine</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:#08080c;color:#f5f5f7;-webkit-font-smoothing:antialiased;font-weight:300;line-height:1.618;overflow:hidden;height:100vh;width:100vw}
+  #stage{position:fixed;inset:0;z-index:0;pointer-events:none}
+  #morph{position:absolute;inset:0;width:100%;height:100%}
+
+  #page{position:relative;z-index:1;overflow-y:auto;height:100vh;display:flex;flex-direction:column;align-items:center}
+  #page-inner{max-width:var(--col-width, 42rem);width:100%;padding:var(--pad-y, 6rem) var(--pad-x, 2rem) 6rem}
+  #title{font-weight:200;font-size:var(--title-size, clamp(2.2rem,6vw,4rem));letter-spacing:var(--title-spacing, -0.03em);line-height:1.06;margin-bottom:var(--title-gap, 2rem)}
+  #body{font-size:var(--body-size, 1.1rem);line-height:var(--body-leading, 1.65);color:var(--body-color, #9a9aa2);letter-spacing:var(--body-spacing, 0.005em);white-space:pre-wrap}
+
+  #editor{position:relative;z-index:10;width:100%;max-width:var(--col-width, 42rem);margin:0 auto;padding:0 var(--pad-x, 2rem) 2rem}
+  #editor textarea{width:100%;min-height:8rem;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#f5f5f7;font-family:inherit;font-size:0.85rem;line-height:1.6;padding:1rem;resize:vertical;outline:none;transition:border-color 0.2s}
+  #editor textarea:focus{border-color:rgba(255,255,255,0.22)}
+  #editor textarea::placeholder{color:rgba(255,255,255,0.18)}
+  #editor .tools{display:flex;gap:10px;margin-top:10px}
+  #editor button{padding:6px 14px;background:none;border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:rgba(255,255,255,0.35);font-family:inherit;font-size:0.68rem;font-weight:400;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;transition:all 0.2s}
+  #editor button:hover{color:#f5f5f7;border-color:rgba(255,255,255,0.4)}
+
+  #analysis{position:fixed;top:16px;right:20px;z-index:20;display:flex;gap:20px;font-size:0.62rem;color:rgba(255,255,255,0.16);font-family:'SF Mono','Menlo',monospace;pointer-events:none}
+  .a-s{display:flex;flex-direction:column;align-items:flex-end;gap:2px}.a-s .l{text-transform:uppercase;letter-spacing:0.1em;font-size:0.55rem}.a-s .v{color:rgba(255,255,255,0.3)}
+  @media(max-width:640px){#analysis{right:8px;top:8px;gap:10px;font-size:0.55rem}#page-inner{padding:4rem 1.2rem 4rem}#editor{padding:0 1.2rem 1.5rem}}
+</style>
+</head>
+<body>
+
+<div id="stage"><canvas id="morph"></canvas></div>
+
+<div id="page"><div id="page-inner">
+  <div id="title"></div>
+  <div id="body"></div>
+</div></div>
+
+<div id="editor">
+  <textarea id="input" placeholder="Paste any text — the layout adapts."></textarea>
+  <div class="tools">
+    <button id="btn-poem">Poem</button>
+    <button id="btn-essay">Essay</button>
+    <button id="btn-list">List</button>
+  </div>
+</div>
+
+<div id="analysis">
+  <div class="a-s"><div class="l">density</div><div class="v" id="a-density">—</div></div>
+  <div class="a-s"><div class="l">pace</div><div class="v" id="a-pace">—</div></div>
+  <div class="a-s"><div class="l">structure</div><div class="v" id="a-structure">—</div></div>
+</div>
+
+<script>
+// ══ MORPH GRID — EXACT COPY from prima_decrypter.html (proven working) ══
+const C = { bg:'#08080c', blue:'#5a7aff', orange:'#e06a3a', gold:'#f5c451', ink:'#f5f5f7' };
+const cv = document.getElementById('morph');
+const ctx = cv.getContext('2d');
+let DPR = Math.min(window.devicePixelRatio || 1, 2);
+let W, H;
+let COLS = 26, ROWS = 15;
+let nodes = [];
+let mx = -9, my = -9, smx = -9, smy = -9;
+let targetPhase = 0.0;
+let phase = 0.0;
+
+function buildNodes() {
+  const padX = W * 0.06, padY = H * 0.22;
+  const gw = (W - padX * 2) / (COLS - 1);
+  const gh = (H - padY * 2) / (ROWS - 1);
+  const fresh = nodes.length === 0;
+  const next = [];
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const tx = padX + c * gw, ty = padY + r * gh;
+    if (fresh) next.push({ x: tx, y: ty, bx: tx, by: ty, c, r, bob: Math.random() * 6.28 });
+    else { const old = nodes[r * COLS + c]; next.push({ x: old.x, y: old.y, bx: tx, by: ty, c, r, bob: old.bob }); }
+  }
+  nodes = next;
+}
+function weights(ph) {
+  const b = 0.42;
+  const w0 = Math.exp(-Math.pow((ph - 0) / b, 2));
+  const w1 = Math.exp(-Math.pow((ph - 0.5) / b, 2));
+  const w2 = Math.exp(-Math.pow((ph - 1) / b, 2));
+  const s = w0 + w1 + w2 || 1;
+  return [w0 / s, w1 / s, w2 / s];
+}
+function idx(c, r) { return r * COLS + c; }
+
+function draw() {
+  requestAnimationFrame(draw);
+  if (!W) return;
+  const tightness = Math.max(0.4, Math.min(1.4, 1280 / Math.max(W, 320)));
+  const phaseEase = 0.04 + (tightness - 0.4) * 0.05;
+  if (smx >= 0) targetPhase = smx / W;
+  else if (Math.abs(targetPhase - phase) < 0.01) targetPhase += (0.5 - targetPhase) * 0.015;
+  phase += (targetPhase - phase) * phaseEase;
+  const t = performance.now() * 0.001;
+  for (const n of nodes) {
+    n.x += (n.bx - n.x) * 0.08; n.y += (n.by - n.y) * 0.08;
+    if (smx >= 0) { const dx = n.x - mx, dy = n.y - my, d = Math.sqrt(dx*dx+dy*dy);
+      if (d < 120) { const f = (1-d/120)*16; n.x += (dx/d)*f; n.y += (dy/d)*f; } }
+    const ox = n.x, oy = n.y; n.x = ox + Math.sin(t * 0.6 + n.bob) * 6; n.y = oy + Math.cos(t * 0.5 + n.bob) * 6;
+  }
+  const [wA, wF, wN] = weights(phase);
+  ctx.clearRect(0, 0, W, H);
+  ctx.lineWidth = 1; ctx.strokeStyle = C.blue; ctx.globalAlpha = wA * 0.5;
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS - 1; c++) {
+    const a = nodes[idx(c, r)], b = nodes[idx(c + 1, r)]; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  ctx.strokeStyle = C.gold; ctx.globalAlpha = wF * 0.4;
+  for (let r = 0; r < ROWS - 1; r++) for (let c = 0; c < COLS - 1; c++) {
+    const a = nodes[idx(c, r)], b = nodes[idx(c + 1, r + 1)], a2 = nodes[idx(c + 1, r)], b2 = nodes[idx(c, r + 1)];
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(a2.x, a2.y); ctx.lineTo(b2.x, b2.y); ctx.stroke();
+  }
+  const cx = W / 2, cy = H / 2; ctx.strokeStyle = C.orange; ctx.globalAlpha = wN * 0.35;
+  for (const n of nodes) { ctx.beginPath(); ctx.moveTo(n.x, n.y); ctx.lineTo(cx, cy); ctx.stroke(); }
+  let dom = wA >= wF && wA >= wN ? C.blue : (wN >= wF ? C.orange : C.gold);
+  if (!smx && wA < 0.15 && wF < 0.15 && wN < 0.15) dom = C.ink;
+  ctx.globalAlpha = 1; ctx.fillStyle = dom;
+  for (const n of nodes) { ctx.beginPath(); ctx.arc(n.x, n.y, 1.6, 0, 6.2832); ctx.fill(); }
+  ctx.globalAlpha = 1;
+}
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); buildNodes();
+}
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; smx = mx; smy = my; });
+document.addEventListener('mouseleave', () => { smx = -9; });
+document.addEventListener('touchmove', e => { smx = e.touches[0].clientX; });
+window.addEventListener('resize', resize);
+resize(); draw();
+
+// ══ CONTENT ENGINE — text analysis → CSS layout → morph phase ══
+const titleEl = document.getElementById('title');
+const bodyEl = document.getElementById('body');
+const inputEl = document.getElementById('input');
+const pageInner = document.getElementById('page-inner');
+
+function analyze(text) {
+  if (!text.trim()) return { density: 0, pace: 0, structure: 0, wordCount: 0 };
+  const words = text.split(/\s+/).filter(w => w.length > 0);
+  const chars = text.replace(/\s/g, '');
+  const wordCount = words.length;
+  const avgWordLen = chars.length / Math.max(1, wordCount);
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  const avgSentenceLen = wordCount / Math.max(1, sentences.length);
+  const capsCount = (text.match(/[A-Z]{2,}/g) || []).length;
+  const capsRatio = capsCount / Math.max(1, words.length);
+  const questions = (text.match(/\?/g) || []).length;
+  const exclamations = (text.match(/!/g) || []).length;
+  const lines = text.split('\n').filter(l => l.trim().length > 0);
+  const avgLineLen = chars.length / Math.max(1, lines.length);
+  const emptyLines = text.split('\n').filter(l => l.trim().length === 0).length;
+  const sectionRatio = emptyLines / Math.max(1, lines.length);
+  return {
+    wordCount, density: Math.min(1, avgWordLen / 8), pace: Math.min(1, avgSentenceLen / 20),
+    structure: Math.min(1, sectionRatio * 3), urgency: Math.min(1, (questions + exclamations) / Math.max(1, sentences.length)),
+    capsRatio, avgLineLen, avgWordLen, avgSentenceLen, questions
+  };
+}
+
+const samples = {
+  poem: `The frame is the architecture.\nNot a framework. Not a syntax.\nTwenty-six letters is all it takes.\nOne grid. Infinite arrangements.\nThe line that becomes its other.\nPosition is the only variable.`,
+  essay: `The CSS box model is a constraint solver. Every element occupies space, pushes against neighbors, and resolves its position relative to a containing block. This is fundamentally the same discipline as Prima — constraints over frames.
+
+The difference is that CSS can only solve for visual properties. It cannot restructure the DOM. It cannot decide that a paragraph should become a heading because the content demands it.
+
+That judgment belongs to a higher layer — and that layer is what Prima provides. When a website designer chooses a template, they are making a bet about their content. Prima inverts this. Content is not fitted to a template — the template is derived from content.`,
+  list: `Content-adaptive layout\nConstraint-derived typography\nPhase-driven visual identity\nZero pre-compiled templates\nOne engine, infinite arrangements\nNo breakpoints, no media queries`
+};
+
+function applyLayout(text) {
+  const a = analyze(text);
+  const lines = text.split('\n').filter(l => l.trim().length > 0);
+  const title = lines[0] || '';
+  const body = lines.length > 1 ? lines.slice(1).join('\n') : '';
+  const root = pageInner.style;
+
+  // Dramatic distinctions — each content type gets visibly different layout
+  root.setProperty('--col-width', a.avgLineLen < 25 ? '56rem' : a.avgLineLen < 50 ? '42rem' : '32rem');
+  const titleScale = 0.7 + a.structure * 0.5 + (1 - a.capsRatio) * 0.3;
+  root.setProperty('--title-size', `clamp(${1.8 * titleScale}rem, ${5 * titleScale}vw, ${3.5 * titleScale}rem)`);
+  root.setProperty('--title-spacing', a.structure > 0.4 ? '-0.05em' : '-0.02em');
+  root.setProperty('--title-gap', a.structure > 0.3 ? '3.5rem' : '1.5rem');
+  const bodyScale = 0.8 + a.pace * 0.5;
+  root.setProperty('--body-size', `${0.95 * bodyScale}rem`);
+  root.setProperty('--body-leading', 1.3 + a.pace * 0.7);
+  root.setProperty('--body-color', a.urgency > 0.3 ? '#f5f5f7' : (a.structure > 0.4 ? '#c0c0c6' : '#9a9aa2'));
+  root.setProperty('--body-spacing', a.density > 0.5 ? '0.015em' : '0.003em');
+  const padScale = 1 + a.structure * 2.5;
+  root.setProperty('--pad-y', `${5 * padScale}rem`);
+  root.setProperty('--pad-x', `${2 * padScale}rem`);
+
+  targetPhase = 0.25 * a.density + 0.4 * a.pace + 0.35 * a.structure;
+
+  document.getElementById('a-density').textContent = (a.density * 100).toFixed(0) + '%';
+  document.getElementById('a-pace').textContent = (a.pace * 100).toFixed(0) + '%';
+  document.getElementById('a-structure').textContent = (a.structure * 100).toFixed(0) + '%';
+  titleEl.textContent = title;
+  bodyEl.textContent = body;
+}
+
+inputEl.addEventListener('input', () => applyLayout(inputEl.value));
+document.getElementById('btn-poem').addEventListener('click', () => { inputEl.value = samples.poem; applyLayout(samples.poem); });
+document.getElementById('btn-essay').addEventListener('click', () => { inputEl.value = samples.essay; applyLayout(samples.essay); });
+document.getElementById('btn-list').addEventListener('click', () => { inputEl.value = samples.list; applyLayout(samples.list); });
+inputEl.value = samples.poem; applyLayout(samples.poem);
+</script>
+</body>
+</html>
