@@ -139,3 +139,83 @@ One type family: system font stack (`-apple-system, BlinkMacSystemFont, "SF Pro 
 - Zero allocations inside render loop — reuse arrays, mutate in place.
 - Skip connection recomputation when field is settled (reuse `baseConns`).
 - Minimum viable DOM: `<canvas>` + `.hero` div with `<h1>` and `<p>`.
+
+## Design Language
+
+The Prima visual identity is not decoration. It is the constraint model rendered spatially. Every visual decision derives from the same primitive: `as / not_as`.
+
+### Color
+
+| Role | Value | Meaning |
+|------|-------|---------|
+| Field | `#08080b` | The void — near-black, not pure. Sits between presence and absence. |
+| Ink | `rgba(245,245,247, ...)` | All surface elements derive from one white, modulated only by opacity. No secondary greys. |
+| Blue `#5a7aff` | **as** — the positive edge. Appears when structure is affirmed. |
+| Gold `#f5c451` | **frontier** — the seam. Appears in transition, the in-between state. |
+| Orange `#e06a3a` | **not_as** — the negative edge. Appears on violation, guard fires, boundary breach. |
+
+Only one color may dominate the field at a time. The three states sum to unity. The field's dominant hue expresses what the system is doing — not what it looks like.
+
+### Typography
+
+- **One family**: system font stack only. `-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif`
+- **Weight**: 240–320 (ultra-light to light). Never bold. Authority comes from restraint, not weight.
+- **Tracking**: generous. Letter-spacing at `-0.04em` to `-0.06em` for display, `0.02em` to `0.08em` for labels.
+- **Sizing**: `clamp()` for fluidity. Display: `clamp(2.8rem, 11vw, 8rem)`. Body: `clamp(0.72rem, 1.3vw, 0.9rem)`.
+- **Color**: `rgba(245,245,247, 0.94)` for primary, stepping down to `0.32` for secondary. Opacity is hierarchy.
+
+### The Point-Field Lattice
+
+The signature visual of Prima. A regular grid of small points rendered on a dark canvas. The lattice is the latent structure of the constraint model — always present, invisible until disturbed.
+
+- **At rest**: points at 2.5% opacity, radius 0.5px. Near-invisible. The field is calm.
+- **On interaction**: pointer repels points locally. Disturbed points brighten, enlarge, reveal connections. The lattice emerges.
+- **Settling**: energy decays at 0.955/frame. The field returns to equilibrium. No looping. No screensaver motion.
+- **Constraint guard fire**: shockwave propagates. Field turns orange. Points scatter violently, then recover. The system reacted structurally to a boundary violation.
+
+### Motion Principles
+
+1. **Every movement originates from state, interaction, geometry, or recovery.** No decoration.
+2. **Calm and continuous.** Damping at 0.93 ensures overshoot is absorbed, not amplified.
+3. **Disturbance propagates.** Neighbor pull (`NPULL ≈ 0.0014`) allows local disturbance to ripple through the lattice — not instantly, but through connected structure.
+4. **Resize recomputes, not stretches.** Grid placement recalculates from viewport dimensions. The lattice adapts to the canvas.
+
+### What To Avoid
+
+| Don't | Why |
+|-------|-----|
+| Gradients | Implies surface. Prima has no surface — only structure. |
+| Cards, shadows | Implies containment. Prima has frames, not boxes. |
+| Oversized marketing copy | The field is the subject. Text is secondary. |
+| Particle simulation aesthetic | Pudds, trails, glow — feels decorative. Prima is structural. |
+| Screensaver motion | Looping animation without intent. Every frame must originate from state. |
+| External fonts / CDN | Dependency is vulnerability. System fonts are universal. |
+| Hover gimmicks | Interaction must have structural consequence, not cosmetic response. |
+| Section stacking | One canvas, one field. The page is not a document — it's a spatial system.
+
+## Output Guard Integration
+
+When combining the visual system with the `not_as visible` output guard, the field responds to guard violations:
+
+```js
+let shock = 0; // guard violation intensity, decays each frame
+
+// On guard fire:
+shock = 1;
+
+// In step():
+if(shock > 0 && Math.random() < 0.15) {
+  p.vx += (Math.random() - 0.5) * shock * 12;
+  p.vy += (Math.random() - 0.5) * shock * 12;
+  p.e = Math.min(1, p.e + 0.5);
+}
+
+// In draw():
+if(shock > 0.01) {
+  ctx.fillStyle = `rgba(224,106,58,${shock * 0.04})`;
+  ctx.fillRect(0, 0, W, H); // orange wash across entire field
+}
+// Points shift to orange while shock persists
+```
+
+The shockwave is the visual language of constraint violation. It communicates: *"The boundary was tested. It held."*
