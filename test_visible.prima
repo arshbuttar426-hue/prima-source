@@ -1,0 +1,21 @@
+space auth { fn[0] = eq };
+
+-- SCENARIO 1: password compared inside constraint boundary
+-- only the boolean result escapes
+pipe login(attempt) {
+    attempt as string;
+    attempt not_as visible;
+    -> fn[0] from auth(attempt, "correct-horse-battery-staple");
+    output result;
+};
+
+-- SCENARIO 2: attempt to output the password directly
+-- blocked by the output guard
+pipe dump(pw) {
+    pw as alnum;
+    pw not_as visible;
+    output pw;
+};
+
+login("correct-horse-battery-staple");
+dump("hunter2");

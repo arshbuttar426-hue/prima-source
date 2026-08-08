@@ -1,0 +1,9 @@
+space auth { fn[0] = eq };
+pipe login(attempt) {
+    attempt as string;
+    attempt not_as visible;
+    -> fn[0] from auth(attempt, "hunter2");
+    output result;
+};
+login("hunter2");
+login("wrong");
