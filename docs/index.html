@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prima — a constraint-first widget language</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:#08080c;color:#f5f5f7;-webkit-font-smoothing:antialiased;font-weight:300;line-height:1.6}
+  .wrap{max-width:980px;margin:0 auto;padding:72px 32px 96px}
+  h1{font-size:1.1rem;font-weight:400;letter-spacing:0.08em;color:#f5f5f7}
+  .thesis{margin-top:16px;max-width:560px;font-size:0.85rem;color:rgba(245,245,247,0.45)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px;margin-top:56px}
+  .card{display:block;text-decoration:none;color:inherit;border:1px solid rgba(245,245,247,0.08);border-radius:4px;overflow:hidden;transition:border-color 0.3s}
+  .card:hover{border-color:rgba(245,196,81,0.5)}
+  .card img{width:100%;display:block;aspect-ratio:16/9;object-fit:cover;background:#0a0a10}
+  .card .meta{padding:14px 16px}
+  .card .t{font-size:0.8rem;font-weight:400;color:#f5f5f7}
+  .card .d{margin-top:3px;font-size:0.7rem;color:rgba(245,245,247,0.4)}
+  .foot{margin-top:72px;font-size:0.7rem;color:rgba(245,245,247,0.3);letter-spacing:0.05em}
+  .blue{color:#5a7aff}.gold{color:#f5c451}.orange{color:#e06a3a}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>PRIMA</h1>
+  <p class="thesis">Everything is either <span class="blue">as</span> something or <span class="orange">not_as</span> something. There is no third state. The space between is the <span class="gold">seam</span> — the only honest line.<br><br>Open any widget below. No build step. It runs in the browser.</p>
+
+  <div class="grid">
+    <a class="card" href="../outputs/prima-metamorph.html">
+      <img src="../assets/metamorph.gif" alt="metamorph">
+      <div class="meta"><div class="t">Metamorph</div><div class="d">the 3-mode convolution, dominance readout</div></div>
+    </a>
+    <a class="card" href="../outputs/prima_mirror.html">
+      <img src="../assets/mirror.gif" alt="mirror">
+      <div class="meta"><div class="t">Mirror</div><div class="d">drag to draw a mirror; the field folds onto its reflection</div></div>
+    </a>
+    <a class="card" href="../outputs/prima_fracture.html">
+      <img src="../assets/fracture.gif" alt="fracture">
+      <div class="meta"><div class="t">Fracture</div><div class="d">drag to cut a seam; the lattice tears open, then heals</div></div>
+    </a>
+    <a class="card" href="../outputs/prima_resonance.html">
+      <img src="../assets/resonance.gif" alt="resonance">
+      <div class="meta"><div class="t">Resonance</div><div class="d">click to drop a pulse source; rings wash the field</div></div>
+    </a>
+    <a class="card" href="../outputs/prima_gravity.html">
+      <img src="../assets/gravity.gif" alt="gravity">
+      <div class="meta"><div class="t">Gravity</div><div class="d">click to drop gravity wells; the lattice yields</div></div>
+    </a>
+    <a class="card" href="../outputs/prima_seam.html">
+      <img src="../assets/seam.gif" alt="seam">
+      <div class="meta"><div class="t">Seam</div><div class="d">the thesis — the only honest line</div></div>
+    </a>
+    <a class="card" href="../outputs/prima_frame.html">
+      <img src="../assets/frame.gif" alt="frame">
+      <div class="meta"><div class="t">Frame</div><div class="d">the live DSL recompiler</div></div>
+    </a>
+    <a class="card" href="../outputs/prima_one_page.html">
+      <img src="../assets/one_page.gif" alt="one page">
+      <div class="meta"><div class="t">One Page</div><div class="d">monochrome discipline, scroll spine</div></div>
+    </a>
+  </div>
+
+  <div class="foot">PRIMA · AGPL-3.0 · <a class="gold" href="https://github.com/arshbuttar426-hue/prima" style="text-decoration:none">github.com/arshbuttar426-hue/prima</a></div>
+</div>
+</body>
+</html>
