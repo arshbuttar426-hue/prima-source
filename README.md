@@ -51,14 +51,18 @@ frames; `for item in list {}` iterates.
 
 The `outputs/` directory is a set of single-file interactive pieces built on the same
 engine: one node grid, three states that always sum to unity, and a cursor that conducts
-the phase between them.
+the phase between them. Open any of them in a browser — they run directly, no build step.
 
-- `outputs/prima_mirror.html` — drag to draw a mirror; the field folds onto its own reflection
-- `outputs/prima_fracture.html` — drag to cut a seam; the lattice tears open, then heals
-- `outputs/prima_resonance.html` — click to drop a pulse source; rings wash the field
-- `outputs/prima_gravity.html` — click to drop gravity wells; the lattice yields
-
-Open any of them in a browser.
+| widget | demo | interaction |
+|--------|------|-------------|
+| **metamorph** | ![metamorph](assets/metamorph.gif) | the 3-mode convolution, dominance readout |
+| **mirror** | ![mirror](assets/mirror.gif) | drag to draw a mirror; the field folds onto its reflection |
+| **fracture** | ![fracture](assets/fracture.gif) | drag to cut a seam; the lattice tears open, then heals |
+| **resonance** | ![resonance](assets/resonance.gif) | click to drop a pulse source; rings wash the field |
+| **gravity** | ![gravity](assets/gravity.gif) | click to drop gravity wells; the lattice yields |
+| **seam** | ![seam](assets/seam.gif) | the thesis — the only honest line |
+| **frame** | ![frame](assets/frame.gif) | the live DSL recompiler |
+| **one page** | ![one page](assets/one_page.gif) | monochrome discipline, scroll spine |
 
 ## License
 
