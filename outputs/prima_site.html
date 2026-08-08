@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prima — the only honest line</title>
+<style>
+@layer tokens, base, layout, motion, platform;
+
+/* ═══════════ TOKENS — one source of truth ═══════════ */
+@layer tokens{
+  :root{
+    --u:8px;
+    --s-1:calc(var(--u)*1);   --s-2:calc(var(--u)*2);   --s-3:calc(var(--u)*3);
+    --s-4:calc(var(--u)*5);   --s-5:calc(var(--u)*8);   --s-6:calc(var(--u)*13);
+    --s-7:calc(var(--u)*21);
+
+    --bg:#000;   --surface:#0d0d0f;   --panel:#0a0a0c;
+    --ink:#f5f5f7; --dim:#9a9aa2;  --faint:rgba(255,255,255,0.34);
+    --line:rgba(255,255,255,0.07);  --line-soft:rgba(255,255,255,0.045);
+    --glow:rgba(255,255,255,0.035);
+
+    /* the three state hues — the only colour that may ever appear */
+    --blue:#5a7aff; --gold:#f5c451; --orange:#e06a3a;
+
+    --t-xxs:clamp(0.70rem,0.62rem+0.28vw,0.82rem);
+    --t-xs:clamp(0.80rem,0.70rem+0.34vw,0.92rem);
+    --t-sm:clamp(0.88rem,0.78rem+0.4vw,1.00rem);
+    --t-md:clamp(1.00rem,0.86rem+0.6vw,1.12rem);
+    --t-lg:clamp(1.62rem,1.2rem+2.4vw,2.62rem);
+    --t-xl:clamp(2.62rem,1.6rem+4.6vw,4.24rem);
+    --t-xxl:clamp(3.40rem,1.9rem+7.0vw,6.86rem);
+
+    --measure:65ch;
+    --r-lg:24px; --r-md:18px; --r-sm:12px;
+
+    --ease-shutter:cubic-bezier(0.9,0,0.1,1);
+    --ease-soft:cubic-bezier(0.22,0.61,0.36,1);
+    --ease-spring:cubic-bezier(0.34,1.56,0.64,1);
+    --dur-fast:260ms; --dur-mid:600ms; --dur-slow:900ms;
+  }
+}
+
+/* ═══════════ BASE ═══════════ */
+@layer base{
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%;accent-color:var(--ink)}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",sans-serif;
+    background:var(--bg);color:var(--ink);
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    font-size:var(--t-md);font-weight:400;line-height:1.618;overflow-x:hidden;
+  }
+  ::selection{background:rgba(255,255,255,0.18)}
+  :focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+  img,svg,video{max-width:100%;display:block}
+  .col{max-width:min(1100px,100%-var(--s-5));margin-inline:auto;padding-inline:var(--s-3)}
+  @media(min-width:600px){.col{max-width:min(1100px,100%-var(--s-6));padding-inline:var(--s-4)}}
+  a{color:inherit}
+}
+
+/* ═══════════ LAYOUT ═══════════ */
+@layer layout{
+  .field{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(120% 90% at 50% 0%,var(--glow),transparent 60%)}
+  .field::after{content:"";position:absolute;inset:0;opacity:0.045;
+    background-image:linear-gradient(var(--line-soft) 1px,transparent 1px),
+                     linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);
+    background-size:calc(var(--u)*12) calc(var(--u)*12);
+    mask-image:radial-gradient(ellipse 70% 60% at 50% 40%,black,transparent 75%)}
+
+  nav{position:fixed;top:0;inset-inline:0;z-index:50;height:44px;display:flex;align-items:center;
+    backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);
+    background:rgba(0,0,0,0.65);border-bottom:1px solid var(--line-soft)}
+  nav .inner{width:100%;max-width:1100px;margin-inline:auto;display:flex;align-items:center;gap:var(--s-4);padding-inline:var(--s-3)}
+  nav{container-type:inline-size}
+  nav .links{margin-left:auto;display:flex;gap:clamp(var(--s-3),6cqw,var(--s-4));align-items:center}
+  nav .links a{color:var(--faint);text-decoration:none;font-size:var(--t-xs);letter-spacing:-0.01em}
+
+  .hero{position:relative;z-index:1;min-height:100svh;display:grid;place-items:center;text-align:center;padding:var(--s-7) var(--s-3) var(--s-5)}
+  .hero .inner{max-width:var(--measure)}
+  .eyebrow{font-size:var(--t-xxs);font-weight:500;letter-spacing:0.35em;text-transform:uppercase;color:var(--dim);margin-bottom:var(--s-3)}
+  .hero h1{font-weight:300;font-size:var(--t-xxl);letter-spacing:-0.045em;line-height:0.98;margin-bottom:var(--s-4)}
+  .hero h1 .seam{display:inline-block;width:0.14em;height:1px;vertical-align:middle;background:var(--ink);margin-inline:0.05em;transform:translateY(-0.08em)}
+  .hero .lede{font-size:var(--t-lg);font-weight:300;color:var(--dim);max-width:34rem;margin-inline:auto;letter-spacing:0}
+  .hero .lede .as{color:var(--blue)} .hero .lede .na{color:var(--orange)} .hero .lede .sm{color:var(--gold)}
+
+  .law{position:relative;z-index:1;padding:var(--s-6) 0;border-top:1px solid var(--line-soft)}
+  .law .col{display:flex;flex-direction:column;align-items:center;text-align:center}
+  .law h2{font-weight:300;font-size:var(--t-xl);letter-spacing:-0.03em;line-height:1.1;margin-bottom:var(--s-2)}
+  .law p{color:var(--dim);font-size:var(--t-md);max-width:34rem}
+  .dsl{margin-top:var(--s-4);width:min(680px,100%);background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--r-lg);padding:var(--s-4);text-align:left;overflow:hidden;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-sm);line-height:1.9;color:var(--dim)}
+  .dsl .ln{display:block;white-space:pre}
+  .dsl .c{color:var(--faint)}
+  .dsl .as{color:var(--blue)} .dsl .na{color:var(--orange)} .dsl .kw{color:var(--gold)}
+
+  .engine{position:relative;z-index:1;padding:var(--s-6) 0 var(--s-7);border-top:1px solid var(--line-soft);
+    container-type:inline-size}
+  .engine .col{display:flex;flex-direction:column;align-items:center;text-align:center}
+  .engine h2{font-weight:300;font-size:var(--t-xl);letter-spacing:-0.03em;line-height:1.1;margin-bottom:var(--s-2)}
+  .engine p{color:var(--dim);font-size:var(--t-md);max-width:32rem}
+
+  .frame-panel{margin-top:var(--s-4);position:relative;width:min(760px,100%);aspect-ratio:16/9;
+    border-radius:var(--r-lg);border:1px solid var(--line);background:var(--panel);overflow:hidden;
+    box-shadow:0 40px 80px -40px rgba(0,0,0,0.9),inset 0 1px 0 rgba(255,255,255,0.05)}
+  .frame-panel canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .frame-panel .rings{position:absolute;inset:0;pointer-events:none;z-index:2}
+  .frame-panel .rings::before{content:"";position:absolute;inset:8%;border:1px solid rgba(255,255,255,0.035);border-radius:50%}
+  .frame-panel .rings::after{content:"";position:absolute;inset:30%;border:1px solid rgba(255,255,255,0.025);border-radius:50%}
+  .frame-panel .badge{position:absolute;top:var(--s-2);inset-inline-start:var(--s-3);z-index:3;font-size:var(--t-xxs);letter-spacing:0.25em;text-transform:uppercase;color:var(--dim)}
+  .frame-panel .stage{position:absolute;top:var(--s-2);inset-inline-end:var(--s-3);z-index:3;display:flex;gap:6px}
+  .frame-panel .stage i{width:6px;height:6px;border-radius:50%;background:var(--ink);opacity:0.16;transition:opacity var(--dur-fast) var(--ease-soft)}
+  .frame-panel .stage i.on{opacity:1}
+  .frame-panel .readout{position:absolute;bottom:var(--s-2);inset-inline:0;z-index:3;display:flex;align-items:center;justify-content:center;gap:clamp(var(--s-3),6cqw,var(--s-4));flex-wrap:wrap;padding-inline:var(--s-2)}
+  .frame-panel .readout .r{font-size:var(--t-xs);color:var(--dim);display:flex;align-items:center;gap:var(--s-1)}
+  .frame-panel .readout .r b{font-weight:600;font-variant-numeric:tabular-nums}
+  .frame-panel .readout .r.ba b{color:var(--blue)} .frame-panel .readout .r.bf b{color:var(--gold)} .frame-panel .readout .r.bn b{color:var(--orange)}
+  .engine .hint{margin-top:var(--s-2);font-size:var(--t-xs);color:var(--faint);letter-spacing:0.02em}
+
+  .gallery{position:relative;z-index:1;padding:var(--s-5) 0 var(--s-7);border-top:1px solid var(--line-soft)}
+  .gallery .kicker{font-size:var(--t-xxs);font-weight:500;letter-spacing:0.3em;text-transform:uppercase;color:var(--dim);margin:var(--s-5) 0 var(--s-4)}
+  .gallery .col p{color:var(--dim);font-size:var(--t-md);max-width:34rem}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--s-3);margin-top:var(--s-3)}
+  .card{display:block;text-decoration:none;color:inherit;background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--r-md);overflow:hidden;transition:border-color var(--dur-fast) var(--ease-soft)}
+  .card:hover{border-color:rgba(245,196,81,0.5)}
+  .card img{width:100%;aspect-ratio:16/9;object-fit:cover;background:#0a0a10}
+  .card .meta{padding:var(--s-2) var(--s-3) var(--s-3)}
+  .card .t{font-size:var(--t-sm);font-weight:500}
+  .card .d{margin-top:2px;font-size:var(--t-xxs);color:var(--dim)}
+  .card .go{margin-top:var(--s-2);font-size:var(--t-xxs);color:var(--gold);letter-spacing:0.2em;text-transform:uppercase;display:inline-block}
+
+  .source{position:relative;z-index:1;padding:var(--s-6) 0;border-top:1px solid var(--line-soft)}
+  .source .col{display:flex;flex-direction:column;align-items:center;text-align:center}
+  .source h2{font-weight:300;font-size:var(--t-xl);letter-spacing:-0.03em;line-height:1.1;margin-bottom:var(--s-2)}
+  .source p{color:var(--dim);font-size:var(--t-md);max-width:34rem}
+  .code{margin-top:var(--s-4);width:min(680px,100%);background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--r-lg);padding:var(--s-4);text-align:left;overflow:hidden;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-sm);line-height:1.9;color:var(--dim)}
+  .source .row{margin-top:var(--s-3);display:flex;gap:var(--s-3);flex-wrap:wrap;justify-content:center}
+  .btn{display:inline-flex;align-items:center;gap:var(--s-1);padding:var(--s-2) var(--s-4);border-radius:999px;
+    border:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:var(--t-xs);letter-spacing:0.06em;
+    transition:border-color var(--dur-fast) var(--ease-soft),background var(--dur-fast) var(--ease-soft)}
+  .btn:hover{border-color:var(--ink);background:var(--surface)}
+
+  .principles{position:relative;z-index:1;padding:0 0 var(--s-6);border-top:1px solid var(--line-soft)}
+  .principles .kicker{font-size:var(--t-xxs);font-weight:500;letter-spacing:0.3em;text-transform:uppercase;color:var(--dim);margin:var(--s-6) 0 var(--s-4)}
+  .prims{display:grid;grid-template-columns:repeat(3,1fr);gap:0 1px;background:var(--line-soft);border:1px solid var(--line-soft);border-radius:var(--r-lg);overflow:hidden}
+  @media(max-width:760px){.prims{grid-template-columns:1fr}}
+  .prim{background:var(--surface);padding:var(--s-4) var(--s-3);position:relative;overflow:hidden}
+  .prim::after{content:"";position:absolute;inset-block:0;inset-inline-start:0;width:2px;background:var(--ink);transform:scaleY(0);transform-origin:top}
+  .prim .num{font-size:var(--t-xs);color:var(--faint);letter-spacing:0.2em;margin-bottom:var(--s-3)}
+  .prim .name{font-size:var(--t-md);font-weight:500;margin-bottom:var(--s-1)}
+  .prim .desc{font-size:var(--t-sm);line-height:1.7;color:var(--dim)}
+
+  footer{position:relative;z-index:1;padding:var(--s-5) 0 var(--s-6);color:var(--faint);font-size:var(--t-xs);text-align:center;border-top:1px solid var(--line-soft)}
+  footer .big{font-weight:300;color:var(--ink);font-size:var(--t-lg);letter-spacing:-0.02em;margin-bottom:var(--s-1)}
+  footer .small{margin-top:var(--s-2)}
+  footer .gold{color:var(--gold);text-decoration:none}
+}
+
+/* ═══════════ MOTION — compositor only, one grammar ═══════════ */
+@layer motion{
+  nav .links a{transition:color var(--dur-fast) var(--ease-soft)}
+  nav .links a:hover{color:var(--ink)}
+  .hero h1 .gl{display:inline-block;opacity:0;transform:translateY(0.5em);will-change:transform,opacity}
+  .hero h1 .gl.in{opacity:1;transform:translateY(0);transition:transform var(--dur-mid) var(--ease-shutter),opacity var(--dur-mid) var(--ease-soft)}
+  .prim::after{transition:transform var(--dur-mid) var(--ease-shutter)}
+  .prim:hover::after{transform:scaleY(1)}
+  .prim .num{transition:color var(--dur-fast) var(--ease-soft),transform var(--dur-fast) var(--ease-soft)}
+  .prim:hover .num{color:var(--ink);transform:translateX(calc(var(--u)*0.75))}
+  .card{transition:border-color var(--dur-fast) var(--ease-soft),transform var(--dur-fast) var(--ease-soft)}
+  .card:hover{transform:translateY(-2px)}
+}
+
+/* ═══════════ PLATFORM ═══════════ */
+@layer platform{
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+    .hero h1 .gl{opacity:1;transform:none}
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="field"></div>
+
+<nav>
+  <div class="inner">
+    <div class="mark" style="font-size:var(--t-xs);letter-spacing:0.3em;color:var(--ink)">PRIMA</div>
+    <div class="links">
+      <a href="#law">The frame</a>
+      <a href="#engine">The engine</a>
+      <a href="#gallery">Widgets</a>
+      <a href="#source">Source</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="top">
+  <div class="inner">
+    <div class="eyebrow">A constraint-first widget language</div>
+    <h1>Everything is<br><span class="as">as</span> or <span class="na">not_as</span>.<span class="seam"></span></h1>
+    <p class="lede">There is no third state. The line between <span class="as">as</span> and <span class="na">not_as</span> is the <span class="sm">seam</span> — the only honest line.</p>
+  </div>
+</section>
+
+<!-- LAW -->
+<section class="law" id="law">
+  <div class="col">
+    <h2>The frame</h2>
+    <p>One primitive, two halves. A value counts as something — and absolutely does not count as something else. That's the entire language.</p>
+    <div class="dsl">
+      <span class="ln"><span class="c">// the frame — positive and negative edge</span></span>
+      <span class="ln">fav_movie <span class="as">as</span> string <span class="na">not_as</span> digit;</span>
+      <span class="ln">score <span class="as">as</span> number <span class="na">not_as</span> negative;</span>
+      <span class="ln">phase <span class="as">as</span> wave <span class="na">not_as</span> still;</span>
+    </div>
+  </div>
+</section>
+
+<!-- ENGINE -->
+<section class="engine" id="engine">
+  <div class="col">
+    <h2>One system. Three states.</h2>
+    <p>Move across the field. The three states always sum to unity — one thing, three arrangements.</p>
+    <div class="frame-panel">
+      <div class="rings"></div>
+      <div class="badge">constraint · metamorphosis</div>
+      <div class="stage"><i></i><i></i><i></i></div>
+      <canvas id="morph"></canvas>
+      <div class="readout">
+        <div class="r ba">as &nbsp;<b id="mA">—</b></div>
+        <div class="r bf">frontier &nbsp;<b id="mF">—</b></div>
+        <div class="r bn">not_as &nbsp;<b id="mN">—</b></div>
+      </div>
+    </div>
+    <div class="hint">Cursor x conducts the ratio — the seam is your hand.</div>
+  </div>
+</section>
+
+<!-- GALLERY -->
+<section class="gallery" id="gallery">
+  <div class="col">
+    <div class="kicker">Widgets</div>
+    <p>Eight single-file pieces on one engine. Open any of them — no build step, they run in the browser.</p>
+    <div class="cards">
+      <a class="card" href="../outputs/prima-metamorph.html"><img src="../assets/metamorph.gif" alt="metamorph">
+        <div class="meta"><div class="t">Metamorph</div><div class="d">the 3-mode convolution, dominance readout</div><span class="go">Open →</span></div></a>
+      <a class="card" href="../outputs/prima_mirror.html"><img src="../assets/mirror.gif" alt="mirror">
+        <div class="meta"><div class="t">Mirror</div><div class="d">drag to draw a mirror; the field folds onto its reflection</div><span class="go">Open →</span></div></a>
+      <a class="card" href="../outputs/prima_fracture.html"><img src="../assets/fracture.gif" alt="fracture">
+        <div class="meta"><div class="t">Fracture</div><div class="d">drag to cut a seam; the lattice tears open, then heals</div><span class="go">Open →</span></div></a>
+      <a class="card" href="../outputs/prima_resonance.html"><img src="../assets/resonance.gif" alt="resonance">
+        <div class="meta"><div class="t">Resonance</div><div class="d">click to drop a pulse source; rings wash the field</div><span class="go">Open →</span></div></a>
+      <a class="card" href="../outputs/prima_gravity.html"><img src="../assets/gravity.gif" alt="gravity">
+        <div class="meta"><div class="t">Gravity</div><div class="d">click to drop gravity wells; the lattice yields</div><span class="go">Open →</span></div></a>
+      <a class="card" href="../outputs/prima_seam.html"><img src="../assets/seam.gif" alt="seam">
+        <div class="meta"><div class="t">Seam</div><div class="d">the thesis — the only honest line</div><span class="go">Open →</span></div></a>
+      <a class="card" href="../outputs/prima_frame.html"><img src="../assets/frame.gif" alt="frame">
+        <div class="meta"><div class="t">Frame</div><div class="d">the live DSL recompiler</div><span class="go">Open →</span></div></a>
+      <a class="card" href="../outputs/prima_one_page.html"><img src="../assets/one_page.gif" alt="one page">
+        <div class="meta"><div class="t">One Page</div><div class="d">monochrome discipline, scroll spine</div><span class="go">Open →</span></div></a>
+    </div>
+  </div>
+</section>
+
+<!-- SOURCE -->
+<section class="source" id="source">
+  <div class="col">
+    <h2>The source</h2>
+    <p>A pure-C interpreter, no dependencies, plus a Python reference implementation and a test suite. Build it anywhere.</p>
+    <div class="code">
+      <span class="ln"><span class="c"># build</span></span>
+      <span class="ln">cc -o prima prima.c</span>
+      <span class="ln">./prima test.prima</span>
+    </div>
+    <div class="row">
+      <a class="btn" href="https://github.com/arshbuttar426-hue/prima">View on GitHub</a>
+      <a class="btn" href="https://github.com/arshbuttar426-hue/prima/archive/refs/heads/main.zip">Download source</a>
+    </div>
+  </div>
+</section>
+
+<!-- PRINCIPLES -->
+<section class="principles" id="principles">
+  <div class="col">
+    <div class="kicker">Principles</div>
+    <div class="prims">
+      <div class="prim" tabindex="0"><div class="num">01</div><div class="name">Precision</div><div class="desc">Everything is position or computation. No hidden state, no extra kinds. The system is exactly what it appears to be.</div></div>
+      <div class="prim" tabindex="0"><div class="num">02</div><div class="name">Restraint</div><div class="desc">Only arrangement and sign are modulated. Nothing is injected; re-framing is swapping the same atoms.</div></div>
+      <div class="prim" tabindex="0"><div class="num">03</div><div class="name">Continuity</div><div class="desc">The line never breaks — it transforms. Structure endures while its function finds a new form.</div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="big">The only honest line is the seam.</div>
+  <div class="small">Prima · AGPL-3.0 · <a class="gold" href="https://github.com/arshbuttar426-hue/prima">github.com/arshbuttar426-hue/prima</a></div>
+</footer>
+
+<script>
+/* ══════════ hero — generative letter reveal ══════════ */
+(function(){
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const h1=document.querySelector('.hero h1');
+  h1.innerHTML=h1.textContent.split('').map((ch,i)=>
+    ch==='\n'?'<br>':`<span class="gl" style="transition-delay:${reduce?0:i*0.022}s">${ch===' '?'&nbsp;':ch}</span>`).join('');
+  requestAnimationFrame(()=>document.querySelectorAll('.hero .gl').forEach(g=>g.classList.add('in')));
+})();
+
+/* ══════════ the metamorph grid — cursor x conducts the phase ══════════ */
+const CV=document.getElementById('morph');
+const ctx=CV.getContext('2d');
+const DPR=Math.min(window.devicePixelRatio||1,2);
+const BLUE='#5a7aff',GOLD='#f5c451',ORANGE='#e06a3a';
+let W=0,H=0;
+const COLS=30,ROWS=16;
+let nodes=[];
+let cxp=0.5,p=0.5;
+function buildNodes(){
+  const padX=W*0.07,padY=H*0.18;
+  const gw=(W-padX*2)/(COLS-1),gh=(H-padY*2)/(ROWS-1);
+  const fresh=nodes.length===0,next=[];
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const tx=padX+c*gw,ty=padY+r*gh;
+    next.push(fresh?{x:tx,y:ty,bx:tx,by:ty,bob:Math.random()*6.28}:{...nodes[r*COLS+c],bx:tx,by:ty});
+  }
+  nodes=next;
+}
+function weights(ph){const b=0.42;
+  const w0=Math.exp(-Math.pow(ph/b,2)),w1=Math.exp(-Math.pow((ph-0.5)/b,2)),w2=Math.exp(-Math.pow((ph-1)/b,2));
+  const s=(w0+w1+w2)||1;return[w0/s,w1/s,w2/s];}
+const ix=(c,r)=>r*COLS+c;
+function draw(){
+  requestAnimationFrame(draw);
+  if(W===0)return;
+  const t=performance.now()*0.001;
+  if(cxp<0){const drift=0.5+0.42*Math.sin(t*0.12);p+=(drift-p)*0.02;}
+  else{p+=(cxp-p)*0.045;}
+  for(const n of nodes){n.x+=(n.bx-n.x)*0.08;n.y+=(n.by-n.y)*0.08;n.x+=Math.sin(t*0.6+n.bob)*7;n.y+=Math.cos(t*0.5+n.bob)*7;}
+  const[wA,wF,wN]=weights(p);
+  ctx.clearRect(0,0,W,H);
+  ctx.lineWidth=0.8;ctx.strokeStyle=BLUE;ctx.globalAlpha=wA*0.55;
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS-1;c++){ctx.beginPath();ctx.moveTo(nodes[ix(c,r)].x,nodes[ix(c,r)].y);ctx.lineTo(nodes[ix(c+1,r)].x,nodes[ix(c+1,r)].y);ctx.stroke();}
+  ctx.lineWidth=0.6;ctx.strokeStyle=GOLD;ctx.globalAlpha=wF*0.45;
+  for(let r=0;r<ROWS-1;r++)for(let c=0;c<COLS-1;c++){ctx.beginPath();ctx.moveTo(nodes[ix(c,r)].x,nodes[ix(c,r)].y);ctx.lineTo(nodes[ix(c+1,r+1)].x,nodes[ix(c+1,r+1)].y);ctx.stroke();ctx.beginPath();ctx.moveTo(nodes[ix(c+1,r)].x,nodes[ix(c+1,r)].y);ctx.lineTo(nodes[ix(c,r+1)].x,nodes[ix(c,r+1)].y);ctx.stroke();}
+  const cx=W/2,cy=H/2;ctx.lineWidth=0.7;ctx.strokeStyle=ORANGE;ctx.globalAlpha=wN*0.4;
+  for(const n of nodes){ctx.beginPath();ctx.moveTo(n.x,n.y);ctx.lineTo(cx,cy);ctx.stroke();}
+  const domA=wA>=wF&&wA>=wN,domN=wN>=wF;ctx.globalAlpha=1;
+  const tint=domA?BLUE:(domN?ORANGE:GOLD);
+  ctx.fillStyle=tint;
+  for(const n of nodes){const r=1.5+(domA?0.9:(domN?0:0.4));ctx.beginPath();ctx.arc(n.x,n.y,r,0,6.2832);ctx.fill();}
+  ctx.globalAlpha=1;
+  const pct=v=>Math.round(v*100)+'%';
+  document.getElementById('mA').textContent=pct(wA);
+  document.getElementById('mN').textContent=pct(wN);
+  document.getElementById('mF').textContent=pct(wF);
+  const stage=document.querySelectorAll('.frame-panel .stage i');
+  stage[0].classList.toggle('on',domA);stage[2].classList.toggle('on',domN);stage[1].classList.toggle('on',!domA&&!domN);
+}
+function resize(){const r=CV.parentElement.getBoundingClientRect();W=r.width;H=r.height;CV.width=Math.round(W*DPR);CV.height=Math.round(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);buildNodes();}
+new ResizeObserver(resize).observe(document.querySelector('.frame-panel'));
+const panel=document.querySelector('.frame-panel');
+document.addEventListener('mousemove',e=>{const r=panel.getBoundingClientRect();cxp=(e.clientX-r.left)/r.width;});
+document.addEventListener('mouseleave',()=>{cxp=-1;});
+document.addEventListener('touchmove',e=>{const r=panel.getBoundingClientRect();cxp=(e.touches[0].clientX-r.left)/r.width;},{passive:true});
+
+resize();draw();
+</script>
+</body>
+</html>
